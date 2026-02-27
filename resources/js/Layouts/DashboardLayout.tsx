@@ -7,6 +7,7 @@ import {
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar
 } from 'lucide-react';
+import logo from '../assets/i_hadir_logo.png';
 
 // --- Menu Data Types ---
 interface MenuItem {
@@ -274,12 +275,13 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       >
         <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#152450]">
           {isSidebarOpen ? (
-             <div className="flex flex-col items-center justify-center border-2 border-white px-3 py-1">
-               <span className="text-[10px] tracking-[0.2em] font-semibold text-white/80">2026</span>
-               <h1 className="text-xl font-black tracking-wider text-white leading-none">I-HADIR</h1>
+             <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
+               <img src={logo} alt="I-HADIR Logo" className="h-12 w-auto object-contain" />
              </div>
           ) : (
-             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-black text-[#1c3068]">I</div>
+             <div className="flex items-center justify-center bg-white/90 p-1.5 rounded-lg">
+               <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
+             </div>
           )}
         </div>
 

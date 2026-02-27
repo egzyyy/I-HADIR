@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye } from 'lucide-react';
 import forgotPasswordHeader from '../assets/2af3b918b05695c088545926d4ebd660ecb51845.png';
 import { Link, useNavigate } from 'react-router-dom';
+import logo from '../../assets/i_hadir_logo.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,10 +16,8 @@ export default function Login() {
         <div className="w-full lg:w-1/2 flex flex-col p-8 lg:p-12 xl:p-16 relative">
           {/* Logo - Clickable to go back */}
           <div className="flex items-center gap-2 cursor-pointer mb-8" onClick={() => setView('login')}>
-            <div className="flex-shrink-0 flex flex-col items-center justify-center border-2 border-[#1c3068] px-3 py-1">
-              <span className="text-[10px] tracking-[0.2em] font-semibold text-[#1c3068]/80">2026</span>
-              <h1 className="text-xl font-black tracking-wider text-[#1c3068] leading-none">I-HADIR</h1>
-              <span className="text-[8px] tracking-[0.4em] text-[#1c3068]/60 uppercase w-full text-center border-t border-[#1c3068]/20 mt-1 pt-0.5">System</span>
+            <div className="flex-shrink-0 flex items-center">
+              <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
             </div>
           </div>
 
@@ -188,10 +187,8 @@ export default function Login() {
       <div className="w-full lg:w-1/2 flex flex-col p-8 lg:p-12 xl:p-16 relative">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 cursor-pointer">
-          <div className="flex-shrink-0 flex flex-col items-center justify-center border-2 border-[#1c3068] px-3 py-1">
-             <span className="text-[10px] tracking-[0.2em] font-semibold text-[#1c3068]/80">2026</span>
-             <h1 className="text-xl font-black tracking-wider text-[#1c3068] leading-none">I-HADIR</h1>
-             <span className="text-[8px] tracking-[0.4em] text-[#1c3068]/60 uppercase w-full text-center border-t border-[#1c3068]/20 mt-1 pt-0.5">System</span>
+          <div className="flex-shrink-0 flex items-center">
+             <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
           </div>
         </Link>
 

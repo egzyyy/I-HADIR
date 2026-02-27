@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
+import logo from '../../assets/i_hadir_logo.png';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -80,10 +81,8 @@ export const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-24">
           
           {/* Logo Section */}
-          <div className="flex-shrink-0 flex flex-col items-center justify-center border-2 border-[#1c3068] px-3 py-1 cursor-pointer">
-             <span className="text-[10px] tracking-[0.2em] font-semibold text-[#1c3068]/80">2026</span>
-             <h1 className="text-2xl font-black tracking-wider text-[#1c3068] leading-none">I-HADIR</h1>
-             <span className="text-[10px] tracking-[0.4em] text-[#1c3068]/60 uppercase w-full text-center border-t border-[#1c3068]/20 mt-1 pt-0.5">System</span>
+          <div className="flex-shrink-0 flex items-center cursor-pointer py-2">
+             <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
           </div>
 
           {/* Desktop Menu */}

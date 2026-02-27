@@ -7,7 +7,7 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           
-          {/* Brand */}
+          {/*
           <div>
             <div className="flex items-center gap-2 mb-6">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
@@ -34,7 +34,6 @@ export const Footer = () => {
             </div>
           </div>
 
-          {/* Links */}
           <div>
             <h4 className="text-lg font-bold mb-6">Quick Links</h4>
             <ul className="space-y-3 text-gray-300">
@@ -46,7 +45,6 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Resources */}
           <div>
             <h4 className="text-lg font-bold mb-6">Resources</h4>
             <ul className="space-y-3 text-gray-300">
@@ -58,7 +56,6 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Newsletter */}
           <div>
             <h4 className="text-lg font-bold mb-6">Newsletter</h4>
             <p className="text-gray-300 mb-4">Subscribe to our newsletter to get latest updates.</p>
@@ -73,8 +70,8 @@ export const Footer = () => {
               </button>
             </form>
           </div>
+          */}
         </div>
-
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-gray-400 text-sm">
           <p>&copy; 2026 I-HADIR. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
@@ -83,6 +80,7 @@ export const Footer = () => {
           </div>
         </div>
       </div>
+      
     </footer>
   );
 };
