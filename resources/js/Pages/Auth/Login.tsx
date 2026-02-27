@@ -31,7 +31,7 @@ export default function Login() {
               </div>
               <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Forgot Your Password?</h2>
               <p className="text-gray-500 text-sm leading-relaxed">
-                No worries! Enter your identification number and<br />
+                No worries! Enter your school code and<br />
                 create a new password to regain access.
               </p>
             </div>
@@ -40,12 +40,12 @@ export default function Login() {
               {/* ID Number Field */}
               <div className="relative group">
                 <label className="block text-sm font-semibold text-[#1c3068] mb-3">
-                  Identification Number
+                  School Code
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Enter your IC number"
+                    placeholder="Enter your school code"
                     className="w-full px-0 pb-3 pt-1 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
                   />
                   <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#c53336] transition-all duration-300 group-focus-within:w-full"></div>
@@ -208,22 +208,33 @@ export default function Login() {
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Welcome Back</h2>
             <p className="text-gray-500 text-sm">
-              Enter your identification number and password to access your account.
+              Enter your school code, identification number and password to access your account.
             </p>
           </div>
 
           <form className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-[#1c3068] mb-2">
-                Identification Number
+                School Code
               </label>
               <input
                 type="text"
-                placeholder="Enter your ID number"
+                placeholder="Enter your school code"
                 className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]"
               />
             </div>
-          
+
+            <div>
+              <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+                Admin Identification Number
+              </label>
+              <input
+                type="text"
+                placeholder="Enter your admin identification number"
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]"
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-[#1c3068] mb-2">
                 Password

@@ -2,47 +2,57 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    // 1. Define custom primary key
+    protected $primaryKey = 'user_id';
+
+    // 2. Add all the new fields to the fillable array
     protected $fillable = [
-        'name',
+        'school_id',
+        'first_name',
+        'last_name',
+        'ic_number',
         'email',
         'password',
+        'phone_num',
+        'position',
+        'bio_desc',
+        'address',
+        'city',
+        'state',
+        'postcode',
+        'country',
+        'emergency_contact_name',
+        'emergency_relationship',
+        'emergency_phone_num',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+    // 3. Hide sensitive data from arrays/JSON
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    // 4. Cast dates and hashed passwords
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // 5. Relationship to the school
+    public function school()
+    {
+        return $this->belongsTo(School::class, 'school_id', 'school_id');
     }
 }
