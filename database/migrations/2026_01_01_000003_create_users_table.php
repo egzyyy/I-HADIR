@@ -12,13 +12,37 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
+            $table->id('user_id');
+            $table->foreignId('school_id')->nullable()->references('school_id')->on('schools')->cascadeOnDelete();
+            
+            // Core Identity & Auth
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('ic_number', 12)->unique()->nullable()->comment('No. Kad Pengenalan');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            
+            // Job & Contact Details
+            $table->string('phone_num')->nullable();
+            $table->string('position')->nullable()->comment('E.g., Pengetua, PKHEM, Guru Data, Admin IT');
+            $table->text('bio_desc')->nullable();
+            
+            // Address
+            $table->text('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('postcode', 10)->nullable();
+            $table->string('country')->default('Malaysia');
+
+            // Emergency Contact
+            $table->string('emergency_contact_name')->nullable();
+            $table->string('emergency_relationship')->nullable();
+            $table->string('emergency_phone_num')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes(); // Protects admin records from accidental permanent deletion
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
