@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye } from 'lucide-react';
 import forgotPasswordHeader from '../assets/2af3b918b05695c088545926d4ebd660ecb51845.png';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/i_hadir_logo.png';
+import logo from '../../assets/i_hadir_logo2.png';
 
 export default function Login() {
   const navigate = useNavigate();

@@ -7,7 +7,7 @@ import {
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar
 } from 'lucide-react';
-import logo from '../assets/i_hadir_logo.png';
+import logo from '../assets/i_hadir_logo2.png';
 
 // --- Menu Data Types ---
 interface MenuItem {

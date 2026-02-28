@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import logo from '../../assets/i_hadir_logo.png';
+import logo from '../../assets/i_hadir_logo2.png';
 
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
