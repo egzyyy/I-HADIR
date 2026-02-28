@@ -184,18 +184,7 @@ const FacilityReport = () => {
                        </tr>
                      )}
                   </tbody>
-                  {/* Replicating the footer from image which shows input-like headers at bottom */}
-                  <tfoot className="border-t border-gray-200">
-                     <tr className="bg-white">
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Name</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Class</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Date</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Attendance</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Time In</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800 border-r border-gray-100">Time Out</th>
-                        <th className="px-4 py-3 text-xs font-bold text-gray-800">Reason</th>
-                     </tr>
-                  </tfoot>
+
                 </table>
               </div>
 
