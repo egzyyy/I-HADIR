@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Upload, FileText, Download, AlertCircle, CheckCircle, X, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
-import apdmFormatImage from '../../assets/730681c94a22fd28f633774954ac9c54cb01a71e.png';
+import apdmFormatImage from '../../assets/apdm.png';
 
 const ImportApdm = () => {
   const [selectedClass, setSelectedClass] = useState('');
