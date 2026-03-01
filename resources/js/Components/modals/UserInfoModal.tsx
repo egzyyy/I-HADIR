@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion'; // or 'motion/react' depending on your package setup
 import { User, Printer, ArrowLeft, Phone, Calendar, Hash, Users, Heart, UserCircle2 } from 'lucide-react';
 
 interface UserInfoModalProps {
@@ -10,17 +10,37 @@ interface UserInfoModalProps {
     phone: string;
     gender: string;
     role: string;
+    type: string;
     registeredDate: string;
-    icNumber?: string;
-    email?: string;
+    raw_data?: any; // Contains the full database row
   } | null;
 }
 
 export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => {
   if (!isOpen || !user) return null;
 
+  // Formatting helper for the badge (same as in the table)
+  const formatRoleLabel = (role: string, type: string) => {
+    if (!role) return '-';
+    if (type === 'staff') {
+      return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+    if (type === 'student') {
+      return role.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+    return role;
+  };
+
+  const roleLabel = formatRoleLabel(user.role, user.type);
+
+  // Safely extract real data from the database payload
+  const icNumber = user.raw_data?.ic_number || '-';
+  const emergencyName = user.raw_data?.emergency_name || '-';
+  const emergencyRelation = user.raw_data?.emergency_relation || '-';
+  const emergencyPhone = user.raw_data?.emergency_phone_num || '-';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -36,13 +56,14 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
             <div className="flex flex-col items-center mb-8">
                 <div className="w-32 h-32 bg-white p-1 rounded-full shadow-lg mb-4 relative z-10">
                     <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white">
+                        {/* If you implement profile pictures later, replace this icon with an <img src={user.raw_data.profile_pic_path} /> */}
                         <User size={64} className="text-gray-400 translate-y-2" />
                     </div>
                 </div>
                 
                 <h2 className="text-2xl font-bold text-gray-800 text-center px-4">{user.name}</h2>
                 <div className="mt-2 px-4 py-1 bg-blue-50 text-[#1c3068] rounded-full text-sm font-bold uppercase tracking-wide border border-blue-100 shadow-sm">
-                    {user.role}
+                    {roleLabel}
                 </div>
             </div>
 
@@ -60,14 +81,14 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                 <Hash size={12} /> IC Number
                             </span>
-                            <span className="text-gray-900 font-medium font-mono">{user.icNumber || '090731110126'}</span>
+                            <span className="text-gray-900 font-medium font-mono">{icNumber}</span>
                         </div>
                         
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                 <Users size={12} /> Gender
                             </span>
-                            <span className="text-gray-900 font-medium">{user.gender}</span>
+                            <span className="text-gray-900 font-medium">{user.gender || '-'}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -96,19 +117,19 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                     <div className="space-y-4">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Name</span>
-                            <span className="text-gray-900 font-bold">ZULKIFLI BIN YUSOF</span>
+                            <span className="text-gray-900 font-bold uppercase">{emergencyName}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Relation</span>
-                            <span className="text-gray-900 font-medium">BAPA</span>
+                            <span className="text-gray-900 font-medium uppercase">{emergencyRelation}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                 <Phone size={12} /> Phone Number
                             </span>
-                            <span className="text-gray-900 font-medium font-mono">0139849628</span>
+                            <span className="text-gray-900 font-medium font-mono">{emergencyPhone}</span>
                         </div>
                     </div>
                 </div>
@@ -122,7 +143,10 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                 >
                     <ArrowLeft size={16} /> Back
                 </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1c3068] text-white rounded-xl text-sm font-bold hover:bg-[#152450] transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5">
+                <button 
+                    onClick={() => window.print()}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#1c3068] text-white rounded-xl text-sm font-bold hover:bg-[#152450] transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
+                >
                     <Printer size={16} /> Print Details
                 </button>
             </div>

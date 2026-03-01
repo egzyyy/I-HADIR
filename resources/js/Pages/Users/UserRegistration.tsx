@@ -1,25 +1,160 @@
-﻿import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Users, GraduationCap, Book, ChevronRight, ChevronDown, CheckCircle } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, GraduationCap, Book, ChevronRight, ChevronDown, CheckCircle, Upload, X, AlertCircle } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
+import axios from 'axios';
+
+// Ensure Axios acts as an XHR request for Laravel
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const UserRegistration = () => {
   const [selectedType, setSelectedType] = useState<'staff' | 'teacher' | 'student' | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null); // New state for error modal
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [data, setData] = useState({
+    name: '',
+    icNumber: '',
+    email: '',
+    phone: '',
+    gender: '',
+    specificType: '',
+    position: '',
+    address: '',
+    fatherName: '',
+    fatherIc: '',
+    motherName: '',
+    motherIc: '',
+    emergencyName: '',
+    emergencyRelation: '',
+    emergencyPhone: '',
+    type: '',
+    profilePic: null as File | null,
+  });
+  
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedType) {
+      setData(prev => ({ ...prev, type: selectedType }));
+    }
+  }, [selectedType]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // IMPROVEMENT 3: Restrict specific fields to NUMBERS ONLY
+    const numberOnlyFields = ['icNumber', 'phone', 'emergencyPhone', 'fatherIc', 'motherIc'];
+    if (numberOnlyFields.includes(name)) {
+      const onlyNums = value.replace(/\D/g, ''); // Removes any non-digit character
+      setData(prev => ({ ...prev, [name]: onlyNums }));
+      return;
+    }
+
+    setData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setData(prev => ({ ...prev, profilePic: file }));
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setData(prev => ({ ...prev, profilePic: null }));
+    setPreviewUrl(null);
+  };
+
+  const handleSubmit = async () => {
+    // IMPROVEMENT 2 & 3: Validation Check before Submitting
+    
+    // 1. Check Required Fields
+    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
+    let requiredFields = [...baseRequired];
+    
+    if (selectedType === 'student') {
+      requiredFields.push('address', 'specificType', 'fatherName', 'fatherIc', 'motherName', 'motherIc');
+    } else if (selectedType === 'teacher') {
+      requiredFields.push('position');
+    } else if (selectedType === 'staff') {
+      requiredFields.push('specificType');
+    }
+
+    for (const field of requiredFields) {
+      if (!data[field as keyof typeof data]) {
+        setErrorModalMsg("Please ensure all required fields (*) are filled out completely.");
+        return; // Stop submission
+      }
+    }
+
+    // 2. Validate Specific Formats
+    if (data.icNumber.length !== 12) {
+      setErrorModalMsg("The primary Identification Number must be exactly 12 digits.");
+      return;
+    }
+    if (data.phone.length < 10 || data.phone.length > 11) {
+      setErrorModalMsg("The primary Phone Number must be 10 or 11 digits.");
+      return;
+    }
+    if (data.emergencyPhone.length < 10 || data.emergencyPhone.length > 11) {
+      setErrorModalMsg("The Emergency Phone Number must be 10 or 11 digits.");
+      return;
+    }
+    if (selectedType === 'student') {
+      if (data.fatherIc.length !== 12 || data.motherIc.length !== 12) {
+        setErrorModalMsg("Parent Identification Numbers must be exactly 12 digits.");
+        return;
+      }
+    }
+
+    // If validation passes, proceed to submit
+    setIsProcessing(true);
+    const formData = new FormData();
+    Object.keys(data).forEach((key) => {
+      const value = data[key as keyof typeof data];
+      if (value !== null && value !== '') {
+        formData.append(key, value as string | Blob);
+      }
+    });
+
+    try {
+      const response = await axios.post('/users/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      if (response.data.success) {
+        setShowSuccessModal(true);
+      }
+    } catch (error: any) {
+      console.error('Registration failed:', error.response?.data || error);
+      // If Laravel throws a validation error (like duplicate IC), show it in the modal
+      const serverMsg = error.response?.data?.message || "An unexpected error occurred. Please try again.";
+      setErrorModalMsg(serverMsg);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
+    setData({
+      name: '', icNumber: '', email: '', phone: '', gender: '', specificType: '', position: '', address: '',
+      fatherName: '', fatherIc: '', motherName: '', motherIc: '', emergencyName: '', emergencyRelation: '', emergencyPhone: '', type: '', profilePic: null
+    });
+    setPreviewUrl(null);
     setSelectedType(null);
     setCurrentStep(1);
   };
 
-  // Define the options for the "Staff Type" or "Class" dropdown
   const getTypeOptions = () => {
     switch (selectedType) {
       case 'staff':
         return [
-          { value: 'staff', label: 'Staff' },
+          { value: 'store_staff', label: 'Store Staff' },
           { value: 'cleaning_staff', label: 'Cleaning Staff' },
           { value: 'security_staff', label: 'Security Staff' },
           { value: 'temporary_staff', label: 'Temporary Staff' },
@@ -35,7 +170,6 @@ const UserRegistration = () => {
     }
   };
 
-  // If no type is selected, show the selection screen
   if (!selectedType) {
     return (
       <motion.div 
@@ -49,11 +183,7 @@ const UserRegistration = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-          {/* Staff Card */}
-          <div 
-            onClick={() => setSelectedType('staff')}
-            className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
-          >
+          <div onClick={() => setSelectedType('staff')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
               <Users size={40} className="text-[#1c3068]" />
             </div>
@@ -61,11 +191,7 @@ const UserRegistration = () => {
             <p className="text-sm text-gray-500">Register new support staff members</p>
           </div>
 
-          {/* Teacher Card */}
-          <div 
-            onClick={() => setSelectedType('teacher')}
-            className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
-          >
+          <div onClick={() => setSelectedType('teacher')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
               <GraduationCap size={40} className="text-[#1c3068]" />
             </div>
@@ -73,11 +199,7 @@ const UserRegistration = () => {
             <p className="text-sm text-gray-500">Register new academic teachers</p>
           </div>
 
-          {/* Student Card */}
-          <div 
-            onClick={() => setSelectedType('student')}
-            className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
-          >
+          <div onClick={() => setSelectedType('student')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
               <Book size={40} className="text-[#1c3068]" />
             </div>
@@ -90,10 +212,8 @@ const UserRegistration = () => {
   }
 
   const title = selectedType.charAt(0).toUpperCase() + selectedType.slice(1) + " Registration";
-
   const shouldShowTypeDropdown = selectedType === 'staff' || selectedType === 'student';
 
-  // Customize fields based on type if needed
   const getTypeLabel = () => {
     switch(selectedType) {
       case 'staff': return 'Staff Type';
@@ -142,7 +262,6 @@ const UserRegistration = () => {
             <p className="text-gray-400 text-sm mt-1">Please fill in all the form</p>
           </div>
 
-          {/* Stepper */}
           <div className="flex items-center justify-between max-w-3xl mx-auto mb-16 relative">
              <div className="absolute top-[20px] left-0 w-full h-[2px] bg-gray-100 -z-10"></div>
              <div 
@@ -166,7 +285,6 @@ const UserRegistration = () => {
              ))}
           </div>
 
-          {/* Forms */}
           <div className="max-w-6xl mx-auto flex-1">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
@@ -180,56 +298,41 @@ const UserRegistration = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Name : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <label className="block text-sm font-bold text-gray-700">Name : <span className="text-red-500">*</span></label>
+                      <input type="text" name="name" value={data.name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Identification number : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      <p className="text-xs text-gray-400 mt-1">e.g. "860102075555" (without "-" or space)</p>
+                      <label className="block text-sm font-bold text-gray-700">Identification number : <span className="text-red-500">*</span></label>
+                      <input type="text" name="icNumber" value={data.icNumber} onChange={handleInputChange} maxLength={12} placeholder="e.g. 860102075555" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <p className="text-xs text-gray-400 mt-1">12 digits without "-" or space</p>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Email Address :
-                      </label>
-                      <input type="email" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <label className="block text-sm font-bold text-gray-700">Email Address :</label>
+                      <input type="email" name="email" value={data.email} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Phone Number : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      <p className="text-xs text-gray-400 mt-1">e.g. "0123456789" (without "-" or space)</p>
+                      <label className="block text-sm font-bold text-gray-700">Phone Number : <span className="text-red-500">*</span></label>
+                      <input type="text" name="phone" value={data.phone} onChange={handleInputChange} maxLength={11} placeholder="e.g. 0123456789" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Gender : <span className="text-red-500">*</span>
-                      </label>
+                      <label className="block text-sm font-bold text-gray-700">Gender : <span className="text-red-500">*</span></label>
                       <div className="relative">
-                        <select className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700">
-                          <option>Select Gender</option>
-                          <option>Male</option>
-                          <option>Female</option>
+                        <select name="gender" value={data.gender} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
                         </select>
                         <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
                     {shouldShowTypeDropdown && (
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          {getTypeLabel()} : <span className="text-red-500">*</span>
-                        </label>
+                        <label className="block text-sm font-bold text-gray-700">{getTypeLabel()} : <span className="text-red-500">*</span></label>
                         <div className="relative">
-                          <select className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700">
+                          <select name="specificType" value={data.specificType} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                             <option value="">Select {getTypeLabel()}</option>
                             {getTypeOptions().map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
                           <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -238,18 +341,14 @@ const UserRegistration = () => {
                     )}
                     {selectedType === 'teacher' && (
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Teacher Position : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                        <label className="block text-sm font-bold text-gray-700">Teacher Position : <span className="text-red-500">*</span></label>
+                        <input type="text" name="position" value={data.position} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                     )}
                     {selectedType === 'student' && (
                       <div className="space-y-2 md:col-span-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Address : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                        <label className="block text-sm font-bold text-gray-700">Address : <span className="text-red-500">*</span></label>
+                        <input type="text" name="address" value={data.address} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                     )}
                   </div>
@@ -267,12 +366,22 @@ const UserRegistration = () => {
                   <h4 className="text-lg font-bold text-gray-800 mb-2">Profile Picture</h4>
                   <p className="text-gray-500 text-sm mb-6">Max size is 3M</p>
 
-                  <div className="w-full h-80 border border-gray-200 rounded-none flex items-center justify-center bg-white">
-                    <div className="w-48 h-48 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-gray-400 translate-y-4">
-                          <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                       </svg>
-                    </div>
+                  <div className="w-full h-80 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative group">
+                    {previewUrl ? (
+                      <div className="relative w-full h-full flex items-center justify-center p-4">
+                        <img src={previewUrl} alt="Preview" className="max-h-full max-w-full object-contain rounded-lg shadow-sm" />
+                        <button onClick={handleRemoveFile} className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"><X size={20} /></button>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
+                        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                           <Upload size={32} className="text-blue-600" />
+                        </div>
+                        <p className="text-gray-600 font-medium">Click to upload image</p>
+                        <p className="text-xs text-gray-400 mt-2">SVG, PNG, JPG or GIF</p>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                      </label>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -288,31 +397,20 @@ const UserRegistration = () => {
                 >
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Father's/Guardian's Name : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                        <label className="block text-sm font-bold text-gray-700">Father's/Guardian's Name : <span className="text-red-500">*</span></label>
+                        <input type="text" name="fatherName" value={data.fatherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Identification Number : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                        <p className="text-xs text-gray-400 mt-1">e.g. "860102075555" (without "-" or space)</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Mother's Name : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                        <label className="block text-sm font-bold text-gray-700">Identification Number : <span className="text-red-500">*</span></label>
+                        <input type="text" name="fatherIc" value={data.fatherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">
-                          Identification Number : <span className="text-red-500">*</span>
-                        </label>
-                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                        <p className="text-xs text-gray-400 mt-1">e.g. "860102075555" (without "-" or space)</p>
+                        <label className="block text-sm font-bold text-gray-700">Mother's Name : <span className="text-red-500">*</span></label>
+                        <input type="text" name="motherName" value={data.motherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700">Identification Number : <span className="text-red-500">*</span></label>
+                        <input type="text" name="motherIc" value={data.motherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                    </div>
                 </motion.div>
@@ -329,52 +427,35 @@ const UserRegistration = () => {
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-8">
                      <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Emergency Contact Name : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <label className="block text-sm font-bold text-gray-700">Emergency Contact Name : <span className="text-red-500">*</span></label>
+                      <input type="text" name="emergencyName" value={data.emergencyName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Relation : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <label className="block text-sm font-bold text-gray-700">Relation : <span className="text-red-500">*</span></label>
+                      <input type="text" name="emergencyRelation" value={data.emergencyRelation} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">
-                        Emergency Phone Number : <span className="text-red-500">*</span>
-                      </label>
-                      <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      <p className="text-xs text-gray-400 mt-1">e.g. "0123456789" (without "-" or space)</p>
+                      <label className="block text-sm font-bold text-gray-700">Emergency Phone Number : <span className="text-red-500">*</span></label>
+                      <input type="text" name="emergencyPhone" value={data.emergencyPhone} onChange={handleInputChange} maxLength={11} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Navigation Buttons */}
             <div className="flex justify-end gap-3 mt-16">
                {currentStep > 1 && (
-                 <button 
-                   onClick={() => setCurrentStep(curr => curr - 1)} 
-                   className="px-6 py-2 rounded border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors bg-white"
-                 >
+                 <button onClick={() => setCurrentStep(curr => curr - 1)} disabled={isProcessing} className="px-6 py-2 rounded border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors bg-white disabled:opacity-50">
                    Previous
                  </button>
                )}
                {currentStep < steps.length ? (
-                 <button 
-                   onClick={() => setCurrentStep(curr => curr + 1)} 
-                   className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all"
-                 >
+                 <button onClick={() => setCurrentStep(curr => curr + 1)} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all">
                    Next
                  </button>
                ) : (
-                 <button 
-                   onClick={() => setShowSuccessModal(true)}
-                   className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all"
-                 >
-                   Submit
+                 <button onClick={handleSubmit} disabled={isProcessing} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
+                   {isProcessing ? 'Submitting...' : 'Submit'}
                  </button>
                )}
             </div>
@@ -382,6 +463,34 @@ const UserRegistration = () => {
         </div>
       </div>
       
+      {/* ERROR MODAL */}
+      <AnimatePresence>
+        {errorModalMsg && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
+            >
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={40} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Wait a moment</h3>
+              <p className="text-gray-500 mb-8">{errorModalMsg}</p>
+              
+              <button 
+                onClick={() => setErrorModalMsg(null)}
+                className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+              >
+                Go Back & Fix
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SUCCESS MODAL */}
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -394,13 +503,10 @@ const UserRegistration = () => {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              
               <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">
-                New <span className="font-bold text-gray-700 capitalize">{selectedType}</span> has been successfully registered to the system.
+                New <span className="font-bold text-gray-700 capitalize">{selectedType}</span> has been successfully registered.
               </p>
-              
-              {/* Updated Button Color to Green */}
               <button 
                 onClick={handleCloseSuccessModal}
                 className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
