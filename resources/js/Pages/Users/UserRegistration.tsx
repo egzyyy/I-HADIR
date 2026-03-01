@@ -236,6 +236,22 @@ const UserRegistration = () => {
                         </div>
                       </div>
                     )}
+                    {selectedType === 'teacher' && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700">
+                          Teacher Position : <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      </div>
+                    )}
+                    {selectedType === 'student' && (
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-sm font-bold text-gray-700">
+                          Address : <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}

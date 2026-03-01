@@ -1,13 +1,47 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye } from 'lucide-react';
 import forgotPasswordHeader from '../assets/2af3b918b05695c088545926d4ebd660ecb51845.png';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/i_hadir_logo2.png';
 
+// Set default axios configuration to ensure cookies and headers are sent correctly
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
+
+  const [data, setData] = useState({
+    ic_number: '',
+    password: '',
+  });
+  const [errors, setErrors] = useState<any>({});
+  const [processing, setProcessing] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProcessing(true);
+    setErrors({});
+
+    try {
+      await axios.get('/sanctum/csrf-cookie');
+      await axios.post('/login', data);
+      navigate('/dashboard');
+    } catch (error: any) {
+      if (error.response && error.response.status === 422) {
+        setErrors(error.response.data.errors);
+      } else if (error.response && error.response.status === 419) {
+        setErrors({ general: 'Session expired. Please refresh the page.' });
+      } else {
+        setErrors({ general: error.response?.data?.message || 'Invalid credentials or server error.' });
+      }
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (view === 'forgot-password') {
     return (
@@ -205,31 +239,28 @@ export default function Login() {
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Welcome Back</h2>
             <p className="text-gray-500 text-sm">
-              Enter your school code, identification number and password to access your account.
+              Enter your identification number and password to access your account.
             </p>
           </div>
 
-          <form className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-[#1c3068] mb-2">
-                School Code
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your school code"
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]"
-              />
-            </div>
-
+          <form className="space-y-6" onSubmit={submit}>
+            {errors.general && (
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg">
+                {errors.general}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-[#1c3068] mb-2">
                 Admin Identification Number
               </label>
               <input
                 type="text"
+                value={data.ic_number}
+                onChange={(e) => setData({ ...data, ic_number: e.target.value })}
                 placeholder="Enter your admin identification number"
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]"
+                className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.ic_number ? 'border-red-500' : 'border-gray-200'} focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]`}
               />
+              {errors.ic_number && <p className="text-red-500 text-xs mt-1">{errors.ic_number}</p>}
             </div>
 
             <div>
@@ -239,8 +270,10 @@ export default function Login() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  value={data.password}
+                  onChange={(e) => setData({ ...data, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]"
+                  className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.password ? 'border-red-500' : 'border-gray-200'} focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]`}
                 />
                 <button
                   type="button"
@@ -250,15 +283,16 @@ export default function Login() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
           
             {/* Login Button comes first now */}
             <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] inline-block text-center"
+              type="submit"
+              disabled={processing}
+              className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] inline-block text-center disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Log In
+              {processing ? 'Logging in...' : 'Log In'}
             </button>
           
             {/* Forgot Password moved below and aligned most right */}

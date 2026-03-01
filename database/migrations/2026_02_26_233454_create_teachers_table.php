@@ -16,16 +16,17 @@ return new class extends Migration
             $table->string('name');
             $table->string('ic_number', 12)->unique()->comment('No. Kad Pengenalan (12 digits, no dashes)');
             $table->string('gender', 20)->nullable();
-            
-            // New Demographic & Qualification Fields
-            $table->string('race', 50)->nullable();
-            $table->string('religion', 50)->nullable();
-            $table->text('address')->nullable();
-            $table->string('qualifications')->nullable()->comment('E.g., Ijazah Sarjana Muda Pendidikan');
+            $table->string('profile_pic_path')->nullable();
+            $table->string('position')->nullable()->comment('Pengetua');
             
             // Contact
             $table->string('phone_number')->nullable();
             $table->string('email')->nullable();
+
+            // Guardian Details
+            $table->string('emergency_name')->nullable();
+            $table->string('emergency_phone_num')->nullable();
+            $table->string('emergency_relation')->nullable()->comment('Datuk, Nenek, Bapa Saudara, etc.');
             
             $table->boolean('is_active')->default(true);
             $table->timestamps();

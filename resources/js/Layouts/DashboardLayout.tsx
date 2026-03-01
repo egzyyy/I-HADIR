@@ -228,7 +228,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
 
   const handleMenuClick = (id: string, action?: string) => {
     if (action === 'logout') {
-      axios.post('/api/logout').then(() => navigate('/login'));
+      axios.post('/logout').then(() => navigate('/login'));
       return;
     }
     
@@ -456,7 +456,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     
                     <div className="h-px bg-gray-100 my-1"></div>
                     
-                    <button onClick={() => axios.post('/api/logout').then(() => navigate('/login'))} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#c53336] hover:bg-red-50 transition-colors text-left font-medium">
+                    <button onClick={() => axios.post('/logout').then(() => navigate('/login'))} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#c53336] hover:bg-red-50 transition-colors text-left font-medium">
                       <LogOut size={16} /> Log Out
                     </button>
                   </motion.div>
