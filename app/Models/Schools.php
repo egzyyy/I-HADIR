@@ -31,8 +31,13 @@ class School extends Model
         'is_active' => 'boolean',
     ];
 
-    public function sessions()
+    public function schoolSession()
     {
         return $this->hasMany(SchoolSession::class, 'school_id', 'school_id');
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'school_id', 'school_id');
     }
 }

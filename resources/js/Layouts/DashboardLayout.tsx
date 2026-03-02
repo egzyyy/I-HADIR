@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, School, MessageSquare, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar
 } from 'lucide-react';
 import logo from '../assets/i_hadir_logo2.png';
+
+// Ensure Axios acts as an XHR request for Laravel
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // --- Menu Data Types ---
 interface MenuItem {
@@ -103,12 +106,8 @@ const MENU_SECTIONS: MenuSection[] = [
   }
 ];
 
-
 const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collapsed, subItems, activePageId, onSubItemClick }: any) => {
-  // Check if any child is active
   const isChildActive = subItems?.some((sub: any) => sub.id === activePageId);
-  
-  // Initialize expanded based on whether a child is active — avoids re-animation on page change
   const [expanded, setExpanded] = useState(isChildActive || false);
 
   useEffect(() => {
@@ -154,7 +153,6 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collap
         )}
       </div>
 
-      {/* Sub Items — initial={false} prevents animation on first render */}
       <AnimatePresence initial={false}>
         {expanded && subItems && !collapsed && (
           <motion.div
@@ -187,14 +185,33 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collap
 };
 
 
-
-
 export default function DashboardLayout({ children, activePageId = 'dashboard' }: { children: React.ReactNode, activePageId?: string }) {
   const [isSidebarOpen, setSidebarOpen] = React.useState(true);
   const [isAdminDropdownOpen, setAdminDropdownOpen] = React.useState(false);
   const [isNotificationOpen, setNotificationOpen] = React.useState(false);
+  
+  // Dynamic Session State
+  const [activeSessionYear, setActiveSessionYear] = useState<string>('Loading...');
 
   React.useEffect(() => {
+    // Fetch Active Session
+    const fetchActiveSession = async () => {
+      try {
+        const response = await axios.get('/api/sessions/active');
+        if (response.data.success) {
+          setActiveSessionYear(response.data.data.year);
+        } else {
+          setActiveSessionYear('Not Set');
+        }
+      } catch (error) {
+        console.error("Failed to fetch active session", error);
+        setActiveSessionYear('Unknown');
+      }
+    };
+
+    fetchActiveSession();
+
+    // Click outside handler for dropdowns
     const handleClickOutside = (event: MouseEvent) => {
       const adminDropdown = document.querySelector('.admin-dropdown-container');
       const notificationDropdown = document.querySelector('.notification-dropdown-container');
@@ -232,33 +249,25 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       return;
     }
     
-    // Route mapping for all menu items
     const routes: Record<string, string> = {
       'dashboard': '/dashboard',
       'school-profile': '/school-session',
       'set-sms-api': '/set-sms-api',
-      // Users dropdown
       'user-registration': '/users/registration',
       'import-apdm': '/users/apdm',
       'user-list': '/users/list',
-      // Academic dropdown
       'class': '/academic/class',
       'co-curricular': '/academic/co-curricular',
       'sport': '/academic/sport',
       'event': '/academic/event',
-      // Attendance Log dropdown
       'check-in': '/attendance-log/check-in',
       'check-out': '/attendance-log/check-out',
       'time-setting': '/attendance-log/time-setting',
-      // Check In
       'facility-check-in': '/facility-check-in',
       'manual-entry': '/manual-entry',
-      // Reports
       'attendance-reports': '/attendance-reports',
       'general-report': '/general-report',
-      // Support
       'faqs': '/faqs',
-      // Admin
       'my-profile': '/admin-profile',
       'my-attendance': '/admin-attendance',
       'change-password': '/admin-password',
@@ -332,20 +341,12 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
 
           <div className="flex items-center gap-6">
             <div className="text-right hidden sm:block">
-              <p className="text-xs text-gray-500">School Session</p>
-              <p className="text-sm font-bold text-[#1c3068]">Year 2026</p>
+              <p className="text-xs text-gray-500">Current School Session</p>
+              <p className="text-sm font-bold text-[#1c3068]">Year {activeSessionYear}</p>
             </div>
             <div className="h-8 w-[1px] bg-gray-200 hidden sm:block"></div>
             
             <div className="relative notification-dropdown-container">
-              <button 
-                onClick={() => setNotificationOpen(!isNotificationOpen)}
-                className={`relative p-2 transition-colors rounded-lg ${isNotificationOpen ? 'bg-gray-100 text-[#1c3068]' : 'text-gray-400 hover:text-[#1c3068] hover:bg-gray-50'}`}
-              >
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#c53336] rounded-full border border-white"></span>
-              </button>
-
               <AnimatePresence>
                 {isNotificationOpen && (
                   <motion.div
@@ -444,10 +445,6 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     
                     <button onClick={() => { navigate('/admin-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Users size={16} /> My Profile
-                    </button>
-                    
-                    <button onClick={() => { navigate('/admin-attendance'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
-                      <Calendar size={16} /> My Attendance
                     </button>
                     
                     <button onClick={() => { navigate('/admin-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">

@@ -18,7 +18,8 @@ return new class extends Migration
             // Core Identity & Auth
             $table->string('first_name');
             $table->string('last_name');
-            $table->string('ic_number', 12)->unique()->nullable()->comment('No. Kad Pengenalan');
+            $table->string('ic_number', 12)->nullable()->comment('No. Kad Pengenalan');
+            $table->string('profile_pic_path')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

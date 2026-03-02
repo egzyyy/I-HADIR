@@ -14,7 +14,7 @@ return new class extends Migration
             
             // Core Identity
             $table->string('name');
-            $table->string('ic_number', 12)->unique()->comment('No. MyKad / MyKid (12 digits, no dashes)');
+            $table->string('ic_number', 12)->comment('No. MyKad / MyKid (12 digits, no dashes)');
             $table->string('gender', 20)->nullable();
             $table->string('class')->nullable();
             $table->string('profile_pic_path')->nullable();

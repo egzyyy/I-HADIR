@@ -1,11 +1,58 @@
 import React, { useState } from 'react';
-import { Home, Lock, Save, Eye, EyeOff, Key } from 'lucide-react';
-import { motion } from 'motion/react';
-import DashboardLayout from '@/Layouts/DashboardLayout';
+import { Home, Lock, Save, Eye, EyeOff, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import DashboardLayout from '../../Layouts/DashboardLayout';
+import axios from 'axios';
+
+// Ensure Axios acts as an XHR request for Laravel
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 export default function AdminPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  const [password, setPassword] = useState('');
+  const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal States
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Basic frontend validation
+    if (password.length < 8) {
+      setErrorModalMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setErrorModalMsg("The new password and confirmation do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.post('/api/admin/password', {
+        password: password,
+        password_confirmation: passwordConfirmation
+      });
+
+      if (response.data.success) {
+        setShowSuccessModal(true);
+        // Clear the form
+        setPassword('');
+        setPasswordConfirmation('');
+      }
+    } catch (error: any) {
+      console.error("Password update failed:", error);
+      setErrorModalMsg(error.response?.data?.message || "Failed to update password. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <DashboardLayout activePageId="change-password">
@@ -75,14 +122,17 @@ export default function AdminPassword() {
                 </div>
               </div>
 
-              <form className="space-y-6 max-w-xl">
+              <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-[#1c3068]">New Password</label>
                   <div className="relative">
                     <input 
                       type={showPassword ? "text" : "password"} 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 font-medium"
                       placeholder="Enter new password"
+                      required
                     />
                     <button 
                       type="button"
@@ -99,8 +149,11 @@ export default function AdminPassword() {
                   <div className="relative">
                     <input 
                       type={showConfirmPassword ? "text" : "password"} 
+                      value={passwordConfirmation}
+                      onChange={(e) => setPasswordConfirmation(e.target.value)}
                       className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 font-medium"
                       placeholder="Confirm new password"
+                      required
                     />
                     <button 
                       type="button"
@@ -113,11 +166,19 @@ export default function AdminPassword() {
                 </div>
 
                 <div className="pt-4 flex items-center justify-end gap-3">
-                  <button type="button" className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors">
-                    Cancel
+                  <button 
+                    type="button" 
+                    onClick={() => {setPassword(''); setPasswordConfirmation('');}}
+                    className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors"
+                  >
+                    Clear
                   </button>
-                  <button type="button" className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1">
-                    <Save size={18} /> Save Changes
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
+                  >
+                    <Save size={18} /> {isSubmitting ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -125,6 +186,59 @@ export default function AdminPassword() {
           </div>
         </div>
       </div>
+
+      {/* ERROR MODAL */}
+      <AnimatePresence>
+        {errorModalMsg && (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
+            >
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={40} className="text-red-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Update Failed</h3>
+              <p className="text-gray-500 mb-8">{errorModalMsg}</p>
+              <button 
+                onClick={() => setErrorModalMsg(null)}
+                className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-1"
+              >
+                Go Back & Fix
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SUCCESS MODAL */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
+            >
+              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={40} className="text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+              <p className="text-gray-500 mb-8">Your password has been successfully updated.</p>
+              <button 
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1"
+              >
+                Done
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       </motion.div>
     </DashboardLayout>
   );
