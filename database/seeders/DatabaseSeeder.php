@@ -33,8 +33,8 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 2. Create Active School Session
-        DB::table('school_sessions')->insert([
+        // 2. Create Active School Session (Using insertGetId to link employments)
+        $sessionId = DB::table('school_sessions')->insertGetId([
             'school_id' => $schoolId,
             'year' => '2026',
             'start_date' => '2026-01-01',
@@ -63,5 +63,73 @@ class DatabaseSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        // 4. Seed Teachers & Their Employments
+        $teachers = [
+            ['name' => 'Ahmad bin Abdullah', 'ic' => '800101112222', 'gender' => 'Male', 'phone' => '0123456701', 'position' => 'Pengetua'],
+            ['name' => 'Siti binti Abu', 'ic' => '850202113333', 'gender' => 'Female', 'phone' => '0123456702', 'position' => 'PK HEM'],
+            ['name' => 'Chong Wei', 'ic' => '900303114444', 'gender' => 'Male', 'phone' => '0123456703', 'position' => 'Guru Biasa'],
+        ];
+
+        foreach ($teachers as $t) {
+            $teacherId = DB::table('teachers')->insertGetId([
+                'school_id' => $schoolId,
+                'name' => $t['name'],
+                'ic_number' => $t['ic'],
+                'gender' => $t['gender'],
+                'phone_number' => $t['phone'],
+                'email' => strtolower(str_replace(' ', '', $t['name'])) . '@school.edu.my',
+                'address' => 'Kuarters Guru SK Pulau Serai',
+                'emergency_name' => 'Emergency Contact',
+                'emergency_phone_num' => '0198765432',
+                'emergency_relation' => 'Spouse',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Link Teacher to Session via Pivot Table
+            DB::table('teacher_employments')->insert([
+                'teacher_id' => $teacherId,
+                'school_session_id' => $sessionId,
+                'position' => $t['position'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 5. Seed Staffs & Their Employments
+        $staffs = [
+            ['name' => 'Muthu a/l Samy', 'ic' => '750404115555', 'gender' => 'Male', 'phone' => '0123456704', 'type' => 'security_staff'],
+            ['name' => 'Aminah binti Yasin', 'ic' => '880505116666', 'gender' => 'Female', 'phone' => '0123456705', 'type' => 'admin_clerk'],
+            ['name' => 'Raju a/l Kumar', 'ic' => '820606117777', 'gender' => 'Male', 'phone' => '0123456706', 'type' => 'cleaning_staff'],
+        ];
+
+        foreach ($staffs as $s) {
+            $staffId = DB::table('staffs')->insertGetId([
+                'school_id' => $schoolId,
+                'name' => $s['name'],
+                'ic_number' => $s['ic'],
+                'gender' => $s['gender'],
+                'phone_number' => $s['phone'],
+                'email' => strtolower(explode(' ', $s['name'])[0]) . '@school.edu.my',
+                'address' => 'Kampung Pulau Serai',
+                'emergency_name' => 'Family Member',
+                'emergency_phone_num' => '0198765433',
+                'emergency_relation' => 'Sibling',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Link Staff to Session via Pivot Table
+            DB::table('staff_employments')->insert([
+                'staff_id' => $staffId,
+                'school_session_id' => $sessionId,
+                'staff_type' => $s['type'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }

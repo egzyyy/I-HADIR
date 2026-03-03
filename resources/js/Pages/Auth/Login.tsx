@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye } from 'lucide-react';
-import forgotPasswordHeader from '../assets/2af3b918b05695c088545926d4ebd660ecb51845.png';
+import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/i_hadir_logo2.png';
 
-// Set default axios configuration to ensure cookies and headers are sent correctly
+// Set default axios configuration
 axios.defaults.withCredentials = true;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -14,13 +13,17 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
 
-  const [data, setData] = useState({
-    ic_number: '',
-    password: '',
-  });
+  // --- LOGIN STATE ---
+  const [data, setData] = useState({ ic_number: '', password: '' });
   const [errors, setErrors] = useState<any>({});
   const [processing, setProcessing] = useState(false);
 
+  // --- PASSWORD RESET STATE ---
+  const [resetData, setResetData] = useState({ ic_number: '', school_code: '', password: '' });
+  const [resetProcessing, setResetProcessing] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  // --- LOGIN HANDLER ---
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
@@ -43,13 +46,45 @@ export default function Login() {
     }
   };
 
+  // --- RESET PASSWORD HANDLER ---
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetProcessing(true);
+    setResetFeedback(null);
+
+    // Basic Frontend Validation
+    if (!resetData.ic_number || !resetData.school_code || resetData.password.length < 8) {
+      setResetFeedback({ type: 'error', message: 'Please fill all fields. Password must be at least 8 characters.' });
+      setResetProcessing(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post('/password/reset-by-code', resetData);
+      if (response.data.success) {
+        setResetFeedback({ type: 'success', message: 'Password reset successfully! You can now log in.' });
+        // Clear form
+        setResetData({ ic_number: '', school_code: '', password: '' });
+        // Auto redirect to login after 2 seconds
+        setTimeout(() => setView('login'), 2500);
+      }
+    } catch (error: any) {
+      setResetFeedback({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to reset password. Please try again.' 
+      });
+    } finally {
+      setResetProcessing(false);
+    }
+  };
+
   if (view === 'forgot-password') {
     return (
       <div className="min-h-screen w-full flex bg-[#fcfafa]">
         {/* Left Side - Form */}
         <div className="w-full lg:w-1/2 flex flex-col p-8 lg:p-12 xl:p-16 relative">
           {/* Logo - Clickable to go back */}
-          <div className="flex items-center gap-2 cursor-pointer mb-8" onClick={() => setView('login')}>
+          <div className="flex items-center gap-2 cursor-pointer mb-8" onClick={() => { setView('login'); setResetFeedback(null); }}>
             <div className="flex-shrink-0 flex items-center">
               <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
             </div>
@@ -64,22 +99,51 @@ export default function Login() {
               </div>
               <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Forgot Your Password?</h2>
               <p className="text-gray-500 text-sm leading-relaxed">
-                No worries! Enter your school code and<br />
-                create a new password to regain access.
+                Verify your identity to create a new password and regain access to the system.
               </p>
             </div>
 
-            <form className="space-y-7">
-              {/* ID Number Field */}
+            {/* FEEDBACK MESSAGES */}
+            {resetFeedback && (
+              <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 text-sm font-medium ${
+                resetFeedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-100'
+              }`}>
+                {resetFeedback.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                <p className="mt-0.5">{resetFeedback.message}</p>
+              </div>
+            )}
+
+            <form className="space-y-6" onSubmit={handleReset}>
+              
+              {/* IC Number Field (Security measure) */}
               <div className="relative group">
-                <label className="block text-sm font-semibold text-[#1c3068] mb-3">
+                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+                  Admin IC Number
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={resetData.ic_number}
+                    onChange={(e) => setResetData({ ...resetData, ic_number: e.target.value })}
+                    placeholder="Enter your IC number"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
+                  />
+                  <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#c53336] transition-all duration-300 group-focus-within:w-full"></div>
+                </div>
+              </div>
+
+              {/* School Code Field */}
+              <div className="relative group">
+                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
                   School Code
                 </label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Enter your school code"
-                    className="w-full px-0 pb-3 pt-1 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
+                    value={resetData.school_code}
+                    onChange={(e) => setResetData({ ...resetData, school_code: e.target.value })}
+                    placeholder="Enter your school code (e.g. MEA1023)"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
                   />
                   <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#c53336] transition-all duration-300 group-focus-within:w-full"></div>
                 </div>
@@ -87,19 +151,21 @@ export default function Login() {
 
               {/* New Password Field */}
               <div className="relative group">
-                <label className="block text-sm font-semibold text-[#1c3068] mb-3">
+                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
                   New Password
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
+                    value={resetData.password}
+                    onChange={(e) => setResetData({ ...resetData, password: e.target.value })}
                     placeholder="Create a secure password"
-                    className="w-full px-0 pb-3 pt-1 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400 pr-10"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#1c3068] transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#1c3068] transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -111,31 +177,21 @@ export default function Login() {
                 </p>
               </div>
 
-              {/* Security Notice */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                <Lock className="text-[#1c3068] flex-shrink-0 mt-0.5" size={18} />
-                <div>
-                  <p className="text-xs text-[#1c3068] font-semibold mb-1">Security Notice</p>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    For your security, please ensure you're on a trusted device before resetting your password.
-                  </p>
-                </div>
-              </div>
-
               {/* Action Buttons */}
               <div className="space-y-3 pt-4">
                 <button
-                  type="button"
-                  className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                  type="submit"
+                  disabled={resetProcessing || resetFeedback?.type === 'success'}
+                  className="w-full bg-[#1c3068] hover:bg-[#152450] text-white px-4 py-3 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <KeyRound size={18} />
-                  Reset Password
+                  {resetProcessing ? 'Resetting Password...' : 'Reset Password'}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setView('login')}
-                  className="w-full bg-white border-2 border-[#1c3068] text-[#1c3068] py-3.5 rounded-lg font-bold hover:bg-[#1c3068] hover:text-white transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                  onClick={() => { setView('login'); setResetFeedback(null); }}
+                  className="w-full bg-white border-2 border-[#1c3068] text-[#1c3068] px-4 py-3 rounded-lg font-bold hover:bg-[#1c3068] hover:text-white transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <ArrowLeft size={18} />
                   Back to Login
@@ -197,18 +253,6 @@ export default function Login() {
                 </div>
               </div>
             </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 hover:bg-white/15 transition-all">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-lg bg-[#c53336] flex items-center justify-center flex-shrink-0">
-                  <Shield className="text-white" size={24} />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-white font-bold mb-1">Always Available</h3>
-                  <p className="text-blue-100/70 text-sm">24/7 access to password recovery services</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -226,7 +270,7 @@ export default function Login() {
           </div>
         </Link>
 
-        {/* Back Button (Mobile only mostly, or good UX) */}
+        {/* Back Button (Mobile only mostly) */}
         <Link 
           to="/"
           className="lg:hidden absolute top-8 right-8 text-[#1c3068] hover:text-[#c53336]"
@@ -245,7 +289,8 @@ export default function Login() {
 
           <form className="space-y-6" onSubmit={submit}>
             {errors.general && (
-              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg">
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg border border-red-100 flex items-center gap-2">
+                <AlertCircle size={16} />
                 {errors.general}
               </div>
             )}
@@ -286,16 +331,16 @@ export default function Login() {
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
           
-            {/* Login Button comes first now */}
+            {/* Login Button */}
             <button
               type="submit"
               disabled={processing}
-              className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] inline-block text-center disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {processing ? 'Logging in...' : 'Log In'}
             </button>
           
-            {/* Forgot Password moved below and aligned most right */}
+            {/* Forgot Password */}
             <div className="flex justify-end">
               <button 
                 type="button"
@@ -311,7 +356,7 @@ export default function Login() {
         {/* Footer */}
         <div className="mt-auto pt-8 flex justify-between items-center text-xs text-gray-400">
           <p>Copyright © 2026 I-HADIR System.</p>
-          <a href="#" className="hover:text-[#1c3068]">Privacy Policy</a>
+          <a href="#" className="hover:text-[#1c3068] transition-colors">Privacy Policy</a>
         </div>
       </div>
 
@@ -347,4 +392,4 @@ export default function Login() {
       </div>
     </div>
   );
-};
+}

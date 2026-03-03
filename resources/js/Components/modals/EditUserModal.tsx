@@ -121,7 +121,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 sticky top-0 z-20">
           <div>
             <h2 className="text-xl font-bold text-[#1c3068]">Edit {user.type.charAt(0).toUpperCase() + user.type.slice(1)}</h2>
-            <p className="text-sm text-gray-500 font-medium">{user.name}</p>
+            <p className="text-sm text-gray-500 font-medium">{user.name} ({user.ic_number})</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
             <X size={20} />

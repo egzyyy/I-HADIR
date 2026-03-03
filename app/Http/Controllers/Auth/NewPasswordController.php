@@ -13,6 +13,8 @@ use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\School;
+use App\Models\User;
 
 class NewPasswordController extends Controller
 {
@@ -64,6 +66,45 @@ class NewPasswordController extends Controller
 
         throw ValidationException::withMessages([
             'email' => [trans($status)],
+        ]);
+    }
+
+    public function resetBySchoolCode(Request $request)
+    {
+        $request->validate([
+            'ic_number' => 'required|string',
+            'school_code' => 'required|string',
+            'password' => 'required|string|min:8',
+        ]);
+
+        // 1. Verify the school exists
+        $school = School::where('school_code', $request->school_code)->first();
+        
+        if (!$school) {
+            return response()->json([
+                'message' => 'Invalid School Code. Please check and try again.'
+            ], 400);
+        }
+
+        // 2. Verify the admin exists and belongs to this specific school
+        $admin = User::where('ic_number', $request->ic_number)
+                     ->where('school_id', $school->school_id)
+                     ->first();
+
+        if (!$admin) {
+            return response()->json([
+                'message' => 'We could not find an admin with this IC Number at this school.'
+            ], 404);
+        }
+
+        // 3. Reset the password
+        $admin->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return response()->json([
+            'success' => true, 
+            'message' => 'Password reset successfully!'
         ]);
     }
 }

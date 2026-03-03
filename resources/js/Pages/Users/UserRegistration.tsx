@@ -154,6 +154,7 @@ const UserRegistration = () => {
           { value: 'cleaning_staff', label: 'Cleaning Staff' },
           { value: 'security_staff', label: 'Security Staff' },
           { value: 'temporary_staff', label: 'Temporary Staff' },
+          { value: 'admin_clerk', label: 'Admin Clerk' },
         ];
       case 'student':
         return [

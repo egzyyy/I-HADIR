@@ -6,10 +6,12 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\UserController; 
 use App\Http\Controllers\ApdmController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\Auth\NewPasswordController;
 
 // Authentication Routes
 Route::post('/login', [LoginController::class, 'store']);
 Route::post('/logout', [LoginController::class, 'destroy']);
+Route::post('/password/reset-by-code', [NewPasswordController::class, 'resetBySchoolCode']);
 
 // Registration Route
 Route::post('/users/register', [RegistrationController::class, 'store'])->name('users.register');
