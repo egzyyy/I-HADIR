@@ -49,7 +49,7 @@ class DatabaseSeeder extends Seeder
             'school_id' => $schoolId,
             'first_name' => 'Admin',
             'last_name' => 'I-Hadir',
-            'ic_number' => '900101105000',
+            'ic_number' => '909090909090',
             'email' => 'admin@ihadir.com',
             'password' => Hash::make('password'),
             'position' => 'System Administrator',

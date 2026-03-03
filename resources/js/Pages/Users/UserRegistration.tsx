@@ -11,7 +11,7 @@ const UserRegistration = () => {
   const [selectedType, setSelectedType] = useState<'staff' | 'teacher' | 'student' | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null); // New state for error modal
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [data, setData] = useState({
@@ -45,10 +45,10 @@ const UserRegistration = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // IMPROVEMENT 3: Restrict specific fields to NUMBERS ONLY
+    // Restrict specific fields to NUMBERS ONLY
     const numberOnlyFields = ['icNumber', 'phone', 'emergencyPhone', 'fatherIc', 'motherIc'];
     if (numberOnlyFields.includes(name)) {
-      const onlyNums = value.replace(/\D/g, ''); // Removes any non-digit character
+      const onlyNums = value.replace(/\D/g, '');
       setData(prev => ({ ...prev, [name]: onlyNums }));
       return;
     }
@@ -70,14 +70,12 @@ const UserRegistration = () => {
   };
 
   const handleSubmit = async () => {
-    // IMPROVEMENT 2 & 3: Validation Check before Submitting
-    
-    // 1. Check Required Fields
-    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
+    // 1. Check Required Fields (Address is now required for everyone)
+    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'address', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
     let requiredFields = [...baseRequired];
     
     if (selectedType === 'student') {
-      requiredFields.push('address', 'specificType', 'fatherName', 'fatherIc', 'motherName', 'motherIc');
+      requiredFields.push('specificType', 'fatherName', 'fatherIc', 'motherName', 'motherIc');
     } else if (selectedType === 'teacher') {
       requiredFields.push('position');
     } else if (selectedType === 'staff') {
@@ -87,7 +85,7 @@ const UserRegistration = () => {
     for (const field of requiredFields) {
       if (!data[field as keyof typeof data]) {
         setErrorModalMsg("Please ensure all required fields (*) are filled out completely.");
-        return; // Stop submission
+        return; 
       }
     }
 
@@ -111,7 +109,6 @@ const UserRegistration = () => {
       }
     }
 
-    // If validation passes, proceed to submit
     setIsProcessing(true);
     const formData = new FormData();
     Object.keys(data).forEach((key) => {
@@ -131,7 +128,6 @@ const UserRegistration = () => {
       }
     } catch (error: any) {
       console.error('Registration failed:', error.response?.data || error);
-      // If Laravel throws a validation error (like duplicate IC), show it in the modal
       const serverMsg = error.response?.data?.message || "An unexpected error occurred. Please try again.";
       setErrorModalMsg(serverMsg);
     } finally {
@@ -325,6 +321,7 @@ const UserRegistration = () => {
                         <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
+                    
                     {shouldShowTypeDropdown && (
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700">{getTypeLabel()} : <span className="text-red-500">*</span></label>
@@ -339,18 +336,20 @@ const UserRegistration = () => {
                         </div>
                       </div>
                     )}
+
                     {selectedType === 'teacher' && (
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700">Teacher Position : <span className="text-red-500">*</span></label>
                         <input type="text" name="position" value={data.position} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                     )}
-                    {selectedType === 'student' && (
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="block text-sm font-bold text-gray-700">Address : <span className="text-red-500">*</span></label>
-                        <input type="text" name="address" value={data.address} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      </div>
-                    )}
+                    
+                    {/* ALL USERS NOW HAVE ADDRESS */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="block text-sm font-bold text-gray-700">Address : <span className="text-red-500">*</span></label>
+                      <input type="text" name="address" value={data.address} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    
                   </div>
                 </motion.div>
               )}

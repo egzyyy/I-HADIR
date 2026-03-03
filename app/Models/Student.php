@@ -42,4 +42,17 @@ class Student extends Model
     {
         return $this->belongsTo(School::class, 'school_id', 'school_id');
     }
+
+    public function enrollments()
+    {
+        return $this->hasMany(Enrollment::class, 'student_id', 'student_id');
+    }
+
+    /**
+     * Helper method to get the student's enrollment for a specific session
+     */
+    public function getEnrollmentForSession($sessionId)
+    {
+        return $this->enrollments()->where('school_session_id', $sessionId)->first();
+    }
 }

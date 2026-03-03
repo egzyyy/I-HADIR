@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\SchoolSession;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -16,69 +17,120 @@ class UserController extends Controller
     {
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
         
-        // Base queries
-        $studentsQuery = Student::where('school_id', $schoolId);
-        $teachersQuery = Teacher::where('school_id', $schoolId);
-        $staffsQuery = Staff::where('school_id', $schoolId);
+        $studentsQuery = Student::where('school_id', $schoolId)->withTrashed();
+        $teachersQuery = Teacher::where('school_id', $schoolId)->withTrashed();
+        $staffsQuery = Staff::where('school_id', $schoolId)->withTrashed();
 
-        // Filter by Session if requested
-        if ($request->has('session_id') && $request->session_id !== 'all') {
-            $session = SchoolSession::find($request->session_id);
+        $sessionId = $request->session_id;
+
+        // Filter by Session using Pivot Tables
+        if ($sessionId && $sessionId !== 'all') {
+            
+            $session = SchoolSession::find($sessionId);
             
             if ($session) {
                 $startDate = $session->start_date;
-                
-                // Find the next session chronologically to establish the end date
                 $nextSession = SchoolSession::where('school_id', $schoolId)
                     ->where('start_date', '>', $startDate)
                     ->orderBy('start_date', 'asc')
                     ->first();
+                $endDate = $nextSession ? $nextSession->start_date : now()->addYears(10);
 
-                $endDate = $nextSession ? $nextSession->start_date : now()->addYear(1);
+                // 1. STUDENTS: Must have explicit enrollment in this session
+                $studentsQuery->whereHas('enrollments', function($query) use ($sessionId) {
+                    $query->where('school_session_id', $sessionId);
+                })->with(['enrollments' => function($query) use ($sessionId) {
+                    $query->where('school_session_id', $sessionId)->with('classroom');
+                }]);
 
-                $studentsQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $teachersQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $staffsQuery->whereBetween('created_at', [$startDate, $endDate]);
+                // 2. TEACHERS & STAFF: Show if they were hired before the session ended, 
+                // and NOT deleted before the session started.
+                // We also load their LATEST employment record created before the session ended.
+                
+                $teachersQuery->where('created_at', '<', $endDate)
+                    ->where(function($q) use ($startDate) {
+                        $q->whereNull('deleted_at')
+                          ->orWhere('deleted_at', '>=', $startDate);
+                    })->with(['employments' => function($query) use ($endDate) {
+                        // Get the latest employment role they had up to this session
+                        $query->whereHas('schoolSession', function($q) use ($endDate) {
+                            $q->where('start_date', '<', $endDate);
+                        })->latest('created_at');
+                    }]);
+
+                $staffsQuery->where('created_at', '<', $endDate)
+                    ->where(function($q) use ($startDate) {
+                        $q->whereNull('deleted_at')
+                          ->orWhere('deleted_at', '>=', $startDate);
+                    })->with(['employments' => function($query) use ($endDate) {
+                        $query->whereHas('schoolSession', function($q) use ($endDate) {
+                            $q->where('start_date', '<', $endDate);
+                        })->latest('created_at');
+                    }]);
             }
+
+        } else {
+            // All Time History - Load the latest record for everyone
+            $studentsQuery->with(['enrollments' => function($query) {
+                $query->latest('created_at')->with('classroom');
+            }]);
+            $teachersQuery->with(['employments' => function($query) {
+                $query->latest('created_at');
+            }]);
+            $staffsQuery->with(['employments' => function($query) {
+                $query->latest('created_at');
+            }]);
         }
 
-        // Fetch and format Data
+        // Fetch and format Students
         $students = $studentsQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
+            $enrollment = $item->enrollments->first();
+            $className = $enrollment && $enrollment->classroom ? $enrollment->classroom->name : 'Unassigned';
+
             return [
                 'id' => $item->student_id,
                 'name' => $item->name,
                 'ic_number' => $item->ic_number ?? '-', 
                 'phone' => $item->phone_num ?? '-', 
                 'gender' => $item->gender,
-                'role' => $item->class ?? 'Student', 
+                'role' => $className, 
                 'type' => 'student',
                 'registeredDate' => $item->created_at->format('d-m-Y'),
                 'raw_data' => $item
             ];
         });
 
+        // Fetch and format Teachers
         $teachers = $teachersQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
+            // We grab the first employment loaded from the with() query above
+            $employment = $item->employments->first();
+            $role = $employment ? $employment->position : 'Unassigned';
+
             return [
                 'id' => $item->teacher_id,
                 'name' => $item->name,
                 'ic_number' => $item->ic_number ?? '-',
                 'phone' => $item->phone_number ?? '-',
                 'gender' => $item->gender,
-                'role' => $item->position ?? 'Teacher',
+                'role' => $role,
                 'type' => 'teacher',
                 'registeredDate' => $item->created_at->format('d-m-Y'),
                 'raw_data' => $item
             ];
         });
 
+        // Fetch and format Staffs
         $staffs = $staffsQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
+            $employment = $item->employments->first();
+            $role = $employment ? $employment->staff_type : 'Unassigned';
+
             return [
                 'id' => $item->staff_id,
                 'name' => $item->name,
                 'ic_number' => $item->ic_number ?? '-',
                 'phone' => $item->phone_number ?? '-',
                 'gender' => $item->gender,
-                'role' => $item->staff_type ?? 'Staff',
+                'role' => $role,
                 'type' => 'staff',
                 'registeredDate' => $item->created_at->format('d-m-Y'),
                 'raw_data' => $item
@@ -92,9 +144,9 @@ class UserController extends Controller
         ]);
     }
 
+    // ... [Keep destroy, getAdminProfile, updateAdminProfile, updatePassword below]
     public function destroy($type, $id)
     {
-        // Handle Soft Deletions based on type
         if ($type === 'student') Student::where('student_id', $id)->delete();
         elseif ($type === 'teacher') Teacher::where('teacher_id', $id)->delete();
         elseif ($type === 'staff') Staff::where('staff_id', $id)->delete();
@@ -102,40 +154,128 @@ class UserController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function update(Request $request, $id)
+    {
+        $type = $request->type;
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+
+        // Common validation rules for all types
+        $rules = [
+            'gender' => 'nullable|in:Male,Female',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email',
+            'address' => 'nullable|string',
+            'emergencyName' => 'nullable|string|max:255',
+            'emergencyRelation' => 'nullable|string|max:50',
+            'emergencyPhone' => 'nullable|string|max:20',
+            'profilePic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
+        ];
+
+        // Type-specific validation
+        if ($type === 'student') {
+            $rules['fatherPhone'] = 'nullable|string|max:20';
+            $rules['motherPhone'] = 'nullable|string|max:20';
+        } else {
+            $rules['role'] = 'nullable|string|max:255'; // position for teacher, staff_type for staff
+        }
+
+        $validated = $request->validate($rules);
+
+        // Handle File Upload
+        $photoPath = null;
+        if ($request->hasFile('profilePic')) {
+            $photoPath = $request->file('profilePic')->store('profile-photos', 'public');
+        }
+
+        // --- UPDATE LOGIC ---
+        if ($type === 'student') {
+            $user = Student::findOrFail($id);
+            
+            $updateData = [
+                'gender' => $validated['gender'] ?? $user->gender,
+                'phone_num' => $validated['phone'] ?? $user->phone_num,
+                'email' => $validated['email'] ?? $user->email,
+                'address' => $validated['address'] ?? $user->address,
+                'father_phone_num' => $validated['fatherPhone'] ?? $user->father_phone_num,
+                'mother_phone_num' => $validated['motherPhone'] ?? $user->mother_phone_num,
+                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
+                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
+            ];
+
+            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            $user->update($updateData);
+
+        } elseif ($type === 'teacher') {
+            $user = Teacher::findOrFail($id);
+
+            $updateData = [
+                'gender' => $validated['gender'] ?? $user->gender,
+                'phone_number' => $validated['phone'] ?? $user->phone_number,
+                'email' => $validated['email'] ?? $user->email,
+                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
+                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
+            ];
+
+            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            $user->update($updateData);
+
+            // Update their current active session role if provided
+            if (isset($validated['role'])) {
+                $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+                if ($activeSession) {
+                    \App\Models\TeacherEmployment::updateOrCreate(
+                        ['teacher_id' => $user->teacher_id, 'school_session_id' => $activeSession->school_session_id],
+                        ['position' => $validated['role']]
+                    );
+                }
+            }
+
+        } elseif ($type === 'staff') {
+            $user = Staff::findOrFail($id);
+
+            $updateData = [
+                'gender' => $validated['gender'] ?? $user->gender,
+                'phone_number' => $validated['phone'] ?? $user->phone_number,
+                'email' => $validated['email'] ?? $user->email,
+                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
+                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
+            ];
+
+            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            $user->update($updateData);
+
+            // Update their current active session role if provided
+            if (isset($validated['role'])) {
+                $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+                if ($activeSession) {
+                    \App\Models\StaffEmployment::updateOrCreate(
+                        ['staff_id' => $user->staff_id, 'school_session_id' => $activeSession->school_session_id],
+                        ['staff_type' => $validated['role']]
+                    );
+                }
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'User updated successfully.']);
+    }
+
     public function getAdminProfile(Request $request)
     {
-        // Get the currently authenticated admin
         $admin = auth()->user();
-        
-        // Fallback for development if no one is logged in
-        if (!$admin) {
-            $admin = User::first(); 
-        }
-
-        if (!$admin) {
-            return response()->json(['success' => false, 'message' => 'Admin not found.'], 404);
-        }
-
-        return response()->json([
-            'success' => true, 
-            'data' => $admin
-        ]);
+        if (!$admin) { $admin = User::first(); }
+        if (!$admin) { return response()->json(['success' => false, 'message' => 'Admin not found.'], 404); }
+        return response()->json(['success' => true, 'data' => $admin]);
     }
 
     public function updateAdminProfile(Request $request)
     {
         $admin = auth()->user();
-        
-        // Fallback for development if no one is logged in
-        if (!$admin) {
-            $admin = User::first(); 
-        }
+        if (!$admin) { $admin = User::first(); }
+        if (!$admin) { return response()->json(['success' => false, 'message' => 'Admin not found.'], 404); }
 
-        if (!$admin) {
-            return response()->json(['success' => false, 'message' => 'Admin not found.'], 404);
-        }
-
-        // Validate the incoming data
         $validated = $request->validate([
             'first_name' => 'nullable|string|max:255',
             'last_name' => 'nullable|string|max:255',
@@ -149,54 +289,28 @@ class UserController extends Controller
             'emergency_contact_name' => 'nullable|string|max:255',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_phone_num' => 'nullable|string|max:20',
-            'profile_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validate image (Max 2MB)
+            'profile_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', 
         ]);
 
-        // Handle File Upload
         if ($request->hasFile('profile_pic')) {
-            // Delete old picture if it exists (optional but good practice)
-            // if ($admin->profile_pic_path) { \Illuminate\Support\Facades\Storage::disk('public')->delete($admin->profile_pic_path); }
-            
             $path = $request->file('profile_pic')->store('profile-photos', 'public');
             $validated['profile_pic_path'] = $path;
         }
 
-        // Update the database
         $admin->update($validated);
 
-        return response()->json([
-            'success' => true, 
-            'message' => 'Profile updated successfully!',
-            'data' => $admin // Return fresh data to React
-        ]);
+        return response()->json(['success' => true, 'message' => 'Profile updated successfully!', 'data' => $admin]);
     }
 
     public function updatePassword(Request $request)
     {
         $admin = auth()->user();
-        
-        // Fallback for development if no one is logged in
-        if (!$admin) {
-            $admin = User::first(); 
-        }
+        if (!$admin) { $admin = User::first(); }
+        if (!$admin) { return response()->json(['success' => false, 'message' => 'Admin not found.'], 404); }
 
-        if (!$admin) {
-            return response()->json(['success' => false, 'message' => 'Admin not found.'], 404);
-        }
+        $request->validate(['password' => ['required', 'string', 'min:8', 'confirmed']]);
+        $admin->update(['password' => Hash::make($request->password)]);
 
-        // Validate the incoming request
-        $request->validate([
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        // Securely hash and update the password
-        $admin->update([
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password)
-        ]);
-
-        return response()->json([
-            'success' => true, 
-            'message' => 'Password updated successfully!'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Password updated successfully!']);
     }
 }

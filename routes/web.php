@@ -16,6 +16,7 @@ Route::post('/users/register', [RegistrationController::class, 'store'])->name('
 Route::post('/api/apdm/import', [ApdmController::class, 'import']);
 Route::get('/api/users', [UserController::class, 'index']);
 Route::delete('/api/users/{type}/{id}', [UserController::class, 'destroy']);
+Route::put('/api/users/{id}', [UserController::class, 'update']);
 
 // Admin Profile Management
 Route::get('/api/admin/profile', [UserController::class, 'getAdminProfile']);

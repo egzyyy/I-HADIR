@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('ic_number', 12)->comment('No. Kad Pengenalan (12 digits, no dashes)');
             $table->string('gender', 20)->nullable();
             $table->string('profile_pic_path')->nullable();
-            $table->string('position')->nullable()->comment('Pengetua');
+            $table->string('address')->nullable();
             
             // Contact
             $table->string('phone_number')->nullable();

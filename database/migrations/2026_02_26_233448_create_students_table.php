@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('name');
             $table->string('ic_number', 12)->comment('No. MyKad / MyKid (12 digits, no dashes)');
             $table->string('gender', 20)->nullable();
-            $table->string('class')->nullable();
             $table->string('profile_pic_path')->nullable();
         
             // Student Contact & Address

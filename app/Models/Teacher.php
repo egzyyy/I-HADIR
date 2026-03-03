@@ -19,7 +19,7 @@ class Teacher extends Model
         'phone_number',
         'email',
         'gender',
-        'position',
+        'address',
         'profile_pic_path',
         'emergency_name',
         'emergency_phone_num',
@@ -34,5 +34,15 @@ class Teacher extends Model
     public function school()
     {
         return $this->belongsTo(School::class, 'school_id', 'school_id');
+    }
+
+    public function employments()
+    {
+        return $this->hasMany(TeacherEmployment::class, 'teacher_id', 'teacher_id');
+    }
+
+    public function getEmploymentForSession($sessionId)
+    {
+        return $this->employments()->where('school_session_id', $sessionId)->first();
     }
 }

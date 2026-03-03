@@ -5,6 +5,7 @@ import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { UserInfoModal } from '../../Components/modals/UserInfoModal';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
+import { EditUserModal } from '../../Components/modals/EditUserModal';
 import axios from 'axios';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -13,6 +14,7 @@ const UserListUnified = () => {
   const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('staff');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 100;
   
   // Session States
@@ -64,7 +66,6 @@ const UserListUnified = () => {
       }
     };
     
-    // Only fetch if we have determined the session ID (either 'all' or a valid ID)
     if (selectedSessionId) {
       fetchUsers();
     }
@@ -95,11 +96,15 @@ const UserListUnified = () => {
     setIsDeleteModalOpen(true);
   };
 
+  const handleEditClick = (user: any) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
   const handleConfirmDelete = async () => {
     if (!selectedUser) return;
     try {
       await axios.delete(`/api/users/${selectedUser.type}/${selectedUser.id}`);
-      // Refresh users using the current session filter
       const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
       setAllUsers(response.data);
     } catch (error) {
@@ -111,6 +116,21 @@ const UserListUnified = () => {
     }
   };
 
+  const handleEditSuccess = async () => {
+    setIsEditModalOpen(false);
+    setSelectedUser(null);
+    // Refresh the data to show the updated info
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
+      setAllUsers(response.data);
+    } catch (error) {
+      console.error("Failed to fetch users after edit", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatRoleLabel = (role: string, type: string) => {
     if (!role) return '-';
     if (type === 'staff') return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -118,9 +138,141 @@ const UserListUnified = () => {
     return role;
   };
 
-  // --- EXPORT FUNCTIONS (Unchanged) --- //
-  const handleExportCSV = () => { /* existing logic */ };
-  const handleExportExcel = () => { /* existing logic */ };
+  // --- EXPORT FUNCTIONS --- //
+
+  // 1. Copy to Clipboard (With HTML formatting for Word/Docs)
+  const handleCopy = async () => {
+    if (filteredData.length === 0) {
+      alert("No data to copy!");
+      return;
+    }
+
+    // Build an HTML table so pasting into Word/Docs creates a perfect grid
+    const tableHtml = `
+      <table border="1" style="border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>No</th><th>Name</th><th>IC Number</th><th>Phone No</th><th>Role/Class</th><th>Gender</th><th>Registered Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredData.map((item: any, index: number) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${item.name}</td>
+              <td>${item.ic_number}</td>
+              <td>${item.phone}</td>
+              <td>${formatRoleLabel(item.role, item.type)}</td>
+              <td>${item.gender || '-'}</td>
+              <td>${item.registeredDate}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    try {
+      const blobHtml = new Blob([tableHtml], { type: 'text/html' });
+      // Plain text fallback for simple text editors
+      const textFallback = filteredData.map((item: any, i: number) => 
+        `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
+      ).join('\n');
+      const blobText = new Blob([textFallback], { type: 'text/plain' });
+
+      const clipboardItem = new ClipboardItem({
+        'text/html': blobHtml,
+        'text/plain': blobText
+      });
+
+      await navigator.clipboard.write([clipboardItem]);
+      alert("Table copied to clipboard! You can now paste it into Word, Excel, or Google Docs.");
+    } catch (error) {
+      console.error("Clipboard API failed, trying fallback:", error);
+      // Fallback for strict browser permissions
+      const textFallback = filteredData.map((item: any, i: number) => 
+        `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
+      ).join('\n');
+      navigator.clipboard.writeText(textFallback);
+      alert("Text copied to clipboard!");
+    }
+  };
+
+  // 2. Export to CSV
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+
+    const headers = ['No', 'Name', 'IC Number', 'Phone No', 'Role/Class', 'Gender', 'Registered Date'];
+    const csvRows = [headers.join(',')];
+
+    filteredData.forEach((item: any, index: number) => {
+      const row = [
+        index + 1,
+        `"${item.name}"`,
+        `"=""${item.ic_number}"""`, // Prevents scientific notation
+        `"=""${item.phone}"""`, // Prevents scientific notation
+        `"${formatRoleLabel(item.role, item.type)}"`,
+        `"${item.gender || '-'}"`,
+        `"${item.registeredDate}"`
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `${activeTab}_list_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 3. Export to Excel (.xls)
+  const handleExportExcel = () => {
+    if (filteredData.length === 0) return;
+
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="UTF-8"></head>
+      <body>
+        <table border="1">
+          <thead>
+            <tr style="background-color: #1c3068; color: white;">
+              <th>No</th>
+              <th>Name</th>
+              <th>IC Number</th>
+              <th>Phone No</th>
+              <th>Role/Class</th>
+              <th>Gender</th>
+              <th>Registered Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredData.map((item: any, index: number) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.name}</td>
+                <td style="mso-number-format:'\\@';">${item.ic_number}</td>
+                <td style="mso-number-format:'\\@';">${item.phone}</td>
+                <td>${formatRoleLabel(item.role, item.type)}</td>
+                <td>${item.gender || '-'}</td>
+                <td>${item.registeredDate}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `${activeTab}_list_${new Date().getTime()}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <>
@@ -152,7 +304,14 @@ const UserListUnified = () => {
         <div className="p-6">
           <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
             
-            <ExportButtons onExportCSV={handleExportCSV} onExportExcel={handleExportExcel} />
+            {/* Action buttons passed down */}
+            <ExportButtons 
+                onCopy={handleCopy}
+                onExportCSV={handleExportCSV} 
+                onExportExcel={handleExportExcel} 
+                onExportPDF={() => {}} // Empty for now
+                onPrint={() => {}}     // Empty for now
+            />
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
                
@@ -187,7 +346,6 @@ const UserListUnified = () => {
             </div>
           </div>
 
-          {/* Table Code Remains Exactly the Same */}
           <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[600px] relative">
             <table className="w-full text-left border-collapse relative">
               <thead className="sticky top-0 z-10 shadow-sm">
@@ -218,7 +376,11 @@ const UserListUnified = () => {
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center items-center gap-2">
                           <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
-                             <Info size={16} />
+                            <Info size={16} />
+                          </button>
+                          {/* ADD THE EDIT BUTTON HERE */}
+                          <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                           </button>
                           <button onClick={() => handleDeleteClick(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100" title="Delete User">
                             <Trash2 size={16} />
@@ -232,7 +394,6 @@ const UserListUnified = () => {
             </table>
           </div>
 
-          {/* Pagination Code Remains Exactly the Same */}
           {!isLoading && filteredData.length > 0 && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
               <p>Showing {startIndex + 1} to {endIndex} of {filteredData.length} entries</p>
@@ -251,6 +412,7 @@ const UserListUnified = () => {
 
     <AnimatePresence>
       {isInfoModalOpen && <UserInfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} user={selectedUser} />}
+      {isEditModalOpen && <EditUserModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={selectedUser} onSuccess={handleEditSuccess} />}
       {isDeleteModalOpen && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} userName={selectedUser?.name} />}
     </AnimatePresence>
     </>

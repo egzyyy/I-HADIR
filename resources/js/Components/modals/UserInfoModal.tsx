@@ -38,6 +38,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
   const emergencyName = user.raw_data?.emergency_name || '-';
   const emergencyRelation = user.raw_data?.emergency_relation || '-';
   const emergencyPhone = user.raw_data?.emergency_phone_num || '-';
+  const profilePicPath = user.raw_data?.profile_pic_path;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -57,7 +58,15 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                 <div className="w-32 h-32 bg-white p-1 rounded-full shadow-lg mb-4 relative z-10">
                     <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white">
                         {/* If you implement profile pictures later, replace this icon with an <img src={user.raw_data.profile_pic_path} /> */}
-                        <User size={64} className="text-gray-400 translate-y-2" />
+                        {profilePicPath ? (
+                          <img 
+                            src={`/storage/${profilePicPath}`} 
+                            alt={`${user.name}'s profile`} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User size={64} className="text-gray-400 translate-y-2" />
+                        )}
                     </div>
                 </div>
                 
