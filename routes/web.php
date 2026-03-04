@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ApdmController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\VisitorController;
 
 // Authentication Routes
 Route::post('/login', [LoginController::class, 'store']);
@@ -31,6 +32,14 @@ Route::post('/api/sessions', [SchoolController::class, 'storeSession']);
 Route::get('/api/sessions/active', [SchoolController::class, 'getActiveSession']);
 Route::put('/api/sessions/{id}', [SchoolController::class, 'updateSession']);
 Route::delete('/api/sessions/{id}', [SchoolController::class, 'destroySession']);
+
+
+
+// Visitor Endpoints
+Route::get('/api/visitors', [VisitorController::class, 'index']);
+Route::post('/api/visitors', [VisitorController::class, 'store']);
+Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE
+Route::put('/api/visitors/{id}/checkout', [VisitorController::class, 'checkout']);
 
 
 /*

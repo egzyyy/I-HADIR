@@ -18,6 +18,7 @@ import Faqs from './Pages/Faqs';
 import UserRegistration from './Pages/Users/UserRegistration';
 import Apdm from './Pages/Users/Apdm';
 import UserList from './Pages/Users/UserList';
+import VisitorList from './Pages/Users/VisitorList';
 
 // Pages — Academic dropdown (folder)
 import ClassPage from './Pages/Academic/Class';
@@ -66,6 +67,7 @@ root.render(
       <Route path="/users/registration" element={<UserRegistration />} />
       <Route path="/users/apdm" element={<Apdm />} />
       <Route path="/users/list" element={<UserList />} />
+      <Route path="/users/visitor-list" element={<VisitorList />} />
 
       {/* Academic (dropdown) */}
       <Route path="/academic/class" element={<ClassPage />} />

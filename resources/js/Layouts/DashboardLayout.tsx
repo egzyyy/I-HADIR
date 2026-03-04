@@ -57,7 +57,8 @@ const MENU_SECTIONS: MenuSection[] = [
         subItems: [
           { id: 'user-registration', label: 'User Registration' },
           { id: 'import-apdm', label: 'APDM' },
-          { id: 'user-list', label: 'User List' }
+          { id: 'user-list', label: 'User List' },
+          { id: 'visitor-list', label: 'Visitor List' }
         ]
       },
       {
@@ -256,6 +257,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'user-registration': '/users/registration',
       'import-apdm': '/users/apdm',
       'user-list': '/users/list',
+      'visitor-list': '/users/visitor-list',
       'class': '/academic/class',
       'co-curricular': '/academic/co-curricular',
       'sport': '/academic/sport',
