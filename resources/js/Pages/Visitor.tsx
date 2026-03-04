@@ -171,7 +171,7 @@ export default function Visitor() {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all placeholder-gray-400"
                       placeholder="Full name"
                       required
                     />
@@ -183,8 +183,8 @@ export default function Visitor() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all font-mono"
-                      placeholder="e.g. 0123456789"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all placeholder-gray-400"
+                      placeholder="0123456789"
                       required
                     />
                   </div>
@@ -197,7 +197,7 @@ export default function Visitor() {
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
-                        className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all appearance-none cursor-pointer bg-white"
+                        className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all appearance-none cursor-pointer bg-white placeholder-gray-400"
                         required
                       >
                         <option value="" disabled>Select Category</option>
@@ -217,8 +217,8 @@ export default function Visitor() {
                       name="personToMeet"
                       value={formData.personToMeet}
                       onChange={handleChange}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all"
-                      placeholder="e.g. Cikgu Ahmad"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all placeholder-gray-400"
+                      placeholder="Cikgu Ahmad"
                       required
                     />
                   </div>
@@ -231,8 +231,8 @@ export default function Visitor() {
                       name="passBadgeNo"
                       value={formData.passBadgeNo}
                       onChange={handleChange}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all uppercase font-mono"
-                      placeholder="e.g. PASS-01"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all uppercase placeholder-gray-400"
+                      placeholder="10"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -242,8 +242,8 @@ export default function Visitor() {
                       name="plateNumber"
                       value={formData.plateNumber}
                       onChange={handleChange}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all uppercase font-mono"
-                      placeholder="e.g. VBC 1234"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all uppercase placeholder-gray-400"
+                      placeholder="VBC1234"
                     />
                   </div>
 
@@ -277,7 +277,7 @@ export default function Visitor() {
                       value={formData.notes}
                       onChange={handleChange}
                       rows={2}
-                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all resize-none"
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/20 outline-none transition-all resize-none placeholder-gray-400"
                       placeholder="Any additional information..."
                     />
                   </div>
