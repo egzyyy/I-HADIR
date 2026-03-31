@@ -82,6 +82,7 @@ const MENU_SECTIONS: MenuSection[] = [
         label: 'Attendance Log', 
         icon: CheckSquare,
         subItems: [
+          { id: 'attendance-log-list', label: 'Log' },
           { id: 'check-in', label: 'Check In' },
           { id: 'check-out', label: 'Check Out' },
           { id: 'time-setting', label: 'Time setting' }
@@ -265,6 +266,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'check-in': '/attendance-log/check-in',
       'check-out': '/attendance-log/check-out',
       'time-setting': '/attendance-log/time-setting',
+      'attendance-log-list': '/attendance-log',
       'facility-check-in': '/facility-check-in',
       'manual-entry': '/manual-entry',
       'attendance-reports': '/attendance-reports',

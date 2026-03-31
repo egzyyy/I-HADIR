@@ -30,6 +30,7 @@ import EventPage from './Pages/Academic/Event';
 import CheckIn from './Pages/AttendanceLog/CheckIn';
 import CheckOut from './Pages/AttendanceLog/CheckOut';
 import TimeSetting from './Pages/AttendanceLog/TimeSetting';
+import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 
 // Pages — Admin (folder)
 import AdminProfile from './Pages/Admin/AdminProfile';
@@ -76,6 +77,7 @@ root.render(
       <Route path="/academic/event" element={<EventPage />} />
 
       {/* Attendance Log (dropdown) */}
+      <Route path="/attendance-log" element={<AttendanceLogList />} />
       <Route path="/attendance-log/check-in" element={<CheckIn />} />
       <Route path="/attendance-log/check-out" element={<CheckOut />} />
       <Route path="/attendance-log/time-setting" element={<TimeSetting />} />

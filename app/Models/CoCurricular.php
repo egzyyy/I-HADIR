@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class CoCurricular extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $primaryKey = 'co_curricular_id';
+
+    protected $fillable = [
+        'school_id',
+        'name',
+        'capacity',
+        'teacher_id',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id', 'teacher_id');
+    }
+}

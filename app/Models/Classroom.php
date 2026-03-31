@@ -15,6 +15,9 @@ class Classroom extends Model
     protected $fillable = [
         'school_id',
         'name',
+        'teacher_id',
+        'capacity',
+        'school_session_id',
         'is_active',
     ];
 
@@ -25,6 +28,16 @@ class Classroom extends Model
     public function school()
     {
         return $this->belongsTo(School::class, 'school_id', 'school_id');
+    }
+
+    public function teacher()
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id', 'teacher_id');
+    }
+
+    public function session()
+    {
+        return $this->belongsTo(SchoolSession::class, 'school_session_id', 'school_session_id');
     }
 
     public function enrollments()
