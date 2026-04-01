@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
 use App\Models\AttendanceSetting;
+use App\Models\AttendanceSettingOverride;
 use App\Models\SchoolSession;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -57,11 +58,23 @@ class AttendanceController extends Controller
             ], 409);
         }
 
+        $now = Carbon::now();
+
+        // Reject check-in on school-closed / holiday days
+        $activeSetting = $this->resolveActiveSetting($schoolId, $now);
+        $override = AttendanceSettingOverride::where('school_id', $schoolId)
+            ->whereDate('date', $now->toDateString())
+            ->first();
+        if ($override && !$override->setting_id) {
+            return response()->json([
+                'message' => 'School is closed today' . ($override->note ? " ({$override->note})" : '') . '. No attendance recorded.',
+            ], 403);
+        }
+
         $session = SchoolSession::where('school_id', $schoolId)
             ->where('is_active', true)
             ->first();
 
-        $now    = Carbon::now();
         $status = $this->resolveStatus($schoolId, $now);
 
         $log = AttendanceLog::updateOrCreate(
@@ -382,17 +395,60 @@ class AttendanceController extends Controller
 
     private function resolveStatus(int $schoolId, Carbon $now): string
     {
-        $setting = AttendanceSetting::where('school_id', $schoolId)
-            ->where('is_default', true)
-            ->first();
+        $setting = $this->resolveActiveSetting($schoolId, $now);
 
         if (!$setting) return 'present';
 
         $time = $now->format('H:i:s');
 
         if ($time <= $setting->check_in_deadline) return 'present';
-        if ($time <= $setting->late_threshold)    return 'late';
+
+        // If absent_threshold is set, use it as the absent cutoff
+        // late_threshold = start of late window, absent_threshold = end of late window
+        if ($setting->absent_threshold) {
+            if ($time <= $setting->absent_threshold) return 'late';
+            return 'absent';
+        }
+
+        // Fallback: original two-field logic
+        if ($time <= $setting->late_threshold) return 'late';
         return 'absent';
+    }
+
+    /**
+     * 3-layer setting resolution:
+     * 1. Date override for today (setting_id = null means school closed)
+     * 2. Day-of-week match (applies_to_days contains today's ISO weekday 1=Mon…7=Sun)
+     * 3. Fallback to is_default = true
+     *
+     * Returns null if school is closed (override with no setting).
+     */
+    public function resolveActiveSetting(int $schoolId, Carbon $date): ?AttendanceSetting
+    {
+        // Layer 1: date override
+        $override = AttendanceSettingOverride::where('school_id', $schoolId)
+            ->whereDate('date', $date->toDateString())
+            ->first();
+
+        if ($override) {
+            // null setting_id = school closed / holiday
+            if (!$override->setting_id) return null;
+            return AttendanceSetting::find($override->setting_id);
+        }
+
+        // Layer 2: day-of-week match (Carbon dayOfWeekIso: 1=Mon … 7=Sun)
+        $dayOfWeek = $date->dayOfWeekIso;
+        $all = AttendanceSetting::where('school_id', $schoolId)->get();
+
+        foreach ($all as $s) {
+            $days = $s->applies_to_days ?? [];
+            if (in_array($dayOfWeek, $days)) {
+                return $s;
+            }
+        }
+
+        // Layer 3: fallback default
+        return $all->firstWhere('is_default', true);
     }
 
     private function resolveNameClass(AttendanceLog $log): array

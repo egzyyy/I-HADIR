@@ -14,11 +14,19 @@ class AttendanceSetting extends Model
         'check_in_start',
         'check_in_deadline',
         'late_threshold',
+        'absent_threshold',
         'check_out_time',
         'is_default',
+        'applies_to_days',
     ];
 
     protected $casts = [
-        'is_default' => 'boolean',
+        'is_default'      => 'boolean',
+        'applies_to_days' => 'array',
     ];
+
+    public function overrides()
+    {
+        return $this->hasMany(AttendanceSettingOverride::class, 'setting_id');
+    }
 }

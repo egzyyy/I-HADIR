@@ -87,6 +87,12 @@ Route::post('/api/time-settings', [TimeSettingController::class, 'store']);
 Route::put('/api/time-settings/{id}', [TimeSettingController::class, 'update']);
 Route::delete('/api/time-settings/{id}', [TimeSettingController::class, 'destroy']);
 
+// Time Setting Overrides (calendar exceptions: holidays, special days)
+Route::get('/api/time-settings/overrides', [TimeSettingController::class, 'getOverrides']);
+Route::post('/api/time-settings/overrides', [TimeSettingController::class, 'storeOverride']);
+Route::put('/api/time-settings/overrides/{id}', [TimeSettingController::class, 'updateOverride']);
+Route::delete('/api/time-settings/overrides/{id}', [TimeSettingController::class, 'destroyOverride']);
+
 // QR Code
 Route::get('/api/qr/{userType}/{userId}', [QrController::class, 'generate']);
 Route::post('/api/qr/resolve', [QrController::class, 'resolve']);
