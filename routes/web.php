@@ -102,7 +102,13 @@ Route::post('/api/facility/check-in', [FacilityController::class, 'checkIn']);
 Route::post('/api/facility/check-out', [FacilityController::class, 'checkOut']);
 Route::get('/api/facility/log', [FacilityController::class, 'getLog']);
 
-// Visitor Endpoints
+use App\Http\Controllers\ReportController;
+
+// Reports
+Route::get('/api/reports/classes', [ReportController::class, 'getClasses']);
+Route::get('/api/reports/attendance', [ReportController::class, 'attendanceReport']);
+Route::get('/api/reports/monthly', [ReportController::class, 'monthlyReport']);
+Route::get('/api/reports/summary', [ReportController::class, 'summaryReport']);
 Route::get('/api/visitors', [VisitorController::class, 'index']);
 Route::post('/api/visitors', [VisitorController::class, 'store']);
 Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE

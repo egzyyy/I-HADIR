@@ -1,15 +1,89 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Calendar, ChevronDown, Download, Filter, Users, FileText, BarChart3, Eye } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { CircularProgressBar } from '../../Components/dashboard/CircularProgressBar';
 
+// ─── Shared types ─────────────────────────────────────────────────────────────
+type Classroom  = { classroom_id: number; name: string };
+type ReportRow  = { student_id: number; name: string; class: string; date: string; status: string; check_in: string; check_out: string };
+type Stats      = { present: number; late: number; absent: number; total: number };
+type SummaryRow = { classroom_id: number; class_name: string; teacher: string; total_students: number; present: number; present_pct: number; absent: number; absent_pct: number };
+
+// ─── Shared hooks / helpers ───────────────────────────────────────────────────
+function useClasses() {
+  const [classes, setClasses] = useState<Classroom[]>([]);
+  useEffect(() => {
+    axios.get('/api/reports/classes').then(r => setClasses(r.data.data ?? [])).catch(() => {});
+  }, []);
+  return classes;
+}
+
+const statusBadge = (status: string) => {
+  if (status === 'present') return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Present</span>;
+  if (status === 'late')    return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Late</span>;
+  if (status === 'not_in')  return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">Not In</span>;
+  return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Absent</span>;
+};
+
+function exportCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const csv  = [keys.join(','), ...rows.map(r => keys.map(k => `"${r[k] ?? ''}"`).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = filename + '.csv';
+  a.click();
+}
+
+function exportCopy(rows: any[]) {
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const text = [keys.join('\t'), ...rows.map(r => keys.map(k => r[k] ?? '').join('\t'))].join('\n');
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+function exportPrint(ref: React.RefObject<HTMLTableElement | null>) {
+  if (!ref.current) return;
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(`<html><head><title>Report</title><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#1c3068;color:#fff}</style></head><body>${ref.current.outerHTML}</body></html>`);
+  w.document.close();
+  w.print();
+}
+
 const AttendanceReport = () => {
-  const [activeTab, setActiveTab] = useState('student');
-  const [selectedDate, setSelectedDate] = useState('');
+  const classes = useClasses();
+  const [activeTab, setActiveTab]         = useState('student');
+  const [selectedDate, setSelectedDate]   = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [rows, setRows]                   = useState<ReportRow[]>([]);
+  const [stats, setStats]                 = useState<Stats | null>(null);
+  const [search, setSearch]               = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [submitted, setSubmitted]         = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const handleSubmit = async () => {
+    if (!selectedDate) return;
+    setLoading(true); setSubmitted(true);
+    try {
+      const params: any = { date: selectedDate };
+      if (selectedClass) params.classroom_id = selectedClass;
+      const r = await axios.get('/api/reports/attendance', { params });
+      setRows(r.data.data ?? []);
+      setStats(r.data.stats ?? null);
+    } catch { setRows([]); setStats(null); }
+    finally { setLoading(false); }
+  };
+
+  const filtered = rows.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.class.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <motion.div 
@@ -80,8 +154,9 @@ const AttendanceReport = () => {
                         className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
                       >
                         <option value="">Select...</option>
-                        <option value="1-amanah">1 Amanah</option>
-                        <option value="1-bestari">1 Bestari</option>
+                        {classes.map(c => (
+                          <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
+                        ))}
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -93,8 +168,8 @@ const AttendanceReport = () => {
 
              {/* Right side: Submit Button aligned to far right */}
              <div className="w-full md:w-auto pb-6">
-               <button className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px]">
-                 Submit
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px] disabled:opacity-50">
+                 {loading ? 'Loading...' : 'Submit'}
                </button>
              </div>
            </div>
@@ -110,11 +185,11 @@ const AttendanceReport = () => {
             </div>
             <div className="flex border-t border-gray-100 divide-x divide-gray-100">
                <div className="flex-1 p-4 text-center">
-                 <p className="text-xl font-bold text-[#1c3068]">0</p>
+                 <p className="text-xl font-bold text-[#1c3068]">{stats ? stats.present + stats.late : 0}</p>
                  <p className="text-xs text-gray-500 uppercase tracking-wider">Present</p>
                </div>
                <div className="flex-1 p-4 text-center">
-                 <p className="text-xl font-bold text-[#c53336]">0</p>
+                 <p className="text-xl font-bold text-[#c53336]">{stats?.absent ?? 0}</p>
                  <p className="text-xs text-gray-500 uppercase tracking-wider">Absent</p>
                </div>
             </div>
@@ -122,13 +197,13 @@ const AttendanceReport = () => {
 
           {/* Card 2: Total Present */}
           <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
-             <p className="text-4xl font-bold mb-1">0</p>
+             <p className="text-4xl font-bold mb-1">{stats ? stats.present + stats.late : 0}</p>
              <p className="text-sm font-medium opacity-90">Total Present</p>
           </div>
 
           {/* Card 3: Total Absent */}
           <div className="bg-[#c53336] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
-             <p className="text-4xl font-bold mb-1">0</p>
+             <p className="text-4xl font-bold mb-1">{stats?.absent ?? 0}</p>
              <p className="text-sm font-medium opacity-90">Total Absent</p>
           </div>
         </div>
@@ -143,19 +218,27 @@ const AttendanceReport = () => {
         
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons />
+            <ExportButtons
+              onCopy={() => exportCopy(filtered)}
+              onExportCSV={() => exportCSV(filtered, 'attendance')}
+              onExportExcel={() => exportCSV(filtered, 'attendance')}
+              onPrint={() => exportPrint(tableRef)}
+              onExportPDF={() => exportPrint(tableRef)}
+            />
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input 
-                type="text" 
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-left border-collapse">
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
@@ -170,17 +253,31 @@ const AttendanceReport = () => {
                 </tr>
               </thead>
               <tbody>
-                 <tr>
-                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">
-                     No data available in table
-                   </td>
-                 </tr>
+                {loading ? (
+                  <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 text-sm">
+                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
+                  </td></tr>
+                ) : !submitted ? (
+                  <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">No data available in table</td></tr>
+                ) : filtered.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">{row.name}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.class}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.date}</td>
+                    <td className="px-6 py-3">{statusBadge(row.status)}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.check_in}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.check_out}</td>
+                    <td className="px-6 py-3 text-sm text-gray-400">-</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 0 to 0 of 0 entries</p>
+            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
             <div className="flex gap-1">
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
@@ -193,9 +290,34 @@ const AttendanceReport = () => {
 };
 
 const AbsentReport = () => {
-  const [activeTab, setActiveTab] = useState('student');
-  const [selectedDate, setSelectedDate] = useState('');
+  const classes = useClasses();
+  const [activeTab, setActiveTab]         = useState('student');
+  const [selectedDate, setSelectedDate]   = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [rows, setRows]                   = useState<ReportRow[]>([]);
+  const [stats, setStats]                 = useState<Stats | null>(null);
+  const [search, setSearch]               = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [submitted, setSubmitted]         = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const handleSubmit = async () => {
+    if (!selectedDate) return;
+    setLoading(true); setSubmitted(true);
+    try {
+      const params: any = { date: selectedDate };
+      if (selectedClass) params.classroom_id = selectedClass;
+      const r = await axios.get('/api/reports/attendance', { params });
+      setRows((r.data.data ?? []).filter((row: ReportRow) => row.status === 'absent'));
+      setStats(r.data.stats ?? null);
+    } catch { setRows([]); setStats(null); }
+    finally { setLoading(false); }
+  };
+
+  const filtered = rows.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.class.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <motion.div 
@@ -264,8 +386,9 @@ const AbsentReport = () => {
                        className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
                      >
                        <option value="">Select...</option>
-                       <option value="1-amanah">1 Amanah</option>
-                       <option value="1-bestari">1 Bestari</option>
+                       {classes.map(c => (
+                         <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
+                       ))}
                      </select>
                      <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                    </div>
@@ -277,8 +400,8 @@ const AbsentReport = () => {
 
              {/* Right side: Submit Button aligned most right */}
              <div className="w-full md:w-auto pb-6">
-               <button className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px]">
-                 Submit
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px] disabled:opacity-50">
+                 {loading ? 'Loading...' : 'Submit'}
                </button>
              </div>
            </div>
@@ -294,18 +417,26 @@ const AbsentReport = () => {
         
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons />
+            <ExportButtons
+              onCopy={() => exportCopy(filtered)}
+              onExportCSV={() => exportCSV(filtered, 'absent')}
+              onExportExcel={() => exportCSV(filtered, 'absent')}
+              onPrint={() => exportPrint(tableRef)}
+              onExportPDF={() => exportPrint(tableRef)}
+            />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input 
-                type="text" 
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-left border-collapse">
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
@@ -319,18 +450,31 @@ const AbsentReport = () => {
                 </tr>
               </thead>
               <tbody>
-                 <tr>
-                   <td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-500 text-sm">
-                     No data available in table
-                   </td>
-                 </tr>
+                {loading ? (
+                  <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-400 text-sm">
+                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
+                  </td></tr>
+                ) : !submitted ? (
+                  <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-500 text-sm">No data available in table</td></tr>
+                ) : filtered.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">{row.name}</td>
+                    {activeTab === 'student' && <td className="px-6 py-3 text-sm text-gray-600">{row.class}</td>}
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.date}</td>
+                    <td className="px-6 py-3">{statusBadge(row.status)}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.check_in}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.check_out}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           {/* Restored Pagination */}
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 0 to 0 of 0 entries</p>
+            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
             <div className="flex gap-1">
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
@@ -343,9 +487,32 @@ const AbsentReport = () => {
 };
 
 const PresentReport = () => {
-  const [activeTab, setActiveTab] = useState('student');
-  const [selectedDate, setSelectedDate] = useState('');
+  const classes = useClasses();
+  const [activeTab, setActiveTab]         = useState('student');
+  const [selectedDate, setSelectedDate]   = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [rows, setRows]                   = useState<ReportRow[]>([]);
+  const [search, setSearch]               = useState('');
+  const [loading, setLoading]             = useState(false);
+  const [submitted, setSubmitted]         = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const handleSubmit = async () => {
+    if (!selectedDate) return;
+    setLoading(true); setSubmitted(true);
+    try {
+      const params: any = { date: selectedDate };
+      if (selectedClass) params.classroom_id = selectedClass;
+      const r = await axios.get('/api/reports/attendance', { params });
+      setRows((r.data.data ?? []).filter((row: ReportRow) => row.status === 'present' || row.status === 'late'));
+    } catch { setRows([]); }
+    finally { setLoading(false); }
+  };
+
+  const filtered = rows.filter(r =>
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.class.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <motion.div 
@@ -407,8 +574,9 @@ const PresentReport = () => {
                      className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700"
                    >
                      <option value="">Select...</option>
-                     <option value="1-amanah">1 Amanah</option>
-                     <option value="1-bestari">1 Bestari</option>
+                     {classes.map(c => (
+                       <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
+                     ))}
                    </select>
                    <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                  </div>
@@ -416,8 +584,8 @@ const PresentReport = () => {
              )}
 
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all">
-                 Submit
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
+                 {loading ? 'Loading...' : 'Submit'}
                </button>
              </div>
            </div>
@@ -433,19 +601,27 @@ const PresentReport = () => {
         
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons />
+            <ExportButtons
+              onCopy={() => exportCopy(filtered)}
+              onExportCSV={() => exportCSV(filtered, 'present')}
+              onExportExcel={() => exportCSV(filtered, 'present')}
+              onPrint={() => exportPrint(tableRef)}
+              onExportPDF={() => exportPrint(tableRef)}
+            />
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input 
-                type="text" 
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-left border-collapse">
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
@@ -458,17 +634,29 @@ const PresentReport = () => {
                 </tr>
               </thead>
               <tbody>
-                 <tr>
-                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">
-                     No data available in table
-                   </td>
-                 </tr>
+                {loading ? (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm">
+                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
+                  </td></tr>
+                ) : !submitted ? (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No data available in table</td></tr>
+                ) : filtered.map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">{row.name}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.class}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{row.date}</td>
+                    <td className="px-6 py-3">{statusBadge(row.status)}</td>
+                    <td className="px-6 py-3 text-sm text-gray-400">-</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 0 to 0 of 0 entries</p>
+            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
             <div className="flex gap-1">
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
@@ -481,54 +669,59 @@ const PresentReport = () => {
 };
 
 const InfographicReport = () => {
-  const [activeTab, setActiveTab] = useState('student');
+  const classes = useClasses();
+  const [activeTab, setActiveTab]             = useState('student');
   const [activeStatusTab, setActiveStatusTab] = useState<'absent' | 'present'>('absent');
-  const [viewType, setViewType] = useState<'date' | 'month'>('month');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [isMounted, setIsMounted] = useState(false);
+  const [viewType, setViewType]               = useState<'date' | 'month'>('month');
+  const [selectedMonth, setSelectedMonth]     = useState('');
+  const [selectedDate, setSelectedDate]       = useState('');
+  const [isMounted, setIsMounted]             = useState(false);
+  const [chartData, setChartData]             = useState<any[]>([]);
+  const [listRows, setListRows]               = useState<ReportRow[]>([]);
+  const [stats, setStats]                     = useState<Stats | null>(null);
+  const [search, setSearch]                   = useState('');
+  const [loading, setLoading]                 = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 500);
+    const timer = setTimeout(() => setIsMounted(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
-  const data = [
-    { name: '1', present: 280, absent: 20 },
-    { name: '2', present: 275, absent: 25 },
-    { name: '3', present: 290, absent: 10 },
-    { name: '4', present: 260, absent: 40 },
-    { name: '5', present: 270, absent: 30 },
-    { name: '6', present: 0, absent: 0 },
-    { name: '7', present: 0, absent: 0 },
-    { name: '8', present: 285, absent: 15 },
-    { name: '9', present: 288, absent: 12 },
-    { name: '10', present: 272, absent: 28 },
-    { name: '11', present: 278, absent: 22 },
-    { name: '12', present: 265, absent: 35 },
-    { name: '13', present: 0, absent: 0 },
-    { name: '14', present: 0, absent: 0 },
-    { name: '15', present: 292, absent: 8 },
-    { name: '16', present: 295, absent: 5 },
-    { name: '17', present: 289, absent: 11 },
-    { name: '18', present: 280, absent: 20 },
-    { name: '19', present: 268, absent: 32 },
-    { name: '20', present: 0, absent: 0 },
-    { name: '21', present: 0, absent: 0 },
-    { name: '22', present: 287, absent: 13 },
-    { name: '23', present: 291, absent: 9 },
-    { name: '24', present: 285, absent: 15 },
-    { name: '25', present: 279, absent: 21 },
-    { name: '26', present: 273, absent: 27 },
-    { name: '27', present: 0, absent: 0 },
-    { name: '28', present: 0, absent: 0 },
-    { name: '29', present: 293, absent: 7 },
-    { name: '30', present: 296, absent: 4 },
-  ];
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      if (viewType === 'month' && selectedMonth) {
+        const r = await axios.get('/api/reports/monthly', { params: { month: selectedMonth } });
+        setChartData(r.data.chartData ?? []);
+        setListRows(r.data.data ?? []);
+        setStats(null);
+      } else if (viewType === 'date' && selectedDate) {
+        const r = await axios.get('/api/reports/attendance', { params: { date: selectedDate } });
+        setListRows(r.data.data ?? []);
+        setStats(r.data.stats ?? null);
+        setChartData([]);
+      }
+    } catch { setChartData([]); setListRows([]); setStats(null); }
+    finally { setLoading(false); }
+  };
 
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const filteredList = listRows.filter(r => {
+    const matchStatus = viewType === 'date'
+      ? (activeStatusTab === 'present' ? ['present','late'].includes(r.status) : r.status === 'absent')
+      : true;
+    return matchStatus && r.name?.toLowerCase().includes(search.toLowerCase());
+  });
+
+  const totalPresent = stats ? stats.present + stats.late : 0;
+  const totalAbsent  = stats ? stats.absent : 0;
+  const total        = stats ? stats.total : 0;
+  const pct          = total > 0 ? Math.round((totalPresent / total) * 1000) / 10 : 0;
+  const absentPct    = total > 0 ? Math.round((totalAbsent / total) * 1000) / 10 : 0;
+
+  const displayData = chartData.length > 0
+    ? chartData.map(d => ({ name: String(d.day), present: d.present, absent: d.absent }))
+    : [];
 
   return (
     <motion.div 
@@ -605,7 +798,9 @@ const InfographicReport = () => {
                </div>
              )}
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0">Submit</button>
+               <button onClick={handleSubmit} disabled={loading || (viewType === 'month' ? !selectedMonth : !selectedDate)} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50">
+                 {loading ? 'Loading...' : 'Submit'}
+               </button>
              </div>
            </div>
         </div>
@@ -619,21 +814,21 @@ const InfographicReport = () => {
           </div>
           <div className="flex border-t border-gray-100 divide-x divide-gray-100">
              <div className="flex-1 p-4 text-center">
-               <p className="text-xl font-bold text-[#1c3068]">0</p>
+               <p className="text-xl font-bold text-[#1c3068]">{totalPresent}</p>
                <p className="text-xs text-gray-500 uppercase tracking-wider">Present</p>
              </div>
              <div className="flex-1 p-4 text-center">
-               <p className="text-xl font-bold text-[#c53336]">0</p>
+               <p className="text-xl font-bold text-[#c53336]">{totalAbsent}</p>
                <p className="text-xs text-gray-500 uppercase tracking-wider">Absent</p>
              </div>
           </div>
         </div>
         <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
-           <p className="text-4xl font-bold mb-1">0.00 %</p>
+           <p className="text-4xl font-bold mb-1">{pct.toFixed(2)} %</p>
            <p className="text-sm font-medium opacity-90">Total Present</p>
         </div>
         <div className="bg-[#c53336] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
-           <p className="text-4xl font-bold mb-1">0.00 %</p>
+           <p className="text-4xl font-bold mb-1">{absentPct.toFixed(2)} %</p>
            <p className="text-sm font-medium opacity-90">Total Absent</p>
         </div>
       </div>
@@ -656,7 +851,7 @@ const InfographicReport = () => {
               {viewType === 'month' ? (
                 <div className="w-full h-full" style={{ minHeight: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <LineChart data={displayData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
                       <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
@@ -668,7 +863,7 @@ const InfographicReport = () => {
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <CircularProgressBar percentage={75.5} total={300} present={227} absent={73} />
+                  <CircularProgressBar percentage={pct} total={total} present={totalPresent} absent={totalAbsent} />
                 </div>
               )}
             </>
@@ -703,15 +898,21 @@ const InfographicReport = () => {
         
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons />
+            <ExportButtons
+              onCopy={() => exportCopy(filteredList)}
+              onExportCSV={() => exportCSV(filteredList, 'infographic')}
+              onExportExcel={() => exportCSV(filteredList, 'infographic')}
+              onPrint={() => exportPrint(tableRef)}
+              onExportPDF={() => exportPrint(tableRef)}
+            />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input type="text" className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none" />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none" />
             </div>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-left border-collapse">
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
@@ -732,19 +933,36 @@ const InfographicReport = () => {
                 </tr>
               </thead>
               <tbody>
-                 <tr>
-                   <td 
-                    colSpan={activeStatusTab === 'present' ? (activeTab === 'student' ? 8 : 7) : (activeTab === 'student' ? 6 : 5)} 
-                    className="px-6 py-8 text-center text-gray-500 text-sm"
-                   >
-                     No data available in table
-                   </td>
-                 </tr>
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={activeStatusTab === 'present' ? (activeTab === 'student' ? 8 : 7) : (activeTab === 'student' ? 6 : 5)}
+                      className="px-6 py-8 text-center text-gray-500 text-sm"
+                    >
+                      No data available in table
+                    </td>
+                  </tr>
+                ) : filteredList.map((row: any, i) => (
+                  <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-800">{row.name}</td>
+                    {activeTab === 'student' && <td className="px-4 py-3 text-sm text-gray-600">{row.class ?? '-'}</td>}
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.date ?? '-'}</td>
+                    <td className="px-4 py-3">{row.status ? statusBadge(row.status) : '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.check_in ?? '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.check_out ?? '-'}</td>
+                    {activeStatusTab === 'present' && (
+                      <>
+                        <td className="px-4 py-3 text-sm text-gray-400">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-400">-</td>
+                      </>
+                    )}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 0 to 0 of 0 entries</p>
+            <p className="text-sm text-gray-500">Showing {filteredList.length} to {filteredList.length} of {listRows.length} entries</p>
             <div className="flex gap-1">
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
@@ -758,20 +976,28 @@ const InfographicReport = () => {
 
 const SummaryReport = () => {
   const [selectedDate, setSelectedDate] = useState('');
+  const [tableData, setTableData]       = useState<SummaryRow[]>([]);
+  const [stats, setStats]               = useState<{ present: number; absent: number; total: number } | null>(null);
+  const [search, setSearch]             = useState('');
+  const [loading, setLoading]           = useState(false);
+  const [submitted, setSubmitted]       = useState(false);
+  const tableRef = useRef<HTMLTableElement>(null);
 
-  // Mock data for the table
-  const tableData = [
-    { id: 1, className: '1 IBNU KHALDUN', teacher: 'NUR AIDA BINTI MD RAZALI', totalStudents: 0, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 2, className: '1 IBNU SINA', teacher: 'SHAHFIZAN BINTI CHE ON @ HARUN', totalStudents: 0, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 3, className: '2 IBNU KHALDUN', teacher: 'RIFHAN BINTI AHMAD', totalStudents: 19, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 4, className: '2 IBNU SINA', teacher: 'NOR HAYATI BINTI HUSSIN', totalStudents: 21, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 5, className: '3 IBNU KHALDUN', teacher: 'NADIA NASUHA BINTI MOHD SAIDI', totalStudents: 29, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 6, className: '3 IBNU SINA', teacher: 'ASLINA BINTI HAMZAH', totalStudents: 28, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 7, className: '4 IBNU KHALDUN', teacher: 'ROSWANITA BINTI ABDUL WAHAB', totalStudents: 29, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 8, className: '4 IBNU SINA', teacher: 'NOORHAYATI BINTI DOLLAH', totalStudents: 32, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 9, className: '5 IBNU KHALDUN', teacher: 'Aishah Fatimah binti Abu Bakar', totalStudents: 20, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-    { id: 10, className: '5 IBNU SINA', teacher: 'RABITAH BINTI ABDULLAH', totalStudents: 22, present: 0, presentPercent: 0, absent: 0, absentPercent: 0 },
-  ];
+  const handleSubmit = async () => {
+    if (!selectedDate) return;
+    setLoading(true); setSubmitted(true);
+    try {
+      const r = await axios.get('/api/reports/summary', { params: { date: selectedDate } });
+      setTableData(r.data.data ?? []);
+      setStats(r.data.stats ?? null);
+    } catch { setTableData([]); setStats(null); }
+    finally { setLoading(false); }
+  };
+
+  const filtered = tableData.filter(r =>
+    r.class_name.toLowerCase().includes(search.toLowerCase()) ||
+    r.teacher.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <motion.div 
@@ -801,8 +1027,8 @@ const SummaryReport = () => {
              </div>
 
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all">
-                 Submit
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
+                 {loading ? 'Loading...' : 'Submit'}
                </button>
              </div>
            </div>
@@ -816,23 +1042,23 @@ const SummaryReport = () => {
           </div>
           <div className="flex border-t border-gray-100 divide-x divide-gray-100 bg-white">
              <div className="flex-1 p-4 text-center">
-               <p className="text-xl font-bold text-[#1c3068]">0</p>
+               <p className="text-xl font-bold text-[#1c3068]">{stats?.present ?? 0}</p>
                <p className="text-xs text-gray-500 uppercase tracking-wider">Present</p>
              </div>
              <div className="flex-1 p-4 text-center">
-               <p className="text-xl font-bold text-[#c53336]">0</p>
+               <p className="text-xl font-bold text-[#c53336]">{stats?.absent ?? 0}</p>
                <p className="text-xs text-gray-500 uppercase tracking-wider">Absent</p>
              </div>
           </div>
         </div>
 
         <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
-           <p className="text-4xl font-bold mb-1">0</p>
+           <p className="text-4xl font-bold mb-1">{stats?.present ?? 0}</p>
            <p className="text-sm font-medium opacity-90">Total Present</p>
         </div>
 
         <div className="bg-[#c53336] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
-           <p className="text-4xl font-bold mb-1">0</p>
+           <p className="text-4xl font-bold mb-1">{stats?.absent ?? 0}</p>
            <p className="text-sm font-medium opacity-90">Total Absent</p>
         </div>
       </div>
@@ -846,23 +1072,31 @@ const SummaryReport = () => {
         
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons />
+            <ExportButtons
+              onCopy={() => exportCopy(filtered)}
+              onExportCSV={() => exportCSV(filtered, 'summary')}
+              onExportExcel={() => exportCSV(filtered, 'summary')}
+              onPrint={() => exportPrint(tableRef)}
+              onExportPDF={() => exportPrint(tableRef)}
+            />
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input 
-                type="text" 
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
               />
             </div>
           </div>
           
           <div className="mb-4">
-             <p className="text-sm font-bold text-gray-800">Date : </p>
+             <p className="text-sm font-bold text-gray-800">Date : {selectedDate}</p>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table className="w-full text-left border-collapse">
+            <table ref={tableRef} className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">#</th>
@@ -876,24 +1110,32 @@ const SummaryReport = () => {
                 </tr>
               </thead>
               <tbody>
-                 {tableData.map((row) => (
-                   <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.id}</td>
-                     <td className="px-4 py-3 text-sm text-[#c53336] font-medium border-r border-gray-100">{row.className}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100 uppercase">{row.teacher}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.totalStudents}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.present}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.presentPercent.toFixed(2)}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.absent}</td>
-                     <td className="px-4 py-3 text-sm text-gray-600">{row.absentPercent.toFixed(2)}</td>
-                   </tr>
-                 ))}
+                {loading ? (
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400 text-sm">
+                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
+                  </td></tr>
+                ) : !submitted ? (
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500 text-sm">No data available.</td></tr>
+                ) : filtered.map((row, i) => (
+                  <tr key={row.classroom_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{i + 1}</td>
+                    <td className="px-4 py-3 text-sm text-[#c53336] font-medium border-r border-gray-100">{row.class_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100 uppercase">{row.teacher}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.total_students}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.present}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.present_pct.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-100">{row.absent}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.absent_pct.toFixed(2)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 1 to {tableData.length} of {tableData.length} entries</p>
+            <p className="text-sm text-gray-500">Showing 1 to {filtered.length} of {filtered.length} entries</p>
             <div className="flex gap-1">
               <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
               <button className="bg-[#c53336] text-white px-3 py-1 border border-[#c53336] rounded text-sm hover:bg-[#a02224]">1</button>
