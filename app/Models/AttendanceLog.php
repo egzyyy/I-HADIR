@@ -13,6 +13,7 @@ class AttendanceLog extends Model
         'school_session_id',
         'user_type',
         'user_id',
+        'classroom_id',
         'date',
         'check_in_time',
         'check_out_time',

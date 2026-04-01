@@ -63,6 +63,11 @@ const AttendanceLogPage = () => {
     absent:  logs.filter(l => l.status === 'absent').length,
   };
 
+  const SCAN_METHOD_LABELS = {
+    manual: 'Manual',
+    qr: 'QR',
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -107,7 +112,7 @@ const AttendanceLogPage = () => {
         <select
           value={filterType}
           onChange={e => setFilterType(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
         >
           <option value="student">Students</option>
           <option value="teacher">Teachers</option>
@@ -118,7 +123,7 @@ const AttendanceLogPage = () => {
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
         >
           <option value="">All Status</option>
           <option value="present">Present</option>
@@ -197,9 +202,15 @@ const AttendanceLogPage = () => {
                         }
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${log.scan_method === 'manual' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {log.scan_method}
-                        </span>
+                        <span
+                            className={`text-xs font-medium px-2 py-0.5 rounded ${
+                              log.scan_method === 'manual'
+                                ? 'bg-purple-100 text-purple-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}
+                          >
+                            {SCAN_METHOD_LABELS[log.scan_method] || log.scan_method}
+                          </span>
                       </td>
                     </tr>
                   );

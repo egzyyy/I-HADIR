@@ -26,7 +26,7 @@ class AttendanceController extends Controller
         $schoolId = auth()->user()->school_id;
         $today    = Carbon::today()->toDateString();
 
-        [$userId, $name, $class] = $this->resolveByIc(
+        [$userId, $name, $class, $classroomId] = $this->resolveByIc(
             $request->ic_number,
             $request->user_type,
             $schoolId
@@ -82,6 +82,7 @@ class AttendanceController extends Controller
             [
                 'school_id'         => $schoolId,
                 'school_session_id' => $session?->school_session_id,
+                'classroom_id'      => $classroomId,
                 'check_in_time'     => $now,
                 'status'            => $status,
                 'scan_method'       => 'qr',
@@ -130,10 +131,14 @@ class AttendanceController extends Controller
         }
 
         if ($log->check_out_time) {
+            // Use stored classroom name if available
+            $storedClass = $log->classroom_id
+                ? (\App\Models\Classroom::find($log->classroom_id)?->name ?? $class)
+                : $class;
             return response()->json([
                 'message'   => 'Already checked out today.',
                 'name'      => $name,
-                'class'     => $class,
+                'class'     => $storedClass,
                 'time'      => $log->check_out_time->format('H:i:s'),
                 'duplicate' => true,
             ], 409);
@@ -286,7 +291,7 @@ class AttendanceController extends Controller
         $today    = Carbon::today()->toDateString();
         $adminId  = auth()->user()->user_id ?? auth()->id();
 
-        [$userId, $name, $class] = $this->resolveByIc(
+        [$userId, $name, $class, $classroomId] = $this->resolveByIc(
             $request->ic_number,
             $request->user_type,
             $schoolId
@@ -321,6 +326,7 @@ class AttendanceController extends Controller
             [
                 'school_id'         => $schoolId,
                 'school_session_id' => $session?->school_session_id,
+                'classroom_id'      => $classroomId,
                 'check_in_time'     => $now,
                 'status'            => 'present',
                 'scan_method'       => 'manual',
@@ -371,26 +377,30 @@ class AttendanceController extends Controller
             'student' => $this->resolveStudent($ic, $schoolId),
             'teacher' => $this->resolveTeacher($ic, $schoolId),
             'staff'   => $this->resolveStaff($ic, $schoolId),
-            default   => [null, null, null],
+            default   => [null, null, null, null],
         };
     }
 
     private function resolveStudent(string $ic, int $schoolId): array
     {
         $s = Student::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $s ? [$s->student_id, $s->name, $s->class ?? '-'] : [null, null, null];
+        if (!$s) return [null, null, null, null];
+
+        $className  = $this->getStudentClassName((int)$s->student_id, $schoolId);
+        $classroomId = $this->getStudentClassroomId((int)$s->student_id, $schoolId);
+        return [$s->student_id, $s->name, $className, $classroomId];
     }
 
     private function resolveTeacher(string $ic, int $schoolId): array
     {
         $t = Teacher::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $t ? [$t->teacher_id, $t->name, 'Teacher'] : [null, null, null];
+        return $t ? [$t->teacher_id, $t->name, 'Teacher', null] : [null, null, null, null];
     }
 
     private function resolveStaff(string $ic, int $schoolId): array
     {
         $s = Staff::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $s ? [$s->staff_id, $s->name, 'Staff'] : [null, null, null];
+        return $s ? [$s->staff_id, $s->name, 'Staff', null] : [null, null, null, null];
     }
 
     private function resolveStatus(int $schoolId, Carbon $now): string
@@ -456,7 +466,12 @@ class AttendanceController extends Controller
         return match ($log->user_type) {
             'student' => (function () use ($log) {
                 $s = Student::where('student_id', $log->user_id)->first();
-                return [$s?->name ?? 'Unknown', $s?->class ?? '-'];
+                if (!$s) return ['Unknown', '-'];
+                // Use stored classroom_id if available, else fall back to live lookup
+                $className = $log->classroom_id
+                    ? (\App\Models\Classroom::find($log->classroom_id)?->name ?? '-')
+                    : $this->getStudentClassName((int)$s->student_id, (int)$log->school_id);
+                return [$s->name, $className];
             })(),
             'teacher' => (function () use ($log) {
                 $t = Teacher::where('teacher_id', $log->user_id)->first();
@@ -468,5 +483,24 @@ class AttendanceController extends Controller
             })(),
             default => ['Unknown', '-'],
         };
+    }
+
+    private function getStudentClassroomId(int $studentId, int $schoolId): ?int
+    {
+        $enrollment = \App\Models\Enrollment::where('student_id', $studentId)
+            ->whereHas('schoolSession', fn($q) => $q->where('school_id', $schoolId)->where('is_active', true))
+            ->first();
+
+        return $enrollment?->classroom_id;
+    }
+
+    private function getStudentClassName(int $studentId, int $schoolId): string
+    {
+        $enrollment = \App\Models\Enrollment::where('student_id', $studentId)
+            ->whereHas('schoolSession', fn($q) => $q->where('school_id', $schoolId)->where('is_active', true))
+            ->with('classroom:classroom_id,name')
+            ->first();
+
+        return $enrollment?->classroom?->name ?? '-';
     }
 }
