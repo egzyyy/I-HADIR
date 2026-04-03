@@ -1,12 +1,15 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Info, Printer, Trash2, ChevronDown } from 'lucide-react';
+import { Search, Info, Trash2, ChevronDown } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { UserInfoModal } from '../../Components/modals/UserInfoModal';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditUserModal } from '../../Components/modals/EditUserModal';
 import axios from 'axios';
+
+// IMPORT LOGO
+import logo from '../../assets/i_hadir_logo2.png';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -119,7 +122,6 @@ const UserListUnified = () => {
   const handleEditSuccess = async () => {
     setIsEditModalOpen(false);
     setSelectedUser(null);
-    // Refresh the data to show the updated info
     setIsLoading(true);
     try {
       const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
@@ -140,14 +142,13 @@ const UserListUnified = () => {
 
   // --- EXPORT FUNCTIONS --- //
 
-  // 1. Copy to Clipboard (With HTML formatting for Word/Docs)
+  // 1. Copy to Clipboard
   const handleCopy = async () => {
     if (filteredData.length === 0) {
       alert("No data to copy!");
       return;
     }
 
-    // Build an HTML table so pasting into Word/Docs creates a perfect grid
     const tableHtml = `
       <table border="1" style="border-collapse: collapse;">
         <thead>
@@ -173,7 +174,6 @@ const UserListUnified = () => {
 
     try {
       const blobHtml = new Blob([tableHtml], { type: 'text/html' });
-      // Plain text fallback for simple text editors
       const textFallback = filteredData.map((item: any, i: number) => 
         `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
       ).join('\n');
@@ -188,7 +188,6 @@ const UserListUnified = () => {
       alert("Table copied to clipboard! You can now paste it into Word, Excel, or Google Docs.");
     } catch (error) {
       console.error("Clipboard API failed, trying fallback:", error);
-      // Fallback for strict browser permissions
       const textFallback = filteredData.map((item: any, i: number) => 
         `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
       ).join('\n');
@@ -208,8 +207,8 @@ const UserListUnified = () => {
       const row = [
         index + 1,
         `"${item.name}"`,
-        `"=""${item.ic_number}"""`, // Prevents scientific notation
-        `"=""${item.phone}"""`, // Prevents scientific notation
+        `"=""${item.ic_number}"""`, 
+        `"=""${item.phone}"""`, 
         `"${formatRoleLabel(item.role, item.type)}"`,
         `"${item.gender || '-'}"`,
         `"${item.registeredDate}"`
@@ -274,6 +273,114 @@ const UserListUnified = () => {
     document.body.removeChild(link);
   };
 
+  // 4. Export to PDF / Print (Standardized Format)
+  const handleExportPDF = () => {
+    if (filteredData.length === 0) return;
+
+    const titleMap = {
+      'student': 'Student List Report',
+      'teacher': 'Teacher List Report',
+      'staff': 'Staff List Report'
+    };
+
+    const roleHeaderMap = {
+      'student': 'Class',
+      'teacher': 'Position',
+      'staff': 'Role'
+    };
+
+    const title = titleMap[activeTab];
+    const roleHeader = roleHeaderMap[activeTab];
+
+    const rows = filteredData.map((item: any, index: number) => `
+      <tr>
+        <td style="text-align:center">${index + 1}</td>
+        <td style="font-weight:bold">${item.name}</td>
+        <td style="text-align:center; font-family:monospace">${item.ic_number}</td>
+        <td style="text-align:center; font-family:monospace">${item.phone}</td>
+        <td style="text-align:center">${formatRoleLabel(item.role, item.type)}</td>
+        <td style="text-align:center">${item.gender || '-'}</td>
+        <td style="text-align:center">${item.registeredDate}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          @page { margin: 15mm; size: A4 landscape; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
+          
+          /* Standard Header Styling */
+          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+          .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+          .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+          .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+          
+          /* Table Styling */
+          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+          th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+          
+          /* Enforce colors in print */
+          th { 
+            background-color: #1c3068 !important; 
+            color: white !important; 
+            font-weight: bold; 
+            text-align: center; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+          th:nth-child(2) { text-align: left; } /* Align Name to left */
+          
+          tr:nth-child(even) { 
+            background-color: #f9fafb !important; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <img src="${logo}" class="logo" alt="School Logo" />
+          <h1 class="report-title">${title}</h1>
+          <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th style="width:5%">No</th>
+              <th style="width:30%">Name</th>
+              <th style="width:15%">IC Number</th>
+              <th style="width:15%">Phone No</th>
+              <th style="width:15%">${roleHeader}</th>
+              <th style="width:10%">Gender</th>
+              <th style="width:10%">Registered</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank');
+    if (win) { 
+      win.document.write(html); 
+      win.document.close(); 
+    }
+  };
+
   return (
     <>
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
@@ -304,13 +411,12 @@ const UserListUnified = () => {
         <div className="p-6">
           <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
             
-            {/* Action buttons passed down */}
             <ExportButtons 
                 onCopy={handleCopy}
                 onExportCSV={handleExportCSV} 
                 onExportExcel={handleExportExcel} 
-                onExportPDF={() => {}} // Empty for now
-                onPrint={() => {}}     // Empty for now
+                onExportPDF={handleExportPDF} 
+                onPrint={handleExportPDF} // Print acts the same as PDF opening 
             />
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
@@ -378,7 +484,6 @@ const UserListUnified = () => {
                           <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
                             <Info size={16} />
                           </button>
-                          {/* ADD THE EDIT BUTTON HERE */}
                           <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                           </button>

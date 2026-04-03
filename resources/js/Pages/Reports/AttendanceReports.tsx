@@ -1,11 +1,16 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Calendar, ChevronDown, Download, Filter, Users, FileText, BarChart3, Eye } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { CircularProgressBar } from '../../Components/dashboard/CircularProgressBar';
+
+// IMPORT LOGO
+import logo from '../../assets/i_hadir_logo2.png';
+
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 type Classroom  = { classroom_id: number; name: string };
@@ -43,18 +48,79 @@ function exportCopy(rows: any[]) {
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);
   const text = [keys.join('\t'), ...rows.map(r => keys.map(k => r[k] ?? '').join('\t'))].join('\n');
-  navigator.clipboard.writeText(text).catch(() => {});
+  navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => {});
 }
 
-function exportPrint(ref: React.RefObject<HTMLTableElement | null>) {
-  if (!ref.current) return;
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write(`<html><head><title>Report</title><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#1c3068;color:#fff}</style></head><body>${ref.current.outerHTML}</body></html>`);
-  w.document.close();
-  w.print();
+// ─── STANDARDIZED PDF / PRINT HELPER ─────────────────────────────────────────
+function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string, logoSrc: string) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @page { margin: 15mm; size: A4 landscape; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
+        
+        /* Standard Header Styling */
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+        
+        /* Enforce colors in print */
+        th { 
+          background-color: #1c3068 !important; 
+          color: white !important; 
+          font-weight: bold; 
+          text-align: center; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+        th:nth-child(2) { text-align: left; } /* Align Name to left */
+        
+        tr:nth-child(even) { 
+          background-color: #f9fafb !important; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        <h1 class="report-title">${title}</h1>
+        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+      </div>
+      
+      <table>
+        <thead>${theadHtml}</thead>
+        <tbody>${tbodyHtml}</tbody>
+      </table>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open('', '_blank');
+  if (win) { 
+    win.document.write(html); 
+    win.document.close(); 
+  }
 }
 
+// ─── 1. Attendance Report ───────────────────────────────────────────────────
 const AttendanceReport = () => {
   const classes = useClasses();
   const [activeTab, setActiveTab]         = useState('student');
@@ -65,7 +131,6 @@ const AttendanceReport = () => {
   const [search, setSearch]               = useState('');
   const [loading, setLoading]             = useState(false);
   const [submitted, setSubmitted]         = useState(false);
-  const tableRef = useRef<HTMLTableElement>(null);
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
@@ -85,19 +150,51 @@ const AttendanceReport = () => {
     r.class.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportPDF = () => {
+    if (filtered.length === 0) return;
+    const isStudent = activeTab === 'student';
+    const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
+    const title = `${activeTab} Attendance Report (${selectedDate})`;
+
+    const theadHtml = `
+      <tr>
+        <th style="width:5%">No</th>
+        <th style="width:25%">Name</th>
+        <th style="width:15%">${roleLabel}</th>
+        <th style="width:15%">Date</th>
+        <th style="width:10%">Attendance</th>
+        <th style="width:10%">Time In</th>
+        <th style="width:10%">Time Out</th>
+        <th style="width:10%">Reason</th>
+      </tr>
+    `;
+
+    const tbodyHtml = filtered.map((row, i) => `
+      <tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td style="font-weight:bold">${row.name}</td>
+        <td style="text-align:center">${row.class}</td>
+        <td style="text-align:center">${row.date}</td>
+        <td style="text-align:center">${row.status.toUpperCase()}</td>
+        <td style="text-align:center">${row.check_in}</td>
+        <td style="text-align:center">${row.check_out}</td>
+        <td style="text-align:center">-</td>
+      </tr>
+    `).join('');
+
+    generateStandardPDF(title, theadHtml, tbodyHtml, logo);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="max-w-full mx-auto"
     >
-      {/* Header section code remains same as your provide code */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-2xl font-bold text-[#1c3068]">Attendance Report</h2>
-           <p className="text-gray-500 text-sm mt-1">
-             View and manage attendance records and daily statistics.
-           </p>
+           <p className="text-gray-500 text-sm mt-1">View and manage attendance records and daily statistics.</p>
         </div>
         
         <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
@@ -106,9 +203,7 @@ const AttendanceReport = () => {
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase()
-                  ? 'bg-[#1c3068] text-white shadow-md'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                activeTab === tab.toLowerCase() ? 'bg-[#1c3068] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab}
@@ -117,56 +212,30 @@ const AttendanceReport = () => {
         </div>
       </div>
 
-      {/* Updated Filter Row with justify-between */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
            <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report</h3>
-           
-           {/* Adding justify-between pushes the button container to the far right */}
            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-             
-             {/* Left side: Grouped Filters */}
              <div className="flex flex-col md:flex-row gap-6 items-end flex-1">
-                {/* Date Input */}
                 <div className="w-full md:w-64 space-y-2">
-                  <label className="block text-sm font-bold text-[#1c3068]">
-                    <span className="text-[#c53336] mr-1">*</span> Date
-                  </label>
-                  <input 
-                    type="date" 
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700"
-                  />
+                  <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Date</label>
+                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
                   <p className="text-[10px] text-gray-400 font-medium">dd-mm-yyyy</p>
                 </div>
-
-                {/* Class Select */}
                 {activeTab === 'student' && (
                   <div className="w-full md:w-64 space-y-2">
-                    <label className="block text-sm font-bold text-[#1c3068]">
-                      <span className="text-[#c53336] mr-1">*</span> Class
-                    </label>
+                    <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Class</label>
                     <div className="relative">
-                      <select 
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
-                      >
+                      <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                         <option value="">Select...</option>
-                        {classes.map(c => (
-                          <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
-                        ))}
+                        {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
-                    {/* Spacer to match dd-mm-yyyy text height */}
                     <p className="text-[10px] text-transparent select-none">placeholder</p>
                   </div>
                 )}
              </div>
-
-             {/* Right side: Submit Button aligned to far right */}
              <div className="w-full md:w-auto pb-6">
                <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px] disabled:opacity-50">
                  {loading ? 'Loading...' : 'Submit'}
@@ -178,11 +247,8 @@ const AttendanceReport = () => {
 
       {activeTab === 'student' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Card 1: Present/Absent Split */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-            <div className="bg-[#1c3068] p-4 flex items-center justify-center h-24">
-               <Users size={40} className="text-white" />
-            </div>
+            <div className="bg-[#1c3068] p-4 flex items-center justify-center h-24"><Users size={40} className="text-white" /></div>
             <div className="flex border-t border-gray-100 divide-x divide-gray-100">
                <div className="flex-1 p-4 text-center">
                  <p className="text-xl font-bold text-[#1c3068]">{stats ? stats.present + stats.late : 0}</p>
@@ -194,14 +260,10 @@ const AttendanceReport = () => {
                </div>
             </div>
           </div>
-
-          {/* Card 2: Total Present */}
           <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
              <p className="text-4xl font-bold mb-1">{stats ? stats.present + stats.late : 0}</p>
              <p className="text-sm font-medium opacity-90">Total Present</p>
           </div>
-
-          {/* Card 3: Total Absent */}
           <div className="bg-[#c53336] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
              <p className="text-4xl font-bold mb-1">{stats?.absent ?? 0}</p>
              <p className="text-sm font-medium opacity-90">Total Absent</p>
@@ -211,9 +273,7 @@ const AttendanceReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-           <p className="text-gray-500 text-sm">
-             {activeTab === 'student' ? 'Student' : activeTab === 'teacher' ? 'Teacher' : 'Staff'} attendance list on
-           </p>
+           <p className="text-gray-500 text-sm capitalize">{activeTab} attendance list on</p>
         </div>
         
         <div className="p-6">
@@ -222,29 +282,21 @@ const AttendanceReport = () => {
               onCopy={() => exportCopy(filtered)}
               onExportCSV={() => exportCSV(filtered, 'attendance')}
               onExportExcel={() => exportCSV(filtered, 'attendance')}
-              onPrint={() => exportPrint(tableRef)}
-              onExportPDF={() => exportPrint(tableRef)}
+              onExportPDF={handleExportPDF}
+              onPrint={handleExportPDF}
             />
-
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
-              />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all" />
             </div>
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table ref={tableRef} className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">
-                    {activeTab === 'student' ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type'}
-                  </th>
+                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">{activeTab === 'student' ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type'}</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
@@ -254,9 +306,7 @@ const AttendanceReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 text-sm">
-                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
-                  </td></tr>
+                  <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div></td></tr>
                 ) : !submitted ? (
                   <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
                 ) : filtered.length === 0 ? (
@@ -275,20 +325,13 @@ const AttendanceReport = () => {
               </tbody>
             </table>
           </div>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
+// ─── 2. Absent Report ───────────────────────────────────────────────────────
 const AbsentReport = () => {
   const classes = useClasses();
   const [activeTab, setActiveTab]         = useState('student');
@@ -299,7 +342,6 @@ const AbsentReport = () => {
   const [search, setSearch]               = useState('');
   const [loading, setLoading]             = useState(false);
   const [submitted, setSubmitted]         = useState(false);
-  const tableRef = useRef<HTMLTableElement>(null);
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
@@ -319,29 +361,53 @@ const AbsentReport = () => {
     r.class.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportPDF = () => {
+    if (filtered.length === 0) return;
+    const isStudent = activeTab === 'student';
+    const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
+    const title = `${activeTab} Absent Report (${selectedDate})`;
+
+    const theadHtml = `
+      <tr>
+        <th style="width:5%">No</th>
+        <th style="width:30%">Name</th>
+        <th style="width:15%">${roleLabel}</th>
+        <th style="width:15%">Date</th>
+        <th style="width:15%">Attendance</th>
+        <th style="width:10%">Time In</th>
+        <th style="width:10%">Time Out</th>
+      </tr>
+    `;
+
+    const tbodyHtml = filtered.map((row, i) => `
+      <tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td style="font-weight:bold">${row.name}</td>
+        <td style="text-align:center">${row.class}</td>
+        <td style="text-align:center">${row.date}</td>
+        <td style="text-align:center">${row.status.toUpperCase()}</td>
+        <td style="text-align:center">${row.check_in}</td>
+        <td style="text-align:center">${row.check_out}</td>
+      </tr>
+    `).join('');
+
+    generateStandardPDF(title, theadHtml, tbodyHtml, logo);
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="max-w-full mx-auto"
-    >
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-2xl font-bold text-[#1c3068]">Absent Report</h2>
-           <p className="text-gray-500 text-sm mt-1">
-             View and manage daily absenteeism records and statistics.
-           </p>
+           <p className="text-gray-500 text-sm mt-1">View and manage daily absenteeism records and statistics.</p>
         </div>
-        
         <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
           {['Student', 'Teacher', 'Staff'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase()
-                  ? 'bg-[#1c3068] text-white shadow-md'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                activeTab === tab.toLowerCase() ? 'bg-[#1c3068] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab}
@@ -353,52 +419,27 @@ const AbsentReport = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
            <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report</h3>
-           
-           {/* Parent container with justify-between pushes the button to the far right */}
            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-             
-             {/* Left side: Date and Class aligned in a row */}
              <div className="flex flex-col md:flex-row gap-6 items-end flex-1">
-               {/* Date Selector */}
                <div className="w-full md:w-64 space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]">
-                   <span className="text-[#c53336] mr-1">*</span> Date
-                 </label>
-                 <input 
-                   type="date" 
-                   value={selectedDate}
-                   onChange={(e) => setSelectedDate(e.target.value)}
-                   className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700"
-                 />
+                 <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Date</label>
+                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
                  <p className="text-[10px] text-gray-400 font-medium">dd-mm-yyyy</p>
                </div>
-
-               {/* Class Selector - Now sitting on the same row */}
                {activeTab === 'student' && (
                  <div className="w-full md:w-64 space-y-2">
-                   <label className="block text-sm font-bold text-[#1c3068]">
-                     <span className="text-[#c53336] mr-1">*</span> Class
-                   </label>
+                   <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Class</label>
                    <div className="relative">
-                     <select 
-                       value={selectedClass}
-                       onChange={(e) => setSelectedClass(e.target.value)}
-                       className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
-                     >
+                     <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                        <option value="">Select...</option>
-                       {classes.map(c => (
-                         <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
-                       ))}
+                       {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                      </select>
                      <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                    </div>
-                   {/* Transparent spacer to align with the Date helper text */}
                    <p className="text-[10px] text-transparent select-none">spacer</p>
                  </div>
                )}
              </div>
-
-             {/* Right side: Submit Button aligned most right */}
              <div className="w-full md:w-auto pb-6">
                <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-95 min-w-[120px] disabled:opacity-50">
                  {loading ? 'Loading...' : 'Submit'}
@@ -410,39 +451,28 @@ const AbsentReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-           <p className="text-gray-500 text-sm capitalize">
-             {activeTab} absenteeism list
-           </p>
+           <p className="text-gray-500 text-sm capitalize">{activeTab} absenteeism list on</p>
         </div>
-        
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <ExportButtons
               onCopy={() => exportCopy(filtered)}
               onExportCSV={() => exportCSV(filtered, 'absent')}
               onExportExcel={() => exportCSV(filtered, 'absent')}
-              onPrint={() => exportPrint(tableRef)}
-              onExportPDF={() => exportPrint(tableRef)}
+              onExportPDF={handleExportPDF}
+              onPrint={handleExportPDF}
             />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
-              />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all" />
             </div>
           </div>
-
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table ref={tableRef} className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
-                  {activeTab === 'student' && (
-                    <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Class</th>
-                  )}
+                  {activeTab === 'student' && <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Class</th>}
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
@@ -451,9 +481,7 @@ const AbsentReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-400 text-sm">
-                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
-                  </td></tr>
+                  <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div></td></tr>
                 ) : !submitted ? (
                   <tr><td colSpan={activeTab === 'student' ? 6 : 5} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
                 ) : filtered.length === 0 ? (
@@ -471,203 +499,13 @@ const AbsentReport = () => {
               </tbody>
             </table>
           </div>
-
-          {/* Restored Pagination */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
-const PresentReport = () => {
-  const classes = useClasses();
-  const [activeTab, setActiveTab]         = useState('student');
-  const [selectedDate, setSelectedDate]   = useState('');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [rows, setRows]                   = useState<ReportRow[]>([]);
-  const [search, setSearch]               = useState('');
-  const [loading, setLoading]             = useState(false);
-  const [submitted, setSubmitted]         = useState(false);
-  const tableRef = useRef<HTMLTableElement>(null);
-
-  const handleSubmit = async () => {
-    if (!selectedDate) return;
-    setLoading(true); setSubmitted(true);
-    try {
-      const params: any = { date: selectedDate };
-      if (selectedClass) params.classroom_id = selectedClass;
-      const r = await axios.get('/api/reports/attendance', { params });
-      setRows((r.data.data ?? []).filter((row: ReportRow) => row.status === 'present' || row.status === 'late'));
-    } catch { setRows([]); }
-    finally { setLoading(false); }
-  };
-
-  const filtered = rows.filter(r =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.class.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="max-w-full mx-auto"
-    >
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div>
-           <h2 className="text-2xl font-bold text-[#1c3068]">Present Report</h2>
-           <p className="text-gray-500 text-sm mt-1">
-             View and manage daily presence records and statistics.
-           </p>
-        </div>
-        
-        <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
-          {['Student', 'Teacher', 'Staff'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab.toLowerCase())}
-              className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase()
-                  ? 'bg-white text-[#1c3068] shadow-sm ring-1 ring-gray-200'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-        <div className="p-8">
-           <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report</h3>
-           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-             <div className="w-full md:w-64 space-y-2">
-               <label className="block text-sm font-bold text-[#1c3068]">
-                 <span className="text-[#c53336] mr-1">*</span> Date
-               </label>
-               <input 
-                 type="date" 
-                 value={selectedDate}
-                 onChange={(e) => setSelectedDate(e.target.value)}
-                 className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700"
-               />
-               <p className="text-xs text-gray-400">dd-mm-yyyy</p>
-             </div>
-
-             {activeTab === 'student' && (
-               <div className="w-full md:w-64 space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]">
-                   <span className="text-[#c53336] mr-1">*</span> Class
-                 </label>
-                 <div className="relative">
-                   <select 
-                     value={selectedClass}
-                     onChange={(e) => setSelectedClass(e.target.value)}
-                     className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700"
-                   >
-                     <option value="">Select...</option>
-                     {classes.map(c => (
-                       <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
-                     ))}
-                   </select>
-                   <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-                 </div>
-               </div>
-             )}
-
-             <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
-                 {loading ? 'Loading...' : 'Submit'}
-               </button>
-             </div>
-           </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-           <p className="text-gray-500 text-sm">
-             {activeTab === 'student' ? 'Student' : activeTab === 'teacher' ? 'Teacher' : 'Staff'} presence list on
-           </p>
-        </div>
-        
-        <div className="p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <ExportButtons
-              onCopy={() => exportCopy(filtered)}
-              onExportCSV={() => exportCSV(filtered, 'present')}
-              onExportExcel={() => exportCSV(filtered, 'present')}
-              onPrint={() => exportPrint(tableRef)}
-              onExportPDF={() => exportPrint(tableRef)}
-            />
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <span className="text-sm text-gray-500">Search:</span>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table ref={tableRef} className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-gray-200">
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">
-                    {activeTab === 'student' ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type'}
-                  </th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Status</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm">
-                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
-                  </td></tr>
-                ) : !submitted ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500 text-sm">No data available in table</td></tr>
-                ) : filtered.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">{row.name}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">{row.class}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">{row.date}</td>
-                    <td className="px-6 py-3">{statusBadge(row.status)}</td>
-                    <td className="px-6 py-3 text-sm text-gray-400">-</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing {filtered.length} to {filtered.length} of {rows.length} entries</p>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
+// ─── 3. Infographic Report (Table Part) ──────────────────────────────────────
 const InfographicReport = () => {
   const classes = useClasses();
   const [activeTab, setActiveTab]             = useState('student');
@@ -681,7 +519,6 @@ const InfographicReport = () => {
   const [stats, setStats]                     = useState<Stats | null>(null);
   const [search, setSearch]                   = useState('');
   const [loading, setLoading]                 = useState(false);
-  const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 500);
@@ -723,29 +560,51 @@ const InfographicReport = () => {
     ? chartData.map(d => ({ name: String(d.day), present: d.present, absent: d.absent }))
     : [];
 
+  const handleExportPDF = () => {
+    if (filteredList.length === 0) return;
+    const isStudent = activeTab === 'student';
+    const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
+    const title = `${activeTab} ${activeStatusTab} List (${viewType === 'month' ? selectedMonth : selectedDate})`;
+    
+    let theadHtml = `<tr><th style="width:5%">No</th><th style="width:25%">Name</th>`;
+    if (isStudent) theadHtml += `<th style="width:15%">Class</th>`;
+    theadHtml += `<th style="width:10%">Date</th><th style="width:10%">Attendance</th><th style="width:10%">Time In</th><th style="width:10%">Time Out</th>`;
+    if (activeStatusTab === 'present') {
+      theadHtml += `<th style="width:10%">Reason</th><th style="width:10%">Location</th>`;
+    }
+    theadHtml += `</tr>`;
+
+    const tbodyHtml = filteredList.map((row, i) => {
+      let tr = `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${row.name}</td>`;
+      if (isStudent) tr += `<td style="text-align:center">${row.class ?? '-'}</td>`;
+      tr += `<td style="text-align:center">${row.date ?? '-'}</td>`;
+      tr += `<td style="text-align:center">${(row.status || '').toUpperCase()}</td>`;
+      tr += `<td style="text-align:center">${row.check_in ?? '-'}</td>`;
+      tr += `<td style="text-align:center">${row.check_out ?? '-'}</td>`;
+      if (activeStatusTab === 'present') {
+        tr += `<td style="text-align:center">-</td><td style="text-align:center">-</td>`;
+      }
+      tr += `</tr>`;
+      return tr;
+    }).join('');
+
+    generateStandardPDF(title, theadHtml, tbodyHtml, logo);
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="max-w-full mx-auto"
-    >
-      {/* Top Header Row with Consistent Main Tab Style */}
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-2xl font-bold text-[#1c3068]">Infographic Report</h2>
            <p className="text-gray-500 text-sm mt-1">View monthly attendance infographics and statistics.</p>
         </div>
-        
-        {/* DESIGN UPDATED: Matching Attendance Report Tab Design */}
         <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
           {['Student', 'Teacher', 'Staff'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase()
-                  ? 'bg-[#1c3068] text-white shadow-md' // Dark blue background for active
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                activeTab === tab.toLowerCase() ? 'bg-[#1c3068] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab}
@@ -754,34 +613,13 @@ const InfographicReport = () => {
         </div>
       </div>
 
-      {/* Report Filter Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
              <h3 className="text-lg font-bold text-[#1c3068]">Report</h3>
-             
-             {/* View Type Toggle */}
              <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
-               <button
-                 onClick={() => setViewType('date')}
-                 className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${
-                   viewType === 'date'
-                     ? 'bg-[#1c3068] text-white shadow-md'
-                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                 }`}
-               >
-                 By Date
-               </button>
-               <button
-                 onClick={() => setViewType('month')}
-                 className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${
-                   viewType === 'month'
-                     ? 'bg-[#1c3068] text-white shadow-md'
-                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                 }`}
-               >
-                 By Month
-               </button>
+               <button onClick={() => setViewType('date')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'date' ? 'bg-[#1c3068] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>By Date</button>
+               <button onClick={() => setViewType('month')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'month' ? 'bg-[#1c3068] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>By Month</button>
              </div>
            </div>
            
@@ -806,12 +644,9 @@ const InfographicReport = () => {
         </div>
       </div>
 
-      {/* Top Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          <div className="bg-[#1c3068] p-4 flex items-center justify-center h-24">
-             <Users size={40} className="text-white" />
-          </div>
+          <div className="bg-[#1c3068] p-4 flex items-center justify-center h-24"><Users size={40} className="text-white" /></div>
           <div className="flex border-t border-gray-100 divide-x divide-gray-100">
              <div className="flex-1 p-4 text-center">
                <p className="text-xl font-bold text-[#1c3068]">{totalPresent}</p>
@@ -833,17 +668,9 @@ const InfographicReport = () => {
         </div>
       </div>
 
-      {/* Daily Attendance Volume Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-6 border-b border-gray-100">
-           <h3 className="text-lg font-bold text-[#1c3068]">
-             {viewType === 'month' ? 'Daily Attendance Volume' : 'Attendance Summary'}
-           </h3>
-           <p className="text-gray-500 text-sm mt-1">
-             {viewType === 'month' 
-               ? 'Daily count of present (Blue) vs absent (Red).' 
-               : 'Attendance breakdown for the selected date.'}
-           </p>
+           <h3 className="text-lg font-bold text-[#1c3068]">{viewType === 'month' ? 'Daily Attendance Volume' : 'Attendance Summary'}</h3>
         </div>
         <div className="p-6 h-[400px] w-full min-w-0 relative">
           {isMounted && (
@@ -871,23 +698,16 @@ const InfographicReport = () => {
         </div>
       </div>
 
-      {/* List Table with Sub-Tabs */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-           <p className="text-[#1c3068] font-bold text-lg capitalize">
-             List of {activeTab} {viewType === 'month' ? 'in Month' : 'on Date'}
-           </p>
-           
-           {/* Sub-tabs for Absent/Present */}
+           <p className="text-[#1c3068] font-bold text-lg capitalize">List of {activeTab} {viewType === 'month' ? 'in Month' : 'on Date'}</p>
            <div className="bg-gray-100 p-1 rounded-lg flex">
               {(['absent', 'present'] as const).map((status) => (
                 <button
                   key={status}
                   onClick={() => setActiveStatusTab(status)}
                   className={`px-6 py-1.5 rounded-md text-xs font-bold transition-all capitalize ${
-                    activeStatusTab === status
-                      ? 'bg-white text-[#1c3068] shadow-sm'
-                      : 'text-gray-500 hover:text-[#1c3068]'
+                    activeStatusTab === status ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-500 hover:text-[#1c3068]'
                   }`}
                 >
                   {status}
@@ -902,8 +722,8 @@ const InfographicReport = () => {
               onCopy={() => exportCopy(filteredList)}
               onExportCSV={() => exportCSV(filteredList, 'infographic')}
               onExportExcel={() => exportCSV(filteredList, 'infographic')}
-              onPrint={() => exportPrint(tableRef)}
-              onExportPDF={() => exportPrint(tableRef)}
+              onExportPDF={handleExportPDF}
+              onPrint={handleExportPDF}
             />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
@@ -912,7 +732,7 @@ const InfographicReport = () => {
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table ref={tableRef} className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
@@ -923,7 +743,6 @@ const InfographicReport = () => {
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time Out</th>
-                  
                   {activeStatusTab === 'present' && (
                     <>
                       <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Reason</th>
@@ -935,10 +754,7 @@ const InfographicReport = () => {
               <tbody>
                 {filteredList.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={activeStatusTab === 'present' ? (activeTab === 'student' ? 8 : 7) : (activeTab === 'student' ? 6 : 5)}
-                      className="px-6 py-8 text-center text-gray-500 text-sm"
-                    >
+                    <td colSpan={activeStatusTab === 'present' ? (activeTab === 'student' ? 8 : 7) : (activeTab === 'student' ? 6 : 5)} className="px-6 py-8 text-center text-gray-500 text-sm">
                       No data available in table
                     </td>
                   </tr>
@@ -961,19 +777,13 @@ const InfographicReport = () => {
               </tbody>
             </table>
           </div>
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing {filteredList.length} to {filteredList.length} of {listRows.length} entries</p>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Next</button>
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
+// ─── 4. Summary Report ───────────────────────────────────────────────────────
 const SummaryReport = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [tableData, setTableData]       = useState<SummaryRow[]>([]);
@@ -981,7 +791,6 @@ const SummaryReport = () => {
   const [search, setSearch]             = useState('');
   const [loading, setLoading]           = useState(false);
   const [submitted, setSubmitted]       = useState(false);
-  const tableRef = useRef<HTMLTableElement>(null);
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
@@ -999,33 +808,51 @@ const SummaryReport = () => {
     r.teacher.toLowerCase().includes(search.toLowerCase())
   );
 
+  const handleExportPDF = () => {
+    if (filtered.length === 0) return;
+    const title = `Summary Report (${selectedDate})`;
+
+    const theadHtml = `
+      <tr>
+        <th style="width:5%">#</th>
+        <th style="width:25%">Class Name</th>
+        <th style="width:30%">Classroom Teacher</th>
+        <th style="width:10%">Total Students</th>
+        <th style="width:10%">Present</th>
+        <th style="width:10%">Present %</th>
+        <th style="width:10%">Absent</th>
+        <th style="width:10%">Absent %</th>
+      </tr>
+    `;
+
+    const tbodyHtml = filtered.map((row, i) => `
+      <tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td style="font-weight:bold; color:#c53336">${row.class_name}</td>
+        <td>${row.teacher}</td>
+        <td style="text-align:center">${row.total_students}</td>
+        <td style="text-align:center">${row.present}</td>
+        <td style="text-align:center">${row.present_pct.toFixed(2)}</td>
+        <td style="text-align:center">${row.absent}</td>
+        <td style="text-align:center">${row.absent_pct.toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    generateStandardPDF(title, theadHtml, tbodyHtml, logo);
+  };
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="max-w-full mx-auto"
-    >
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#1c3068]">Summary Report</h2>
-      </div>
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
+      <div className="mb-6"><h2 className="text-2xl font-bold text-[#1c3068]">Summary Report</h2></div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
            <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report</h3>
            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
              <div className="w-full md:w-64 space-y-2">
-               <label className="block text-sm font-bold text-[#1c3068]">
-                 <span className="text-[#c53336] mr-1">*</span> Date
-               </label>
-               <input 
-                 type="date" 
-                 value={selectedDate}
-                 onChange={(e) => setSelectedDate(e.target.value)}
-                 className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700"
-               />
-               <p className="text-xs text-gray-400">dd-mm-yyyy</p>
+               <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Date</label>
+               <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] outline-none transition-all text-gray-700" />
              </div>
-
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
                <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
                  {loading ? 'Loading...' : 'Submit'}
@@ -1037,9 +864,7 @@ const SummaryReport = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          <div className="bg-[#1c3068] text-white p-4 flex items-center justify-center h-24">
-             <Users size={40} />
-          </div>
+          <div className="bg-[#1c3068] text-white p-4 flex items-center justify-center h-24"><Users size={40} /></div>
           <div className="flex border-t border-gray-100 divide-x divide-gray-100 bg-white">
              <div className="flex-1 p-4 text-center">
                <p className="text-xl font-bold text-[#1c3068]">{stats?.present ?? 0}</p>
@@ -1051,12 +876,10 @@ const SummaryReport = () => {
              </div>
           </div>
         </div>
-
         <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
            <p className="text-4xl font-bold mb-1">{stats?.present ?? 0}</p>
            <p className="text-sm font-medium opacity-90">Total Present</p>
         </div>
-
         <div className="bg-[#c53336] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
            <p className="text-4xl font-bold mb-1">{stats?.absent ?? 0}</p>
            <p className="text-sm font-medium opacity-90">Total Absent</p>
@@ -1065,9 +888,7 @@ const SummaryReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-           <p className="text-gray-500 text-sm">
-             Click button above table to export to Copy, CSV, Excel, PDF & Print
-           </p>
+           <p className="text-gray-500 text-sm">Click button above table to export to Copy, CSV, Excel, PDF & Print</p>
         </div>
         
         <div className="p-6">
@@ -1076,27 +897,19 @@ const SummaryReport = () => {
               onCopy={() => exportCopy(filtered)}
               onExportCSV={() => exportCSV(filtered, 'summary')}
               onExportExcel={() => exportCSV(filtered, 'summary')}
-              onPrint={() => exportPrint(tableRef)}
-              onExportPDF={() => exportPrint(tableRef)}
+              onExportPDF={handleExportPDF}
+              onPrint={handleExportPDF}
             />
-
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
-              />
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="w-full sm:w-48 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all" />
             </div>
           </div>
           
-          <div className="mb-4">
-             <p className="text-sm font-bold text-gray-800">Date : {selectedDate}</p>
-          </div>
+          <div className="mb-4"><p className="text-sm font-bold text-gray-800">Date : {selectedDate}</p></div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
-            <table ref={tableRef} className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">#</th>
@@ -1111,9 +924,7 @@ const SummaryReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400 text-sm">
-                    <div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div>
-                  </td></tr>
+                  <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" /></div></td></tr>
                 ) : !submitted ? (
                   <tr><td colSpan={8} className="px-6 py-8 text-center text-gray-500 text-sm">Select a date and click Submit.</td></tr>
                 ) : filtered.length === 0 ? (
@@ -1133,21 +944,13 @@ const SummaryReport = () => {
               </tbody>
             </table>
           </div>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-            <p className="text-sm text-gray-500">Showing 1 to {filtered.length} of {filtered.length} entries</p>
-            <div className="flex gap-1">
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50" disabled>Previous</button>
-              <button className="bg-[#c53336] text-white px-3 py-1 border border-[#c53336] rounded text-sm hover:bg-[#a02224]">1</button>
-              <button className="px-3 py-1 border border-gray-200 rounded text-sm text-gray-500 hover:bg-gray-50">Next</button>
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
   );
 };
 
+// ─── Main Controller Component ───────────────────────────────────────────────
 const CombinedAttendanceReports = () => {
   const [activeReport, setActiveReport] = useState('attendance');
 

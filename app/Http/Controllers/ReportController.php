@@ -276,18 +276,14 @@ class ReportController extends Controller
         $closedDates = $overrides->whereNull('setting_id')->pluck('date')->map(fn($d) => Carbon::parse($d)->toDateString())->toArray();
         $openDates = $overrides->whereNotNull('setting_id')->pluck('date')->map(fn($d) => Carbon::parse($d)->toDateString())->toArray();
 
-        // Calculate Stats
-        $present = $logs->whereIn('status', ['present', 'late'])->count();
-        $late = $logs->where('status', 'late')->count();
-        $schoolDays = $this->countSchoolDays((int)$request->year, (int)$request->month, $closedDates, $openDates);
-        $absent = max(0, $schoolDays - $present);
-
-        // Build the full chronological list of attendance days
         $formattedLogs = collect();
-        
+        $present = 0;
+        $late = 0;
+        $absent = 0;
+
         $loopDate = Carbon::createFromDate($request->year, $request->month, 1);
         $endOfMonth = $loopDate->copy()->endOfMonth();
-        $today = Carbon::today();
+        $today = Carbon::now('Asia/Kuala_Lumpur')->startOfDay(); // Local Timezone Safety
         
         // Loop stops at today (so future days aren't generated as absent)
         $capDate = $endOfMonth->greaterThan($today) ? $today->copy() : $endOfMonth->copy();
@@ -299,10 +295,16 @@ class ReportController extends Controller
             $isSchoolDay = $isOpen || ($loopDate->isWeekday() && !$isClosed);
 
             if ($logs->has($dateStr)) {
-                // If a log exists (Present or Late), format it
+                // Determine Status & increment counters
                 $log = $logs->get($dateStr);
+                $status = strtolower($log->status);
+                
+                if ($status === 'late') $late++;
+                elseif ($status === 'present') $present++;
+                else $absent++;
+
                 $formattedLogs->push([
-                    'raw_date' => $dateStr, // For sorting
+                    'raw_date' => $dateStr, // Kept for sorting purposes
                     'date' => $loopDate->format('d M Y'),
                     'attendance' => ucfirst($log->status),
                     'timeIn' => $log->check_in_time ? Carbon::parse($log->check_in_time)->format('h:i A') : '-',
@@ -310,7 +312,8 @@ class ReportController extends Controller
                     'reason' => $log->reason ?? '-',
                 ]);
             } elseif ($isSchoolDay) {
-                // If no log exists but it was a valid school day, generate an Absent row
+                // If it's a school day and there is NO log, they are absent
+                $absent++;
                 $formattedLogs->push([
                     'raw_date' => $dateStr,
                     'date' => $loopDate->format('d M Y'),
@@ -327,6 +330,11 @@ class ReportController extends Controller
         // Catch edge cases: if there was somehow a log on a weekend/holiday, include it
         foreach ($logs as $dateStr => $log) {
             if (!$formattedLogs->contains('raw_date', $dateStr)) {
+                $status = strtolower($log->status);
+                if ($status === 'late') $late++;
+                elseif ($status === 'present') $present++;
+                else $absent++;
+
                 $logDate = Carbon::parse($dateStr);
                 $formattedLogs->push([
                     'raw_date' => $dateStr,
@@ -352,55 +360,11 @@ class ReportController extends Controller
                 'ic_number' => $student->ic_number,
             ],
             'stats' => [
-                'present' => $present,
+                'present' => $present + $late, // Groups present + late together for UI cards
                 'absent' => $absent,
                 'late' => $late,
             ],
             'logs' => $finalSortedLogs
         ]);
-    }
-
-    /**
-     * Advanced counter: Calculates strict, valid "School Days" for a given month.
-     * Stops counting if the date is in the future.
-     * Subtracts any days marked as "Closed" in the override settings.
-     */
-    private function countSchoolDays(int $year, int $month, array $closedDates = [], array $openDates = []): int
-    {
-        $days  = 0;
-        $date  = Carbon::createFromDate($year, $month, 1);
-        $end   = $date->copy()->endOfMonth();
-        $today = Carbon::today();
-
-        // 1. Cap the counting limit to today (so future days aren't counted as absent)
-        if ($end->greaterThan($today)) {
-            $end = $today->copy();
-        }
-
-        // If the entire requested month is in the future, return 0
-        if ($date->greaterThan($end)) {
-            return 0;
-        }
-
-        // Iterate through valid dates up to the cap
-        while ($date->lte($end)) {
-            $dateStr = $date->toDateString();
-            
-            $isOpen = in_array($dateStr, $openDates);
-            $isClosed = in_array($dateStr, $closedDates);
-
-            // If forced Open (e.g., replacement weekend class)
-            if ($isOpen) {
-                $days++;
-            } 
-            // Standard Weekday, as long as it's not marked as closed
-            elseif ($date->isWeekday() && !$isClosed) {
-                $days++;
-            }
-            
-            $date->addDay();
-        }
-        
-        return $days;
     }
 }

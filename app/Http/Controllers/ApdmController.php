@@ -13,28 +13,30 @@ class ApdmController extends Controller
 {
     public function import(Request $request)
     {
-        // 1. Validate request
+        // 1. Validate request (Changed 'class' string to 'classroom_id')
         $request->validate([
-            'class' => 'required|string',
+            'classroom_id' => 'required|integer',
             'file' => 'required|file|mimes:csv,txt|max:5120', // Max 5MB CSV
         ]);
 
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
 
         // 2. GET ACTIVE SESSION
-        // We MUST have an active session to enroll students into
         $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         
         if (!$activeSession) {
             return response()->json(['message' => 'No active school session found. Please set up a school session first.'], 400);
         }
 
-        // 3. GET OR CREATE CLASSROOM
-        // If the class doesn't exist in the database yet, this will safely create it
-        $classroom = Classroom::firstOrCreate(
-            ['school_id' => $schoolId, 'name' => $request->class],
-            ['is_active' => true]
-        );
+        // 3. GET EXISTING CLASSROOM
+        // We no longer auto-create. We strictly fetch the one the user selected.
+        $classroom = Classroom::where('school_id', $schoolId)
+            ->where('classroom_id', $request->classroom_id)
+            ->first();
+
+        if (!$classroom) {
+            return response()->json(['message' => 'The selected class does not exist or belongs to another school.'], 400);
+        }
 
         $file = $request->file('file');
         $path = $file->getRealPath();
@@ -82,7 +84,7 @@ class ApdmController extends Controller
 
                 if (!$icNumber || !$name) continue; 
 
-                // A. Save Core Student Identity (Notice: No 'class' column here anymore!)
+                // A. Save Core Student Identity
                 $student = Student::updateOrCreate(
                     ['ic_number' => trim($icNumber)], 
                     [
@@ -95,9 +97,7 @@ class ApdmController extends Controller
                     ]
                 );
 
-                // B. Create the Enrollment (The Bridge)
-                // We use updateOrCreate so if the admin uploads the APDM twice in the same year, 
-                // it just updates their class instead of creating duplicate enrollments!
+                // B. Create or Update the Enrollment using the verified classroom_id
                 Enrollment::updateOrCreate(
                     [
                         'student_id' => $student->student_id,
@@ -113,14 +113,13 @@ class ApdmController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log the actual error to your laravel.log file for debugging if needed
             \Illuminate\Support\Facades\Log::error('APDM Import Error: ' . $e->getMessage());
             return response()->json(['message' => 'An error occurred while saving to the database.'], 500);
         }
 
         return response()->json([
             'success' => true, 
-            'message' => "Successfully imported {$importedCount} students to " . strtoupper($request->class)
+            'message' => "Successfully imported {$importedCount} students to " . strtoupper($classroom->name)
         ]);
     }
 }

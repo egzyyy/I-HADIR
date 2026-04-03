@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, AlertCircle, CheckCircle, X, ChevronDown, FileSpreadsheet } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -14,13 +14,29 @@ const ImportApdm = () => {
   const navigate = useNavigate();
 
   // State for form inputs
-  const [selectedClass, setSelectedClass] = useState('');
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   // Modal States
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Fetch available classes on mount
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const response = await axios.get('/api/classes');
+        if (response.data.success) {
+          setClasses(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to load classes", error);
+      }
+    };
+    fetchClasses();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -35,7 +51,7 @@ const ImportApdm = () => {
   };
 
   const handleImport = async () => {
-    if (!selectedClass) {
+    if (!selectedClassId) {
       setErrorMsg("Please select a class first.");
       return;
     }
@@ -46,7 +62,7 @@ const ImportApdm = () => {
 
     setIsUploading(true);
     const formData = new FormData();
-    formData.append('class', selectedClass);
+    formData.append('classroom_id', selectedClassId); // Changed to classroom_id
     formData.append('file', selectedFile);
 
     try {
@@ -110,21 +126,21 @@ const ImportApdm = () => {
             </label>
             <div className="relative">
               <select 
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                value={selectedClassId}
+                onChange={(e) => setSelectedClassId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
               >
                 <option value="">Select a destination class..</option>
-                <option value="1-amanah">1 Amanah</option>
-                <option value="1-bestari">1 Bestari</option>
-                <option value="1-cekal">1 Cekal</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>{cls.name}</option>
+                ))}
               </select>
               <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
           <AnimatePresence>
-            {selectedClass && (
+            {selectedClassId && (
               <motion.div
                 initial={{ opacity: 0, height: 0, y: 10 }}
                 animate={{ opacity: 1, height: 'auto', y: 0 }}
@@ -184,7 +200,7 @@ const ImportApdm = () => {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Import Failed</h3>
               <p className="text-gray-500 mb-8">{errorMsg}</p>
               <button 
-                onClick={() => setErrorMsg(null)}
+                onClick={() => setErrorMsg(null)} 
                 className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition-all transform hover:-translate-y-1"
               >
                 Go Back & Fix
@@ -210,7 +226,7 @@ const ImportApdm = () => {
               <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">{successMsg}</p>
               <button 
-                onClick={() => navigate('/users/list')}
+                onClick={() => navigate('/users/list')} 
                 className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold transition-all transform hover:-translate-y-1"
               >
                 Done

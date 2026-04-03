@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, ChevronDown, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -7,6 +7,12 @@ import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditClassModal } from '../../Components/modals/EditClassModal';
 import { AddStudentToClass } from '../../Components/modals/AddStudentToClass';
+
+// IMPORT THE LOGO
+import logo from '../../assets/i_hadir_logo2.png';
+
+// Ensure Axios acts as an XHR request for Laravel
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,35 +204,99 @@ function exportExcel(classes: ClassItem[]) {
   downloadFile(buildTableText(classes), 'classes.xls', 'application/vnd.ms-excel');
 }
 
-function exportPDF(classes: ClassItem[]) {
+// ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
+
+function exportPDF(classes: ClassItem[], logoSrc: string) {
   const rows = classes.map((c, i) => `
     <tr>
-      <td>${i + 1}</td><td>${c.name}</td><td>${c.teacher}</td>
-      <td>${c.totalStudents}</td><td>${c.capacity ?? '-'}</td>
-      <td>${c.sessionName}</td><td>${c.createdAt}</td>
+      <td style="text-align:center">${i + 1}</td>
+      <td style="font-weight:bold">${c.name}</td>
+      <td>${c.teacher}</td>
+      <td style="text-align:center">${c.totalStudents}</td>
+      <td style="text-align:center">${c.capacity ?? '-'}</td>
+      <td style="text-align:center">${c.sessionName}</td>
+      <td style="text-align:center">${c.createdAt}</td>
     </tr>`).join('');
 
   const html = `
-    <html><head><title>Class List</title>
-    <style>
-      body { font-family: Arial, sans-serif; font-size: 12px; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
-      th { background: #1c3068; color: white; }
-    </style></head>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Class List Report</title>
+      <style>
+        @page { margin: 15mm; size: A4 portrait; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
+        
+        /* Standard Header Styling */
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+        
+        /* Enforce colors in print */
+        th { 
+          background-color: #1c3068 !important; 
+          color: white !important; 
+          font-weight: bold; 
+          text-align: left; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+        
+        th[style*="text-align:center"] { text-align: center; }
+        tr:nth-child(even) { 
+          background-color: #f9fafb !important; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+      </style>
+    </head>
     <body>
-      <h2 style="color:#1c3068">Class List</h2>
+      <div class="header-container">
+        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        <h1 class="report-title">Class List Report</h1>
+        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+      </div>
+      
       <table>
-        <thead><tr><th>#</th><th>Class Name</th><th>Classroom Teacher</th><th>Total Students</th><th>Capacity</th><th>Session</th><th>Registered Date</th></tr></thead>
+        <thead>
+          <tr>
+            <th style="text-align:center; width:5%">No</th>
+            <th style="width:20%">Class Name</th>
+            <th style="width:30%">Classroom Teacher</th>
+            <th style="text-align:center; width:15%">Total Students</th>
+            <th style="text-align:center; width:10%">Capacity</th>
+            <th style="text-align:center; width:10%">Session</th>
+            <th style="text-align:center; width:10%">Registered</th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
-    </body></html>`;
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        }
+      </script>
+    </body>
+    </html>`;
 
   const win = window.open('', '_blank');
-  if (win) { win.document.write(html); win.document.close(); win.print(); }
+  if (win) { 
+    win.document.write(html); 
+    win.document.close(); 
+  }
 }
 
-function printTable(classes: ClassItem[]) { exportPDF(classes); }
+function printTable(classes: ClassItem[], logoSrc: string) { 
+  exportPDF(classes, logoSrc); 
+}
 
 function copyToClipboard(classes: ClassItem[]) {
   navigator.clipboard.writeText(buildTableText(classes)).then(() => {
@@ -352,8 +422,10 @@ const ClassList = () => {
                 onCopy={() => copyToClipboard(filtered)}
                 onExportCSV={() => exportCSV(filtered)}
                 onExportExcel={() => exportExcel(filtered)}
-                onExportPDF={() => exportPDF(filtered)}
-                onPrint={() => printTable(filtered)}
+                
+                // PASS THE LOGO URL TO THE PDF/PRINT FUNCTIONS HERE
+                onExportPDF={() => exportPDF(filtered, logo)}
+                onPrint={() => printTable(filtered, logo)}
               />
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-600">Search:</span>
@@ -374,10 +446,10 @@ const ClassList = () => {
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Class Name</th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Classroom Teacher</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Total Number of Students</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Capacity</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Session</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Registered Date</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Total Number of Students</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Capacity</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Session</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Registered Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Action</th>
                   </tr>
                 </thead>
@@ -394,12 +466,12 @@ const ClassList = () => {
                     filtered.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500 text-center">{idx + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-[#c53336]">{item.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 uppercase">{item.teacher}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.totalStudents}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.capacity ?? '-'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.sessionName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.createdAt}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-[#c53336]">{item.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-semibold">{item.teacher}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-center font-mono">{item.totalStudents}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-center font-mono">{item.capacity ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-center">{item.sessionName}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-center">{item.createdAt}</td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center items-center gap-2">
                             <button

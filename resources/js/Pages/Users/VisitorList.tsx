@@ -5,6 +5,9 @@ import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import axios from 'axios';
 
+// IMPORT LOGO
+import logo from '../../assets/i_hadir_logo2.png';
+
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const VisitorListContent = () => {
@@ -245,6 +248,101 @@ const VisitorListContent = () => {
     document.body.removeChild(link);
   };
 
+  // 4. Export to PDF / Print (Standardized Format)
+  const handleExportPDF = () => {
+    if (filteredData.length === 0) return;
+
+    const rows = filteredData.map((item: any, index: number) => `
+      <tr>
+        <td style="text-align:center">${index + 1}</td>
+        <td style="font-weight:bold">${item.name}</td>
+        <td style="text-align:center; font-family:monospace">${item.phone}</td>
+        <td style="text-align:center">${item.category}</td>
+        <td style="text-align:center">${item.personToMeet}</td>
+        <td style="text-align:center; font-family:monospace">${item.passNo !== '-' ? item.passNo : ''} ${item.plateNumber !== '-' ? `(${item.plateNumber})` : ''}</td>
+        <td style="text-align:center">${item.timeIn}</td>
+        <td style="text-align:center">${item.status}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Visitor Logbook Report</title>
+        <style>
+          @page { margin: 15mm; size: A4 landscape; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
+          
+          /* Standard Header Styling */
+          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+          .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+          .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+          .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+          
+          /* Table Styling */
+          table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+          th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+          
+          /* Enforce colors in print */
+          th { 
+            background-color: #1c3068 !important; 
+            color: white !important; 
+            font-weight: bold; 
+            text-align: center; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+          th:nth-child(2) { text-align: left; } /* Align Name to left */
+          
+          tr:nth-child(even) { 
+            background-color: #f9fafb !important; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <img src="${logo}" class="logo" alt="School Logo" />
+          <h1 class="report-title">Visitor Logbook Report</h1>
+          <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th style="width:5%">No</th>
+              <th style="width:20%">Visitor Name</th>
+              <th style="width:12%">Phone No</th>
+              <th style="width:15%">Category</th>
+              <th style="width:15%">Meeting With</th>
+              <th style="width:13%">Pass / Plate No</th>
+              <th style="width:10%">Time In</th>
+              <th style="width:10%">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank');
+    if (win) { 
+      win.document.write(html); 
+      win.document.close(); 
+    }
+  };
+
   return (
     <>
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
@@ -273,8 +371,8 @@ const VisitorListContent = () => {
                 onExportCSV={handleExportCSV} 
                 onExportExcel={handleExportExcel} 
                 onCopy={handleCopy} 
-                onExportPDF={() => {}} 
-                onPrint={() => {}} 
+                onExportPDF={handleExportPDF} 
+                onPrint={handleExportPDF} 
             />
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
@@ -331,8 +429,7 @@ const VisitorListContent = () => {
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">No</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Visitor Info</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Pass / Plate No</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Person Meet</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Meeting With</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-right">Action</th>
                 </tr>
@@ -366,10 +463,6 @@ const VisitorListContent = () => {
                       <td className="px-4 py-4">
                         <p className="text-sm font-medium text-gray-800">{item.personToMeet}</p>
                         <p className="text-sm text-gray-500 mt-0.5">{item.purpose}</p>
-                      </td>
-
-                      <td className="px-4 py-4 text-sm text-gray-500">
-                         {item.timeIn ? new Date(item.timeIn).toLocaleDateString('en-GB') : '-'}
                       </td>
 
                       <td className="px-4 py-4">

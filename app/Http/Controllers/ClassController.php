@@ -320,7 +320,8 @@ class ClassController extends Controller
             ->where('classroom_id', $id)
             ->firstOrFail();
 
-        // Mark inactive first, then soft-delete (sets deleted_at)
+        Enrollment::where('classroom_id', $id)->delete();
+
         $classroom->update(['is_active' => false]);
         $classroom->delete();
 

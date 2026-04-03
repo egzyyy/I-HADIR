@@ -23,7 +23,7 @@ class UserController extends Controller
 
         $sessionId = $request->session_id;
 
-        // Filter by Session using Pivot Tables
+        // Filter by Session
         if ($sessionId && $sessionId !== 'all') {
             
             $session = SchoolSession::find($sessionId);
@@ -36,23 +36,23 @@ class UserController extends Controller
                     ->first();
                 $endDate = $nextSession ? $nextSession->start_date : now()->addYears(10);
 
-                // 1. STUDENTS: Must have explicit enrollment in this session
-                $studentsQuery->whereHas('enrollments', function($query) use ($sessionId) {
-                    $query->where('school_session_id', $sessionId);
-                })->with(['enrollments' => function($query) use ($sessionId) {
-                    $query->where('school_session_id', $sessionId)->with('classroom');
-                }]);
+                // 1. STUDENTS: Show if they were registered before the session ended, 
+                // and NOT deleted before the session started.
+                $studentsQuery->where('created_at', '<', $endDate)
+                    ->where(function($q) use ($startDate) {
+                        $q->whereNull('deleted_at')
+                          ->orWhere('deleted_at', '>=', $startDate);
+                    })->with(['enrollments' => function($query) use ($sessionId) {
+                        $query->where('school_session_id', $sessionId)->with('classroom');
+                    }]);
 
                 // 2. TEACHERS & STAFF: Show if they were hired before the session ended, 
                 // and NOT deleted before the session started.
-                // We also load their LATEST employment record created before the session ended.
-                
                 $teachersQuery->where('created_at', '<', $endDate)
                     ->where(function($q) use ($startDate) {
                         $q->whereNull('deleted_at')
                           ->orWhere('deleted_at', '>=', $startDate);
                     })->with(['employments' => function($query) use ($endDate) {
-                        // Get the latest employment role they had up to this session
                         $query->whereHas('schoolSession', function($q) use ($endDate) {
                             $q->where('start_date', '<', $endDate);
                         })->latest('created_at');
@@ -102,7 +102,6 @@ class UserController extends Controller
 
         // Fetch and format Teachers
         $teachers = $teachersQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
-            // We grab the first employment loaded from the with() query above
             $employment = $item->employments->first();
             $role = $employment ? $employment->position : 'Unassigned';
 

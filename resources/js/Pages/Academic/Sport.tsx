@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Edit, Trash2, ChevronDown, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
+
+// IMPORT LOGO
+import logo from '../../assets/i_hadir_logo2.png';
+
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 interface Teacher { teacher_id: number; name: string; }
 interface SportItem {
@@ -126,8 +131,94 @@ const SportList = () => {
     catch { alert('Failed to delete.'); } finally { setShowDeleteModal(false); setSelected(null); }
   };
 
-  const tableHtml = (rows: SportItem[]) => `<html><head><title>Sport List</title><style>body{font-family:Arial;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px}th{background:#1c3068;color:white}</style></head><body><h2 style="color:#1c3068">Sport List</h2><table><thead><tr><th>#</th><th>Sport Name</th><th>Teacher</th><th>Capacity</th><th>Registered</th></tr></thead><tbody>${rows.map((s,i)=>`<tr><td>${i+1}</td><td>${s.name}</td><td>${s.teacher}</td><td>${s.capacity??'-'}</td><td>${s.registeredDate}</td></tr>`).join('')}</tbody></table></body></html>`;
-  const openPrint = (rows: SportItem[]) => { const w = window.open('','_blank'); if(w){w.document.write(tableHtml(rows));w.document.close();w.print();} };
+  // --- STANDARDIZED PDF / PRINT FORMAT ---
+  const handleExportPDF = () => {
+    if (filtered.length === 0) return;
+
+    const rows = filtered.map((item: any, index: number) => `
+      <tr>
+        <td style="text-align:center">${index + 1}</td>
+        <td style="font-weight:bold">${item.name}</td>
+        <td>${item.teacher}</td>
+        <td style="text-align:center">${item.capacity ?? '-'}</td>
+        <td style="text-align:center">${item.registeredDate}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Sport House List Report</title>
+        <style>
+          @page { margin: 15mm; size: A4 portrait; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
+          
+          /* Standard Header Styling */
+          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+          .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+          .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+          .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+          
+          /* Table Styling */
+          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+          th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+          
+          /* Enforce colors in print */
+          th { 
+            background-color: #1c3068 !important; 
+            color: white !important; 
+            font-weight: bold; 
+            text-align: left; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+          
+          th[style*="text-align:center"] { text-align: center; }
+          tr:nth-child(even) { 
+            background-color: #f9fafb !important; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header-container">
+          <img src="${logo}" class="logo" alt="School Logo" />
+          <h1 class="report-title">Sport House List Report</h1>
+          <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:center; width:10%">No</th>
+              <th style="width:30%">Sport Name</th>
+              <th style="width:30%">Sport Teacher</th>
+              <th style="text-align:center; width:15%">Capacity</th>
+              <th style="text-align:center; width:15%">Registered</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          }
+        </script>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank');
+    if (win) { 
+      win.document.write(html); 
+      win.document.close(); 
+    }
+  };
 
   return (
     <>
@@ -143,8 +234,10 @@ const SportList = () => {
                 onCopy={() => { const t = ['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date', ...filtered.map((s,i)=>`${i+1}\t${s.name}\t${s.teacher}\t${s.capacity??'-'}\t${s.registeredDate}`)].join('\n'); navigator.clipboard.writeText(t).then(()=>alert('Copied!')); }}
                 onExportCSV={() => dlFile(['#,Sport Name,Sport Teacher,Capacity,Registered Date',...filtered.map((s,i)=>`${i+1},"${s.name}","${s.teacher}",${s.capacity??''},"${s.registeredDate}"`)].join('\n'),'sport_houses.csv','text/csv')}
                 onExportExcel={() => dlFile(['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date',...filtered.map((s,i)=>`${i+1}\t${s.name}\t${s.teacher}\t${s.capacity??'-'}\t${s.registeredDate}`)].join('\n'),'sport_houses.xls','application/vnd.ms-excel')}
-                onExportPDF={() => openPrint(filtered)}
-                onPrint={() => openPrint(filtered)}
+                
+                // Connect PDF and Print buttons to the new function
+                onExportPDF={handleExportPDF}
+                onPrint={handleExportPDF}
               />
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-600">Search:</span>
