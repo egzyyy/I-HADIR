@@ -5,11 +5,15 @@ import DashboardLayout from '../../Layouts/DashboardLayout';
 import apdmFormatImage from '../../assets/apdm.png';
 import saveAs from '../../assets/saveas.png';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const ImportApdm = () => {
+  const navigate = useNavigate();
+
+  // State for form inputs
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -180,7 +184,7 @@ const ImportApdm = () => {
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Import Failed</h3>
               <p className="text-gray-500 mb-8">{errorMsg}</p>
               <button 
-                onClick={closeModal}
+                onClick={() => setErrorMsg(null)}
                 className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold transition-all transform hover:-translate-y-1"
               >
                 Go Back & Fix
@@ -206,7 +210,7 @@ const ImportApdm = () => {
               <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">{successMsg}</p>
               <button 
-                onClick={closeModal}
+                onClick={() => navigate('/users/list')}
                 className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold transition-all transform hover:-translate-y-1"
               >
                 Done

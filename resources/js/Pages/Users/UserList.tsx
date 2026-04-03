@@ -11,7 +11,7 @@ import axios from 'axios';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const UserListUnified = () => {
-  const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('staff');
+  const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('student');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
