@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Copy, FileText, FileSpreadsheet, FileType, Printer, Users, ArrowLeft, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -100,6 +100,13 @@ const MonthTabs = ({ activeMonth, onMonthChange }: { activeMonth: number, onMont
 );
 
 export default function ParentsReport() {
+  const navigate = useNavigate();
+  // Go back to wherever the user came from; fall back to home if no history.
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   const [studentIc, setStudentIc] = useState('');
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth() + 1);
   const [activeYear, setActiveYear] = useState(new Date().getFullYear());
@@ -243,12 +250,12 @@ export default function ParentsReport() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Link 
-                to="/"
+              <button
+                onClick={goBack}
                 className="p-2 hover:bg-gray-100 rounded-full text-[#1c3068] transition-colors inline-block"
               >
                 <ArrowLeft size={20} />
-              </Link>
+              </button>
               <div>
                 <h1 className="text-xl font-black text-[#1c3068] uppercase tracking-wide">Infographic Report for Parent</h1>
                 <p className="text-xs text-gray-500 mt-1">Check your child's monthly school attendance</p>

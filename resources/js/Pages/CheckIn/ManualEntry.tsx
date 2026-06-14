@@ -207,16 +207,13 @@ const ManualEntry = () => {
                       <span className="text-[#c53336] mr-1">*</span> User Type
                     </label>
                     <div className="relative">
-                      <select
-                        value={formData.user_type}
-                        onChange={(e) => setFormData({ ...formData, user_type: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700"
-                      >
-                        <option value="student">Student</option>
-                        <option value="teacher">Teacher</option>
-                        <option value="staff">Staff</option>
-                      </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      {/* Manual check-in is for students only — locked. */}
+                      <input
+                        type="text"
+                        value="Student"
+                        readOnly
+                        className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 outline-none text-gray-500 cursor-not-allowed"
+                      />
                     </div>
                   </div>
 

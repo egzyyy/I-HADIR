@@ -4,11 +4,14 @@ import { Search, Calendar, ChevronDown, ChevronRight, Download, Filter, Users, E
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 
-const FacilityReport = () => {
+// When `fixedFacility` is passed (e.g. "RMT"), the facility is locked and the
+// dropdown is replaced with a read-only field — used by the RMT Report tab.
+const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedFacility, setSelectedFacility] = useState('');
+  const [selectedFacility, setSelectedFacility] = useState(fixedFacility ?? '');
   const [selectedClass, setSelectedClass] = useState('');
 
   // Mock data for the table
@@ -44,17 +47,28 @@ const FacilityReport = () => {
                    <span className="text-[#c53336] mr-1">*</span> Facility
                  </label>
                  <div className="relative">
-                   <select 
-                     value={selectedFacility}
-                     onChange={(e) => setSelectedFacility(e.target.value)}
-                     className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700"
-                   >
-                     <option value="">Select Facility...</option>
-                     <option value="Prayer">Prayer</option>
-                     <option value="PSS">PSS</option>
-                     <option value="ICT">ICT</option>
-                   </select>
-                   <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                   {fixedFacility ? (
+                     <input
+                       type="text"
+                       value={fixedFacility}
+                       readOnly
+                       className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-200 outline-none text-gray-500 cursor-not-allowed"
+                     />
+                   ) : (
+                     <>
+                       <select
+                         value={selectedFacility}
+                         onChange={(e) => setSelectedFacility(e.target.value)}
+                         className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700"
+                       >
+                         <option value="">Select Facility...</option>
+                         <option value="Prayer">Prayer</option>
+                         <option value="PSS">PSS</option>
+                         <option value="ICT">ICT</option>
+                       </select>
+                       <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                     </>
+                   )}
                  </div>
                </div>
 
@@ -500,13 +514,25 @@ const VisitorReport = () => {
 };
 
 const GeneralReport = () => {
+  const { role } = useAuth();
+  // Visitor Report is visible to Admin and Security only — not Teacher.
+  const canSeeVisitor = role === 'Admin' || role === 'Security';
+
   const [activeReport, setActiveReport] = useState('facility');
+
+  const tabs = [
+    { id: 'facility', label: 'Facility Report' },
+    { id: 'activity', label: 'Activity Report' },
+    { id: 'rmt', label: 'RMT Report' },
+    ...(canSeeVisitor ? [{ id: 'visitor', label: 'Visitor Report' }] : []),
+  ];
 
   const renderReport = () => {
     switch (activeReport) {
       case 'facility': return <FacilityReport />;
       case 'activity': return <ActivityReport />;
-      case 'visitor': return <VisitorReport />;
+      case 'rmt': return <FacilityReport fixedFacility="RMT" />;
+      case 'visitor': return canSeeVisitor ? <VisitorReport /> : <FacilityReport />;
       default: return <FacilityReport />;
     }
   };
@@ -515,11 +541,7 @@ const GeneralReport = () => {
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 overflow-x-auto">
         <div className="flex space-x-2 min-w-max">
-          {[
-            { id: 'facility', label: 'Facility Report' },
-            { id: 'activity', label: 'Activity Report' },
-            { id: 'visitor', label: 'Visitor Report' },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveReport(tab.id)}

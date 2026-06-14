@@ -1,11 +1,13 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { createRoot } from 'react-dom/client';
+import { AuthProvider, useAuth, homeForRole, Role } from './contexts/AuthContext';
 
 // Pages — No dropdown (single files)
-import Welcome from './Pages/Welcome';
+import GeneralLanding from './Pages/GeneralLanding';
+import SchoolLanding from './Pages/SchoolLanding';
 import Login from './Pages/Auth/Login';
 import Dashboard from './Pages/Dashboard';
 import SchoolSession from './Pages/SchoolSession';
@@ -47,60 +49,81 @@ import ParentsReport from './Pages/Reports/ParentsReport';
 // Pages — Other
 import Visitor from './Pages/Visitor';
 
+// Role groups for route access
+const ALL: Role[] = ['Admin', 'Teacher', 'Security'];
+const ADMIN: Role[] = ['Admin'];
+const ADMIN_TEACHER: Role[] = ['Admin', 'Teacher'];
+const ADMIN_SECURITY: Role[] = ['Admin', 'Security'];
+
+// Guards a route: waits for auth, redirects to login if unauthenticated,
+// or to the user's own home if their role isn't allowed here.
+function RequireRole({ allow, children }: { allow: Role[]; children: JSX.Element }) {
+  const { role, loading } = useAuth();
+
+  // No cached/known role yet and still resolving → render nothing briefly.
+  if (loading && !role) return null;
+  if (!role) return <Navigate to="/login" replace />;
+  if (!allow.includes(role)) return <Navigate to={homeForRole(role)} replace />;
+
+  return children;
+}
+
 const root = createRoot(document.getElementById('app')!);
 
 root.render(
   <BrowserRouter>
+    <AuthProvider>
     <Routes>
-      <Route path="/" element={<Welcome />} />
+      {/* Public */}
+      <Route path="/" element={<GeneralLanding />} />
+      <Route path="/school/:slug" element={<SchoolLanding />} />
       <Route path="/login" element={<Login />} />
-
-      {/* Dashboard */}
-      <Route path="/dashboard" element={<Dashboard />} />
-
-      {/* School Management */}
-      <Route path="/school-session" element={<SchoolSession />} />
-
-      {/* SMS API */}
-      <Route path="/set-sms-api" element={<SetSmsApi />} />
-
-      {/* Users (dropdown) */}
-      <Route path="/users/registration" element={<UserRegistration />} />
-      <Route path="/users/apdm" element={<Apdm />} />
-      <Route path="/users/list" element={<UserList />} />
-      <Route path="/users/visitor-list" element={<VisitorList />} />
-
-      {/* Academic (dropdown) */}
-      <Route path="/academic/class" element={<ClassPage />} />
-      <Route path="/academic/co-curricular" element={<CoCurricular />} />
-      <Route path="/academic/sport" element={<Sport />} />
-      <Route path="/academic/event" element={<EventPage />} />
-
-      {/* Attendance Log (dropdown) */}
-      <Route path="/attendance-log" element={<AttendanceLogList />} />
-      <Route path="/attendance-log/check-in" element={<CheckIn />} />
-      <Route path="/attendance-log/check-out" element={<CheckOut />} />
-      <Route path="/attendance-log/time-setting" element={<TimeSetting />} />
-
-      {/* Check In */}
-      <Route path="/facility-check-in" element={<FacilityCheckIn />} />
-      <Route path="/manual-entry" element={<ManualEntry />} />
-
-      {/* Reports */}
-      <Route path="/attendance-reports" element={<AttendanceReports />} />
-      <Route path="/general-report" element={<GeneralReport />} />
-
-      {/* Support */}
-      <Route path="/faqs" element={<Faqs />} />
-
-      {/* Admin */}
-      <Route path="/admin-profile" element={<AdminProfile />} />
-      <Route path="/admin-attendance" element={<AdminAttendance />} />
-      <Route path="/admin-password" element={<AdminPassword />} />
-
-      {/* Other */}
       <Route path="/visitor" element={<Visitor />} />
       <Route path="/parents-report" element={<ParentsReport />} />
+
+      {/* Dashboard — all roles */}
+      <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />
+
+      {/* School Management — admin only */}
+      <Route path="/school-session" element={<RequireRole allow={ADMIN}><SchoolSession /></RequireRole>} />
+
+      {/* SMS API — admin only */}
+      <Route path="/set-sms-api" element={<RequireRole allow={ADMIN}><SetSmsApi /></RequireRole>} />
+
+      {/* Users (dropdown) */}
+      <Route path="/users/registration" element={<RequireRole allow={ADMIN}><UserRegistration /></RequireRole>} />
+      <Route path="/users/apdm" element={<RequireRole allow={ADMIN}><Apdm /></RequireRole>} />
+      <Route path="/users/list" element={<RequireRole allow={ADMIN_TEACHER}><UserList /></RequireRole>} />
+      <Route path="/users/visitor-list" element={<RequireRole allow={ADMIN_SECURITY}><VisitorList /></RequireRole>} />
+
+      {/* Academic (dropdown) */}
+      <Route path="/academic/class" element={<RequireRole allow={ADMIN_TEACHER}><ClassPage /></RequireRole>} />
+      <Route path="/academic/co-curricular" element={<RequireRole allow={ADMIN}><CoCurricular /></RequireRole>} />
+      <Route path="/academic/sport" element={<RequireRole allow={ADMIN}><Sport /></RequireRole>} />
+      <Route path="/academic/event" element={<RequireRole allow={ADMIN}><EventPage /></RequireRole>} />
+
+      {/* Attendance Log (dropdown) */}
+      <Route path="/attendance-log" element={<RequireRole allow={ADMIN}><AttendanceLogList /></RequireRole>} />
+      <Route path="/attendance-log/check-in" element={<RequireRole allow={ALL}><CheckIn /></RequireRole>} />
+      <Route path="/attendance-log/check-out" element={<RequireRole allow={ALL}><CheckOut /></RequireRole>} />
+      <Route path="/attendance-log/time-setting" element={<RequireRole allow={ADMIN}><TimeSetting /></RequireRole>} />
+
+      {/* Check In */}
+      <Route path="/facility-check-in" element={<RequireRole allow={ADMIN_TEACHER}><FacilityCheckIn /></RequireRole>} />
+      <Route path="/manual-entry" element={<RequireRole allow={ADMIN_TEACHER}><ManualEntry /></RequireRole>} />
+
+      {/* Reports */}
+      <Route path="/attendance-reports" element={<RequireRole allow={ADMIN_TEACHER}><AttendanceReports /></RequireRole>} />
+      <Route path="/general-report" element={<RequireRole allow={ADMIN_TEACHER}><GeneralReport /></RequireRole>} />
+
+      {/* Support — all roles */}
+      <Route path="/faqs" element={<RequireRole allow={ALL}><Faqs /></RequireRole>} />
+
+      {/* Personal account — all roles */}
+      <Route path="/admin-profile" element={<RequireRole allow={ALL}><AdminProfile /></RequireRole>} />
+      <Route path="/admin-attendance" element={<RequireRole allow={ALL}><AdminAttendance /></RequireRole>} />
+      <Route path="/admin-password" element={<RequireRole allow={ALL}><AdminPassword /></RequireRole>} />
     </Routes>
+    </AuthProvider>
   </BrowserRouter>
 );

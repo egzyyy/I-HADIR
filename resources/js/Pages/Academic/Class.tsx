@@ -7,6 +7,7 @@ import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditClassModal } from '../../Components/modals/EditClassModal';
 import { AddStudentToClass } from '../../Components/modals/AddStudentToClass';
+import { useAuth } from '../../contexts/AuthContext';
 
 // IMPORT THE LOGO
 import logo from '../../assets/i_hadir_logo2.png';
@@ -307,6 +308,10 @@ function copyToClipboard(classes: ClassItem[]) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const ClassList = () => {
+  const { role } = useAuth();
+  // Teachers can view/manage students in a class but not create classes.
+  const canAddClass = role !== 'Teacher';
+
   const [classes, setClasses]                 = useState<ClassItem[]>([]);
   const [teachers, setTeachers]               = useState<Teacher[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -404,12 +409,14 @@ const ClassList = () => {
       >
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-[#1c3068]">Class List</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
-          >
-            <Plus size={18} /> Add Class
-          </button>
+          {canAddClass && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
+            >
+              <Plus size={18} /> Add Class
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

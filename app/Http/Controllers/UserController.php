@@ -269,6 +269,44 @@ class UserController extends Controller
         return response()->json(['success' => true, 'data' => $admin]);
     }
 
+    /**
+     * Returns the currently authenticated user plus a UI role derived from
+     * their position, so the dashboard can render the correct menu/view.
+     */
+    public function me(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'email' => $user->email,
+                'position' => $user->position,
+                'role' => $this->resolveRole($user->position),
+            ],
+        ]);
+    }
+
+    /**
+     * Maps a free-text job position to one of the three dashboard roles.
+     */
+    private function resolveRole(?string $position): string
+    {
+        $p = strtolower($position ?? '');
+
+        if (str_contains($p, 'security') || str_contains($p, 'pengawal')) {
+            return 'Security';
+        }
+        if (str_contains($p, 'teacher') || str_contains($p, 'guru') || str_contains($p, 'cikgu')) {
+            return 'Teacher';
+        }
+        return 'Admin';
+    }
+
     public function updateAdminProfile(Request $request)
     {
         $admin = auth()->user();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, UserPlus, ClipboardList, ChevronDown, LogOut, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import bgImage from '../assets/3379b4a489c00147d1f88ca87c8a0a3a3769dc13.png';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -9,6 +9,13 @@ import axios from 'axios';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 export default function Visitor() {
+  const navigate = useNavigate();
+  // Go back to wherever the user came from; fall back to home if no history.
+  const goBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate('/');
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -125,12 +132,12 @@ export default function Visitor() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-               <Link 
-                to="/"
+               <button
+                onClick={goBack}
                 className="p-2 hover:bg-gray-100 rounded-full text-[#1c3068] transition-colors inline-block"
               >
                 <ArrowLeft size={20} />
-              </Link>
+              </button>
               <div>
                 <h1 className="text-xl font-black text-[#1c3068] uppercase tracking-wide">VISITOR CHECK-IN</h1>
                 <p className="text-xs text-gray-500 mt-1">System Management</p>

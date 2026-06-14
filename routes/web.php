@@ -29,6 +29,9 @@ Route::get('/api/users', [UserController::class, 'index']);
 Route::delete('/api/users/{type}/{id}', [UserController::class, 'destroy']);
 Route::put('/api/users/{id}', [UserController::class, 'update']);
 
+// Current authenticated user (drives role-based dashboard menu)
+Route::get('/api/me', [UserController::class, 'me']);
+
 // Admin Profile Management
 Route::get('/api/admin/profile', [UserController::class, 'getAdminProfile']);
 Route::post('/api/admin/profile', [UserController::class, 'updateAdminProfile']);

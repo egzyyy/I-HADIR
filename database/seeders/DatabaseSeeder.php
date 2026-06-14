@@ -64,6 +64,46 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
+        // 3b. Create Teacher Login User (same login table as admin)
+        DB::table('users')->insert([
+            'school_id' => $schoolId,
+            'first_name' => 'Teacher',
+            'last_name' => 'I-Hadir',
+            'ic_number' => '808080808080',
+            'email' => 'teacher@ihadir.com',
+            'password' => Hash::make('password'),
+            'position' => 'Teacher',
+            'phone_num' => '012-3456788',
+            'address' => 'Kuarters Guru SK Pulau Serai',
+            'city' => 'Dungun',
+            'state' => 'Terengganu',
+            'postcode' => '23000',
+            'country' => 'Malaysia',
+            'email_verified_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 3c. Create Security Login User (same login table as admin)
+        DB::table('users')->insert([
+            'school_id' => $schoolId,
+            'first_name' => 'Security',
+            'last_name' => 'I-Hadir',
+            'ic_number' => '707070707070',
+            'email' => 'security@ihadir.com',
+            'password' => Hash::make('password'),
+            'position' => 'Security',
+            'phone_num' => '012-3456787',
+            'address' => 'Pondok Pengawal SK Pulau Serai',
+            'city' => 'Dungun',
+            'state' => 'Terengganu',
+            'postcode' => '23000',
+            'country' => 'Malaysia',
+            'email_verified_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         // 4. Seed Teachers & Their Employments
         $teachers = [
             ['name' => 'Ahmad bin Abdullah', 'ic' => '800101112222', 'gender' => 'Male', 'phone' => '0123456701', 'position' => 'Pengetua'],

@@ -6,6 +6,7 @@ import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { UserInfoModal } from '../../Components/modals/UserInfoModal';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditUserModal } from '../../Components/modals/EditUserModal';
+import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 
 // IMPORT LOGO
@@ -14,6 +15,12 @@ import logo from '../../assets/i_hadir_logo2.png';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const UserListUnified = () => {
+  const { role } = useAuth();
+  // Teachers only manage students, so they see the Student tab only.
+  const visibleTabs = role === 'Teacher'
+    ? (['student'] as const)
+    : (['student', 'teacher', 'staff'] as const);
+
   const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('student');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -389,12 +396,15 @@ const UserListUnified = () => {
         {/* Header & Tabs */}
         <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">User List</h2>
+            <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">
+              {role === 'Teacher' ? 'Student List' : 'User List'}
+            </h2>
             <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
           </div>
-          
+
+          {visibleTabs.length > 1 && (
           <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
-            {(['student', 'teacher', 'staff'] as const).map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
@@ -406,6 +416,7 @@ const UserListUnified = () => {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <div className="p-6">

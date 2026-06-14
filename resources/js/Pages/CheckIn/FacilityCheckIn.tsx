@@ -151,15 +151,15 @@ const FacilityCheckIn = () => {
             <h3 className="text-lg font-bold text-[#1c3068]">ICT</h3>
           </div>
 
-          {/* Activity Card */}
-          <div 
+          {/* RMT Card */}
+          <div
             onClick={() => setSelectedType('activity')}
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <ClipboardList size={32} className="text-[#1c3068]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1c3068]">Activity</h3>
+            <h3 className="text-lg font-bold text-[#1c3068]">RMT</h3>
           </div>
         </div>
       </motion.div>
@@ -171,7 +171,7 @@ const FacilityCheckIn = () => {
       case 'prayer': return 'Prayer Log';
       case 'pss': return 'PSS Log';
       case 'ict': return 'ICT Log';
-      case 'activity': return 'Activity Log';
+      case 'activity': return 'RMT Log';
       default: return 'Log';
     }
   };
