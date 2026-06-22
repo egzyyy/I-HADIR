@@ -14,8 +14,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('color')->nullable();
             $table->unsignedSmallInteger('capacity')->nullable();
-            $table->unsignedBigInteger('teacher_id')->nullable();
-            $table->foreign('teacher_id')->references('teacher_id')->on('teachers')->nullOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('user_id')->on('users')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();

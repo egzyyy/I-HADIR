@@ -5,6 +5,18 @@ import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
+import { formatStandardDate } from '@/utils/dateFormatters';
+
+// IMPORT PAGINATION
+import { usePagination } from '../../utils/usePagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../Components/ui/pagination';
 
 // IMPORT LOGO
 import logo from '../../assets/i_hadir_logo2.png';
@@ -41,6 +53,7 @@ const SportForm = ({ name, setName, capacity, setCapacity, teacherId, setTeacher
             className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
             <option value="">— No Teacher Assigned —</option>
             {teachers.map(t => <option key={t.teacher_id} value={t.teacher_id}>{t.name.toUpperCase()}</option>)}
+            {teachers.length === 0 && <option value="" disabled>No teachers found</option>}
           </select>
           <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>
@@ -118,16 +131,35 @@ const SportList = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    try { const [r1, r2] = await Promise.all([axios.get('/api/sport-houses'), axios.get('/api/classes/teachers')]); setItems(r1.data.data); setTeachers(r2.data.data); }
+    try { const [r1, r2] = await Promise.all([axios.get('/api/sport-houses'), axios.get('/api/classes/teachers?include_assigned=1')]); setItems(r1.data.data); setTeachers(r2.data.data); }
     catch { } finally { setLoading(false); }
   };
   useEffect(() => { fetchAll(); }, []);
 
   const filtered = items.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()) || i.teacher.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // --- APPLY PAGINATION HOOK HERE ---
+  const { 
+    currentPage, 
+    setCurrentPage, 
+    totalPages, 
+    startIndex, 
+    endIndex, 
+    currentData, 
+    totalItems 
+  } = usePagination(filtered, 10);
+
   const handleConfirmDelete = async () => {
     if (!selected) return;
-    try { await axios.delete(`/api/sport-houses/${selected.id}`); setItems(prev => prev.filter(i => i.id !== selected.id)); }
+    try { 
+      await axios.delete(`/api/sport-houses/${selected.id}`); 
+      setItems(prev => prev.filter(i => i.id !== selected.id)); 
+      
+      // Navigate to previous page if we delete the last item on the current page
+      if (currentData.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    }
     catch { alert('Failed to delete.'); } finally { setShowDeleteModal(false); setSelected(null); }
   };
 
@@ -141,7 +173,7 @@ const SportList = () => {
         <td style="font-weight:bold">${item.name}</td>
         <td>${item.teacher}</td>
         <td style="text-align:center">${item.capacity ?? '-'}</td>
-        <td style="text-align:center">${item.registeredDate}</td>
+        <td style="text-align:center">${formatStandardDate(item.registeredDate)}</td>
       </tr>
     `).join('');
 
@@ -241,7 +273,12 @@ const SportList = () => {
               />
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-gray-600">Search:</span>
-                <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" />
+                <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} 
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" 
+                />
               </div>
             </div>
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -256,14 +293,14 @@ const SportList = () => {
                 </tr></thead>
                 <tbody className="divide-y divide-gray-100">
                   {loading ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">Loading...</td></tr>
-                  : filtered.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">No sport houses found.</td></tr>
-                  : filtered.map((item, idx) => (
+                  : currentData.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">No sport houses found.</td></tr>
+                  : currentData.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-gray-500 text-center">{idx + 1}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + idx + 1}</td>
                       <td className="px-4 py-3 text-sm font-medium text-[#c53336]">{item.name}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 uppercase">{item.teacher}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{item.capacity ?? '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{item.registeredDate}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{formatStandardDate(item.registeredDate)}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center items-center gap-2">
                           <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100" title="Edit"><Edit size={16} /></button>
@@ -275,7 +312,45 @@ const SportList = () => {
                 </tbody>
               </table>
             </div>
-            {!loading && <div className="mt-4 text-sm text-gray-500">Showing {filtered.length} of {items.length} entries</div>}
+            
+            {/* --- PAGINATION & COUNT --- */}
+            {!loading && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
+                <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <PaginationItem key={page}>
+                          <PaginationLink 
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

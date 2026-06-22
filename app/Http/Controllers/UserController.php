@@ -3,23 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
-use App\Models\Teacher;
-use App\Models\Staff;
 use App\Models\User;
 use App\Models\SchoolSession;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        $authUser = auth()->user();
+        $schoolId = $authUser ? $authUser->school_id : 1;
+        $isTeacher = $authUser && $authUser->user_type === 'teacher';
         
         $studentsQuery = Student::where('school_id', $schoolId)->withTrashed();
-        $teachersQuery = Teacher::where('school_id', $schoolId)->withTrashed();
-        $staffsQuery = Staff::where('school_id', $schoolId)->withTrashed();
+        
+        // Query for teachers
+        $teachersQuery = User::where('school_id', $schoolId)
+            ->where('user_type', 'teacher')
+            ->withTrashed();
+        
+        // Query for ALL staff (both security_staff and staff)
+        $staffsQuery = User::where('school_id', $schoolId)
+            ->whereIn('user_type', ['security_staff', 'staff'])
+            ->withTrashed();
 
         $sessionId = $request->session_id;
 
@@ -36,50 +45,61 @@ class UserController extends Controller
                     ->first();
                 $endDate = $nextSession ? $nextSession->start_date : now()->addYears(10);
 
-                // 1. STUDENTS: Show if they were registered before the session ended, 
-                // and NOT deleted before the session started.
+                // STUDENTS: Show if they were registered before the session ended
                 $studentsQuery->where('created_at', '<', $endDate)
                     ->where(function($q) use ($startDate) {
                         $q->whereNull('deleted_at')
                           ->orWhere('deleted_at', '>=', $startDate);
-                    })->with(['enrollments' => function($query) use ($sessionId) {
-                        $query->where('school_session_id', $sessionId)->with('classroom');
+                    })->with(['enrollments' => function($query) use ($sessionId, $isTeacher, $authUser) {
+                        $query->where('school_session_id', $sessionId)
+                            ->when($isTeacher, function ($q) use ($authUser) {
+                                $q->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                                    $classroomQuery->where('user_id', $authUser->user_id);
+                                });
+                            })
+                            ->with('classroom');
                     }]);
 
-                // 2. TEACHERS & STAFF: Show if they were hired before the session ended, 
-                // and NOT deleted before the session started.
+                if ($isTeacher) {
+                    $studentsQuery->whereHas('enrollments', function ($query) use ($sessionId, $authUser) {
+                        $query->where('school_session_id', $sessionId)
+                            ->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                                $classroomQuery->where('user_id', $authUser->user_id);
+                            });
+                    });
+                }
+
+                // USERS (Teachers & Staff): Show if they were registered before the session ended
                 $teachersQuery->where('created_at', '<', $endDate)
                     ->where(function($q) use ($startDate) {
                         $q->whereNull('deleted_at')
                           ->orWhere('deleted_at', '>=', $startDate);
-                    })->with(['employments' => function($query) use ($endDate) {
-                        $query->whereHas('schoolSession', function($q) use ($endDate) {
-                            $q->where('start_date', '<', $endDate);
-                        })->latest('created_at');
-                    }]);
-
+                    });
+                
                 $staffsQuery->where('created_at', '<', $endDate)
                     ->where(function($q) use ($startDate) {
                         $q->whereNull('deleted_at')
                           ->orWhere('deleted_at', '>=', $startDate);
-                    })->with(['employments' => function($query) use ($endDate) {
-                        $query->whereHas('schoolSession', function($q) use ($endDate) {
-                            $q->where('start_date', '<', $endDate);
-                        })->latest('created_at');
-                    }]);
+                    });
             }
 
         } else {
-            // All Time History - Load the latest record for everyone
-            $studentsQuery->with(['enrollments' => function($query) {
-                $query->latest('created_at')->with('classroom');
+            // All Time History
+            $studentsQuery->with(['enrollments' => function($query) use ($isTeacher, $authUser) {
+                $query->when($isTeacher, function ($q) use ($authUser) {
+                    $q->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                        $classroomQuery->where('user_id', $authUser->user_id);
+                    });
+                })->latest('created_at')->with('classroom');
             }]);
-            $teachersQuery->with(['employments' => function($query) {
-                $query->latest('created_at');
-            }]);
-            $staffsQuery->with(['employments' => function($query) {
-                $query->latest('created_at');
-            }]);
+
+            if ($isTeacher) {
+                $studentsQuery->whereHas('enrollments', function ($query) use ($authUser) {
+                    $query->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                        $classroomQuery->where('user_id', $authUser->user_id);
+                    });
+                });
+            }
         }
 
         // Fetch and format Students
@@ -95,46 +115,88 @@ class UserController extends Controller
                 'gender' => $item->gender,
                 'role' => $className, 
                 'type' => 'student',
-                'registeredDate' => $item->created_at->format('d-m-Y'),
+                'registeredDate' => $item->created_at->format('d/m/Y'),
                 'raw_data' => $item
             ];
         });
 
         // Fetch and format Teachers
-        $teachers = $teachersQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
-            $employment = $item->employments->first();
-            $role = $employment ? $employment->position : 'Unassigned';
+        $teachers = $isTeacher
+            ? collect()
+            : $teachersQuery->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($item) use ($sessionId) {
+                    
+                    // Pull historical records
+                    $history = DB::table('teacher_employments')
+                        ->join('school_sessions', 'teacher_employments.school_session_id', '=', 'school_sessions.school_session_id')
+                        ->where('teacher_id', $item->user_id)
+                        ->orderBy('school_sessions.start_date', 'desc')
+                        ->get();
 
-            return [
-                'id' => $item->teacher_id,
-                'name' => $item->name,
-                'ic_number' => $item->ic_number ?? '-',
-                'phone' => $item->phone_number ?? '-',
-                'gender' => $item->gender,
-                'role' => $role,
-                'type' => 'teacher',
-                'registeredDate' => $item->created_at->format('d-m-Y'),
-                'raw_data' => $item
-            ];
-        });
+                    $roleDisplay = $item->position ?? 'Unassigned';
 
-        // Fetch and format Staffs
-        $staffs = $staffsQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
-            $employment = $item->employments->first();
-            $role = $employment ? $employment->staff_type : 'Unassigned';
+                    // Determine role in the requested session
+                    if ($sessionId && $sessionId !== 'all') {
+                        $idx = $history->search(fn($h) => $h->school_session_id == $sessionId);
+                        if ($idx !== false) {
+                            $roleDisplay = $history[$idx]->position;
+                        }
+                    }
 
-            return [
-                'id' => $item->staff_id,
-                'name' => $item->name,
-                'ic_number' => $item->ic_number ?? '-',
-                'phone' => $item->phone_number ?? '-',
-                'gender' => $item->gender,
-                'role' => $role,
-                'type' => 'staff',
-                'registeredDate' => $item->created_at->format('d-m-Y'),
-                'raw_data' => $item
-            ];
-        });
+                    return [
+                        'id' => $item->user_id,
+                        'name' => $item->full_name ?? trim($item->first_name . ' ' . $item->last_name),
+                        'ic_number' => $item->ic_number ?? '-',
+                        'phone' => $item->phone_num ?? '-',
+                        'gender' => $item->gender,
+                        'role' => $roleDisplay,
+                        'type' => 'teacher',
+                        'registeredDate' => $item->created_at->format('d/m/Y'),
+                        'has_password' => !empty($item->password),
+                        'raw_data' => $item
+                    ];
+                });
+
+        // Fetch and format Staff
+        $staffs = $isTeacher
+            ? collect()
+            : $staffsQuery->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($item) use ($sessionId) {
+                    
+                    // Pull historical records
+                    $history = DB::table('staff_employments')
+                        ->join('school_sessions', 'staff_employments.school_session_id', '=', 'school_sessions.school_session_id')
+                        ->where('staff_id', $item->user_id)
+                        ->orderBy('school_sessions.start_date', 'desc')
+                        ->get();
+
+                    $roleDisplay = $item->position ?? 'Unassigned';
+
+                    if ($sessionId && $sessionId !== 'all') {
+                        $idx = $history->search(fn($h) => $h->school_session_id == $sessionId);
+                        if ($idx !== false) {
+                            $roleDisplay = $history[$idx]->staff_type;
+                        }
+                    }
+
+                    // Pre-format before sending to frontend
+                    $roleDisplay = ucwords(str_replace('_', ' ', $roleDisplay));
+
+                    return [
+                        'id' => $item->user_id,
+                        'name' => $item->full_name ?? trim($item->first_name . ' ' . $item->last_name),
+                        'ic_number' => $item->ic_number ?? '-',
+                        'phone' => $item->phone_num ?? '-',
+                        'gender' => $item->gender,
+                        'role' => $roleDisplay,
+                        'type' => 'staff',
+                        'registeredDate' => $item->created_at->format('d/m/Y'),
+                        'has_password' => !empty($item->password),
+                        'raw_data' => $item
+                    ];
+                });
 
         return response()->json([
             'student' => $students,
@@ -143,12 +205,15 @@ class UserController extends Controller
         ]);
     }
 
-    // ... [Keep destroy, getAdminProfile, updateAdminProfile, updatePassword below]
     public function destroy($type, $id)
     {
-        if ($type === 'student') Student::where('student_id', $id)->delete();
-        elseif ($type === 'teacher') Teacher::where('teacher_id', $id)->delete();
-        elseif ($type === 'staff') Staff::where('staff_id', $id)->delete();
+        if ($type === 'student') {
+            Student::where('student_id', $id)->delete();
+        } elseif ($type === 'teacher') {
+            User::where('user_id', $id)->where('user_type', 'teacher')->delete();
+        } elseif ($type === 'staff') {
+            User::where('user_id', $id)->whereIn('user_type', ['staff', 'security_staff'])->delete();
+        }
         
         return response()->json(['success' => true]);
     }
@@ -158,12 +223,18 @@ class UserController extends Controller
         $type = $request->type;
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
 
+        $user = User::where('user_id', $id)->where('school_id', $schoolId)->first();
+
         // Common validation rules for all types
         $rules = [
             'gender' => 'nullable|in:Male,Female',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email',
-            'address' => 'nullable|string',
+            'streetAddress' => 'nullable|string',
+            'city' => 'nullable|string',
+            'state' => 'nullable|string',
+            'postcode' => 'nullable|string|max:10',
+            'country' => 'nullable|string',
             'emergencyName' => 'nullable|string|max:255',
             'emergencyRelation' => 'nullable|string|max:50',
             'emergencyPhone' => 'nullable|string|max:20',
@@ -174,8 +245,14 @@ class UserController extends Controller
         if ($type === 'student') {
             $rules['fatherPhone'] = 'nullable|string|max:20';
             $rules['motherPhone'] = 'nullable|string|max:20';
-        } else {
-            $rules['role'] = 'nullable|string|max:255'; // position for teacher, staff_type for staff
+        } else if ($type === 'staff') {
+            $rules['position'] = 'nullable|string|max:255';
+            $rules['user_type'] = 'nullable|string|max:255';
+            $rules['newPassword'] = 'nullable|string|min:8';
+        }
+        else {
+            $rules['position'] = 'nullable|string|max:255';
+            $rules['newPassword'] = 'nullable|string|min:8';
         }
 
         $validated = $request->validate($rules);
@@ -188,74 +265,124 @@ class UserController extends Controller
 
         // --- UPDATE LOGIC ---
         if ($type === 'student') {
-            $user = Student::findOrFail($id);
+            $studentUser = Student::findOrFail($id);
             
             $updateData = [
-                'gender' => $validated['gender'] ?? $user->gender,
-                'phone_num' => $validated['phone'] ?? $user->phone_num,
-                'email' => $validated['email'] ?? $user->email,
-                'address' => $validated['address'] ?? $user->address,
-                'father_phone_num' => $validated['fatherPhone'] ?? $user->father_phone_num,
-                'mother_phone_num' => $validated['motherPhone'] ?? $user->mother_phone_num,
-                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
-                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
-                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
+                'gender' => $validated['gender'] ?? $studentUser->gender,
+                'phone_num' => $validated['phone'] ?? $studentUser->phone_num,
+                'email' => $validated['email'] ?? $studentUser->email,
+                'street_address' => $validated['streetAddress'] ?? $studentUser->street_address,
+                'city' => $validated['city'] ?? $studentUser->city,
+                'state' => $validated['state'] ?? $studentUser->state,
+                'postcode' => $validated['postcode'] ?? $studentUser->postcode,
+                'country' => $validated['country'] ?? $studentUser->country,
+                'father_phone_num' => $validated['fatherPhone'] ?? $studentUser->father_phone_num,
+                'mother_phone_num' => $validated['motherPhone'] ?? $studentUser->mother_phone_num,
+                'emergency_name' => $validated['emergencyName'] ?? $studentUser->emergency_name,
+                'emergency_relation' => $validated['emergencyRelation'] ?? $studentUser->emergency_relation,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $studentUser->emergency_phone_num,
             ];
 
             if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
-            $user->update($updateData);
+            $studentUser->update($updateData);
 
         } elseif ($type === 'teacher') {
-            $user = Teacher::findOrFail($id);
+            $teacherUser = User::findOrFail($id);
 
             $updateData = [
-                'gender' => $validated['gender'] ?? $user->gender,
-                'phone_number' => $validated['phone'] ?? $user->phone_number,
-                'email' => $validated['email'] ?? $user->email,
-                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
-                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
-                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
+                'gender' => $validated['gender'] ?? $teacherUser->gender,
+                'phone_num' => $validated['phone'] ?? $teacherUser->phone_num,
+                'email' => $validated['email'] ?? $teacherUser->email,
+                'street_address' => $validated['streetAddress'] ?? $teacherUser->street_address,
+                'city' => $validated['city'] ?? $teacherUser->city,
+                'state' => $validated['state'] ?? $teacherUser->state,
+                'postcode' => $validated['postcode'] ?? $teacherUser->postcode,
+                'country' => $validated['country'] ?? $teacherUser->country,
+                'emergency_contact_name' => $validated['emergencyName'] ?? $teacherUser->emergency_contact_name,
+                'emergency_relationship' => $validated['emergencyRelation'] ?? $teacherUser->emergency_relationship,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $teacherUser->emergency_phone_num,
             ];
 
-            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
-            $user->update($updateData);
-
-            // Update their current active session role if provided
-            if (isset($validated['role'])) {
+            // Update position AND track in history table
+            if (isset($validated['position'])) {
+                $updateData['position'] = $validated['position'];
+                
                 $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
                 if ($activeSession) {
-                    \App\Models\TeacherEmployment::updateOrCreate(
-                        ['teacher_id' => $user->teacher_id, 'school_session_id' => $activeSession->school_session_id],
-                        ['position' => $validated['role']]
+                    DB::table('teacher_employments')->updateOrInsert(
+                        ['teacher_id' => $teacherUser->user_id, 'school_session_id' => $activeSession->school_session_id],
+                        ['position' => $validated['position'], 'updated_at' => now()]
                     );
                 }
             }
 
-        } elseif ($type === 'staff') {
-            $user = Staff::findOrFail($id);
+            // Check if teacher has password
+            if (empty($teacherUser->password) && empty($validated['newPassword'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Teachers require a password to log in. Please set a password before saving.'
+                ], 422);
+            }
 
-            $updateData = [
-                'gender' => $validated['gender'] ?? $user->gender,
-                'phone_number' => $validated['phone'] ?? $user->phone_number,
-                'email' => $validated['email'] ?? $user->email,
-                'emergency_name' => $validated['emergencyName'] ?? $user->emergency_name,
-                'emergency_relation' => $validated['emergencyRelation'] ?? $user->emergency_relation,
-                'emergency_phone_num' => $validated['emergencyPhone'] ?? $user->emergency_phone_num,
-            ];
+            // Update password if provided
+            if (!empty($validated['newPassword'])) {
+                $updateData['password'] = Hash::make($validated['newPassword']);
+            }
 
             if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
-            $user->update($updateData);
+            $teacherUser->update($updateData);
 
-            // Update their current active session role if provided
-            if (isset($validated['role'])) {
+        } else {
+            $staffUser = User::findOrFail($id);
+
+            $updateData = [
+                'gender' => $validated['gender'] ?? $staffUser->gender,
+                'phone_num' => $validated['phone'] ?? $staffUser->phone_num,
+                'email' => $validated['email'] ?? $staffUser->email,
+                'street_address' => $validated['streetAddress'] ?? $staffUser->street_address,
+                'city' => $validated['city'] ?? $staffUser->city,
+                'state' => $validated['state'] ?? $staffUser->state,
+                'postcode' => $validated['postcode'] ?? $staffUser->postcode,
+                'country' => $validated['country'] ?? $staffUser->country,
+                'emergency_contact_name' => $validated['emergencyName'] ?? $staffUser->emergency_contact_name,
+                'emergency_relationship' => $validated['emergencyRelation'] ?? $staffUser->emergency_relationship,
+                'emergency_phone_num' => $validated['emergencyPhone'] ?? $staffUser->emergency_phone_num,
+            ];
+
+            // Update position AND track in history table
+            if (isset($validated['position'])) {
+                $updateData['position'] = $validated['position'];
+                
+                if ($updateData['position'] == "Security Staff"){
+                    $updateData['user_type'] = 'security_staff';
+                    
+                    // Check if user has password when changing to Security Staff
+                    if (empty($staffUser->password) && empty($validated['newPassword'])) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Security Staff requires a password to log in. Please set a password before saving.'
+                        ], 422);
+                    }
+                } else {
+                    $updateData['user_type'] = 'staff';
+                }
+
                 $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
                 if ($activeSession) {
-                    \App\Models\StaffEmployment::updateOrCreate(
-                        ['staff_id' => $user->staff_id, 'school_session_id' => $activeSession->school_session_id],
-                        ['staff_type' => $validated['role']]
+                    DB::table('staff_employments')->updateOrInsert(
+                        ['staff_id' => $staffUser->user_id, 'school_session_id' => $activeSession->school_session_id],
+                        ['staff_type' => $validated['position'], 'updated_at' => now()]
                     );
                 }
             }
+
+            // Update password if provided
+            if (!empty($validated['newPassword'])) {
+                $updateData['password'] = Hash::make($validated['newPassword']);
+            }
+
+            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            $staffUser->update($updateData);
         }
 
         return response()->json(['success' => true, 'message' => 'User updated successfully.']);
@@ -271,7 +398,7 @@ class UserController extends Controller
 
     /**
      * Returns the currently authenticated user plus a UI role derived from
-     * their position, so the dashboard can render the correct menu/view.
+     * their user_type or position, so the dashboard can render the correct menu/view.
      */
     public function me(Request $request)
     {
@@ -283,27 +410,36 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'name' => trim($user->first_name . ' ' . $user->last_name),
+                'name' => $user->full_name ?? trim($user->first_name . ' ' . $user->last_name),
                 'email' => $user->email,
                 'position' => $user->position,
-                'role' => $this->resolveRole($user->position),
+                'role' => $this->resolveRole($user),
             ],
         ]);
     }
 
     /**
-     * Maps a free-text job position to one of the three dashboard roles.
+     * Maps user_type or position to one of the three dashboard roles.
      */
-    private function resolveRole(?string $position): string
+    private function resolveRole($user): string
     {
-        $p = strtolower($position ?? '');
-
+        // First check user_type enum
+        if ($user->user_type === 'security_staff') {
+            return 'Security';
+        }
+        if ($user->user_type === 'teacher') {
+            return 'Teacher';
+        }
+        
+        // Fallback to position-based detection for legacy/admin users
+        $p = strtolower($user->position ?? '');
         if (str_contains($p, 'security') || str_contains($p, 'pengawal')) {
             return 'Security';
         }
         if (str_contains($p, 'teacher') || str_contains($p, 'guru') || str_contains($p, 'cikgu')) {
             return 'Teacher';
         }
+        
         return 'Admin';
     }
 
@@ -319,10 +455,11 @@ class UserController extends Controller
             'email' => ['nullable', 'email', Rule::unique('users')->ignore($admin->user_id, 'user_id')],
             'phone_num' => 'nullable|string|max:20',
             'bio_desc' => 'nullable|string',
-            'address' => 'nullable|string',
+            'street_address' => 'nullable|string',
             'city' => 'nullable|string',
             'state' => 'nullable|string',
             'postcode' => 'nullable|string|max:10',
+            'country' => 'nullable|string',
             'emergency_contact_name' => 'nullable|string|max:255',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_phone_num' => 'nullable|string|max:20',

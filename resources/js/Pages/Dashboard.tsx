@@ -10,9 +10,24 @@ import { motion } from 'motion/react';
 import DashboardLayout from '../Layouts/DashboardLayout';
 import { ExportButtons } from '../Components/dashboard/ExportButtons';
 import { StatCard } from '../Components/dashboard/StatCard';
+import { useAuth } from '../contexts/AuthContext';
+import { TeacherDashboard } from '../Components/dashboards/TeacherDashboard';
+import { SecurityDashboard } from '../Components/dashboards/SecurityDashboard';
 
 const DashboardHome = () => {
+  const { role } = useAuth();
   const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff' | 'late'>('student');
+
+  // Show role-specific dashboards
+  if (role === 'Teacher') {
+    return <TeacherDashboard />;
+  }
+
+  if (role === 'Security') {
+    return <SecurityDashboard />;
+  }
+
+  // Admin Dashboard (default)
 
   // Dummy Data for each tab
   const attendanceData = {

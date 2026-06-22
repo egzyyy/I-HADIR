@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('profile_pic_path')->nullable();
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             
             // Job & Contact Details
             $table->string('phone_num')->nullable();
@@ -35,6 +35,7 @@ return new class extends Migration
             $table->string('state')->nullable();
             $table->string('postcode', 10)->nullable();
             $table->string('country')->default('Malaysia');
+            $table->boolean('is_active')->default(true);
 
             // Emergency Contact
             $table->string('emergency_contact_name')->nullable();

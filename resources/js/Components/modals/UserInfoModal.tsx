@@ -126,19 +126,19 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                     <div className="space-y-4">
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Name</span>
-                            <span className="text-gray-900 font-bold uppercase">{emergencyName}</span>
+                            <span className="text-gray-900 font-bold uppercase">{user.raw_data?.emergency_contact_name}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Relation</span>
-                            <span className="text-gray-900 font-medium uppercase">{emergencyRelation}</span>
+                            <span className="text-gray-900 font-medium uppercase">{user.raw_data?.emergency_relationship}</span>
                         </div>
 
                         <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                 <Phone size={12} /> Phone Number
                             </span>
-                            <span className="text-gray-900 font-medium font-mono">{emergencyPhone}</span>
+                            <span className="text-gray-900 font-medium font-mono">{user.raw_data?.emergency_phone_num}</span>
                         </div>
                     </div>
                 </div>

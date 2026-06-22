@@ -6,21 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('staff_employments', function (Blueprint $table) {
-            $table->id('staff_employment_id');
-            $table->foreignId('staff_id')->references('staff_id')->on('staffs')->cascadeOnDelete();
+            $table->id('employment_id');
+            $table->foreignId('staff_id')->references('user_id')->on('users')->cascadeOnDelete();
             $table->foreignId('school_session_id')->references('school_session_id')->on('school_sessions')->cascadeOnDelete();
-            
-            $table->string('staff_type')->comment('e.g., Cleaner, Security, Admin');
+            $table->string('staff_type');
             $table->timestamps();
-            
-            // A staff member can only have one primary role per session
-            $table->unique(['staff_id', 'school_session_id']);
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('staff_employments');

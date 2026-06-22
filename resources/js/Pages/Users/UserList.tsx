@@ -16,8 +16,9 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 const UserListUnified = () => {
   const { role } = useAuth();
+  const isTeacherView = role === 'Teacher';
   // Teachers only manage students, so they see the Student tab only.
-  const visibleTabs = role === 'Teacher'
+  const visibleTabs = isTeacherView
     ? (['student'] as const)
     : (['student', 'teacher', 'staff'] as const);
 
@@ -69,6 +70,7 @@ const UserListUnified = () => {
       try {
         const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
         setAllUsers(response.data);
+        console.log(response);
       } catch (error) {
         console.error("Failed to fetch users", error);
       } finally {
@@ -397,7 +399,7 @@ const UserListUnified = () => {
         <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">
-              {role === 'Teacher' ? 'Student List' : 'User List'}
+              {isTeacherView ? 'My Class Student List' : 'User List'}
             </h2>
             <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
           </div>
@@ -479,7 +481,11 @@ const UserListUnified = () => {
                 {isLoading ? (
                   <tr><td colSpan={6} className="text-center py-8 text-gray-500">Loading data...</td></tr>
                 ) : currentData.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-gray-500">No records found for this session.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
+                      {isTeacherView ? 'No students found for your assigned class in this session.' : 'No records found for this session.'}
+                    </td>
+                  </tr>
                 ) : (
                   currentData.map((item: any, index: number) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
@@ -495,12 +501,16 @@ const UserListUnified = () => {
                           <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
                             <Info size={16} />
                           </button>
-                          <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                          </button>
-                          <button onClick={() => handleDeleteClick(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100" title="Delete User">
-                            <Trash2 size={16} />
-                          </button>
+                          {!isTeacherView && (
+                            <>
+                              <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                              </button>
+                              <button onClick={() => handleDeleteClick(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100" title="Delete User">
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

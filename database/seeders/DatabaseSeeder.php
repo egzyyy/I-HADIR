@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +32,7 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 2. Create Active School Session (Using insertGetId to link employments)
+        // 2. Create Active School Session
         $sessionId = DB::table('school_sessions')->insertGetId([
             'school_id' => $schoolId,
             'year' => '2026',
@@ -44,132 +43,124 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 3. Create Admin User
-        DB::table('users')->insert([
-            'school_id' => $schoolId,
-            'first_name' => 'Admin',
-            'last_name' => 'I-Hadir',
-            'ic_number' => '909090909090',
-            'email' => 'admin@ihadir.com',
-            'password' => Hash::make('password'),
-            'position' => 'System Administrator',
-            'phone_num' => '012-3456789',
-            'address' => '123 Admin Street, Kuala Lumpur',
-            'city' => 'Kuala Lumpur',
-            'state' => 'W.P Kuala Lumpur',
-            'postcode' => '50000',
-            'country' => 'Malaysia',
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // 3. Define the Users to Seed
+        $usersToSeed = [
+            // --- ADMINS (2) ---
+            [
+                'user_type' => 'admin',
+                'first_name' => 'System',
+                'last_name' => 'Admin',
+                'ic_number' => '900101112222',
+                'email' => 'admin@ihadir.com',
+                'position' => 'System Administrator',
+                'gender' => 'Male',
+                'phone' => '012-3456789',
+            ],
+            [
+                'user_type' => 'admin',
+                'first_name' => 'Backup',
+                'last_name' => 'Admin',
+                'ic_number' => '910202113333',
+                'email' => 'admin2@ihadir.com',
+                'position' => 'Co-Administrator',
+                'gender' => 'Female',
+                'phone' => '012-9876543',
+            ],
 
-        // 3b. Create Teacher Login User (same login table as admin)
-        DB::table('users')->insert([
-            'school_id' => $schoolId,
-            'first_name' => 'Teacher',
-            'last_name' => 'I-Hadir',
-            'ic_number' => '808080808080',
-            'email' => 'teacher@ihadir.com',
-            'password' => Hash::make('password'),
-            'position' => 'Teacher',
-            'phone_num' => '012-3456788',
-            'address' => 'Kuarters Guru SK Pulau Serai',
-            'city' => 'Dungun',
-            'state' => 'Terengganu',
-            'postcode' => '23000',
-            'country' => 'Malaysia',
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            // --- TEACHERS (2) ---
+            [
+                'user_type' => 'teacher',
+                'first_name' => 'Ahmad',
+                'last_name' => 'bin Abdullah',
+                'ic_number' => '800303114444',
+                'email' => 'teacher1@ihadir.com',
+                'position' => 'Guru Besar',
+                'gender' => 'Male',
+                'phone' => '013-1112222',
+            ],
+            [
+                'user_type' => 'teacher',
+                'first_name' => 'Siti',
+                'last_name' => 'binti Abu',
+                'ic_number' => '850404115555',
+                'email' => 'teacher2@ihadir.com',
+                'position' => 'Guru Biasa',
+                'gender' => 'Female',
+                'phone' => '013-3334444',
+            ],
 
-        // 3c. Create Security Login User (same login table as admin)
-        DB::table('users')->insert([
-            'school_id' => $schoolId,
-            'first_name' => 'Security',
-            'last_name' => 'I-Hadir',
-            'ic_number' => '707070707070',
-            'email' => 'security@ihadir.com',
-            'password' => Hash::make('password'),
-            'position' => 'Security',
-            'phone_num' => '012-3456787',
-            'address' => 'Pondok Pengawal SK Pulau Serai',
-            'city' => 'Dungun',
-            'state' => 'Terengganu',
-            'postcode' => '23000',
-            'country' => 'Malaysia',
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            // --- SECURITY STAFF (1) ---
+            [
+                'user_type' => 'security_staff',
+                'first_name' => 'Muthu',
+                'last_name' => 'a/l Samy',
+                'ic_number' => '750505116666',
+                'email' => 'security@ihadir.com',
+                'position' => 'Security Guard',
+                'gender' => 'Male',
+                'phone' => '014-5556666',
+            ],
 
-        // 4. Seed Teachers & Their Employments
-        $teachers = [
-            ['name' => 'Ahmad bin Abdullah', 'ic' => '800101112222', 'gender' => 'Male', 'phone' => '0123456701', 'position' => 'Pengetua'],
-            ['name' => 'Siti binti Abu', 'ic' => '850202113333', 'gender' => 'Female', 'phone' => '0123456702', 'position' => 'PK HEM'],
-            ['name' => 'Chong Wei', 'ic' => '900303114444', 'gender' => 'Male', 'phone' => '0123456703', 'position' => 'Guru Biasa'],
+            // --- CLEANING STAFF (1) ---
+            [
+                'user_type' => 'staff',
+                'first_name' => 'Aminah',
+                'last_name' => 'binti Yasin',
+                'ic_number' => '880606117777',
+                'email' => 'cleaner@ihadir.com',
+                'position' => 'Cleaning Staff',
+                'gender' => 'Female',
+                'phone' => '014-7778888',
+            ],
         ];
 
-        foreach ($teachers as $t) {
-            $teacherId = DB::table('teachers')->insertGetId([
+        // 4. Insert Users and Link Employments
+        $defaultPassword = Hash::make('password');
+
+        foreach ($usersToSeed as $u) {
+            $userId = DB::table('users')->insertGetId([
                 'school_id' => $schoolId,
-                'name' => $t['name'],
-                'ic_number' => $t['ic'],
-                'gender' => $t['gender'],
-                'phone_number' => $t['phone'],
-                'email' => strtolower(str_replace(' ', '', $t['name'])) . '@school.edu.my',
-                'address' => 'Kuarters Guru SK Pulau Serai',
-                'emergency_name' => 'Emergency Contact',
-                'emergency_phone_num' => '0198765432',
-                'emergency_relation' => 'Spouse',
+                'user_type' => $u['user_type'],
+                'first_name' => $u['first_name'],
+                'last_name' => $u['last_name'],
+                'ic_number' => $u['ic_number'],
+                'gender' => $u['gender'],
+                'email' => $u['email'],
+                'password' => $defaultPassword,
+                'position' => $u['position'],
+                'phone_num' => $u['phone'],
+                'street_address' => 'SK Pulau Serai',
+                'city' => 'Dungun',
+                'state' => 'Terengganu',
+                'postcode' => '23000',
+                'country' => 'Malaysia',
                 'is_active' => true,
+                'email_verified_at' => now(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Link Teacher to Session via Pivot Table
-            DB::table('teacher_employments')->insert([
-                'teacher_id' => $teacherId,
-                'school_session_id' => $sessionId,
-                'position' => $t['position'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+            // Link Teacher Employments
+            if ($u['user_type'] === 'teacher') {
+                DB::table('teacher_employments')->insert([
+                    'teacher_id' => $userId, // Now references user_id in the users table
+                    'school_session_id' => $sessionId,
+                    'position' => $u['position'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
-        // 5. Seed Staffs & Their Employments
-        $staffs = [
-            ['name' => 'Muthu a/l Samy', 'ic' => '750404115555', 'gender' => 'Male', 'phone' => '0123456704', 'type' => 'security_staff'],
-            ['name' => 'Aminah binti Yasin', 'ic' => '880505116666', 'gender' => 'Female', 'phone' => '0123456705', 'type' => 'admin_clerk'],
-            ['name' => 'Raju a/l Kumar', 'ic' => '820606117777', 'gender' => 'Male', 'phone' => '0123456706', 'type' => 'cleaning_staff'],
-        ];
-
-        foreach ($staffs as $s) {
-            $staffId = DB::table('staffs')->insertGetId([
-                'school_id' => $schoolId,
-                'name' => $s['name'],
-                'ic_number' => $s['ic'],
-                'gender' => $s['gender'],
-                'phone_number' => $s['phone'],
-                'email' => strtolower(explode(' ', $s['name'])[0]) . '@school.edu.my',
-                'address' => 'Kampung Pulau Serai',
-                'emergency_name' => 'Family Member',
-                'emergency_phone_num' => '0198765433',
-                'emergency_relation' => 'Sibling',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // Link Staff to Session via Pivot Table
-            DB::table('staff_employments')->insert([
-                'staff_id' => $staffId,
-                'school_session_id' => $sessionId,
-                'staff_type' => $s['type'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // Link Staff Employments (Security and Cleaners)
+            if ($u['user_type'] === 'security_staff' || $u['user_type'] === 'staff') {
+                DB::table('staff_employments')->insert([
+                    'staff_id' => $userId, // Now references user_id in the users table
+                    'school_session_id' => $sessionId,
+                    'staff_type' => $u['position'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 }

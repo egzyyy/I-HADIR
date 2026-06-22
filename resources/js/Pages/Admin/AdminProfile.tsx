@@ -55,7 +55,7 @@ export default function AdminProfile() {
             email: data.email || '',
             phone_num: data.phone_num || '',
             bio_desc: data.bio_desc || '',
-            address: data.address || '',
+            address: data.street_address || '',
             city: data.city || '',
             state: data.state || 'Terengganu',
             postcode: data.postcode || '',
