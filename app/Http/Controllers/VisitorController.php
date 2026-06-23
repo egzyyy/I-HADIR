@@ -32,7 +32,7 @@ class VisitorController extends Controller
         ]);
     }
 
-    // NEW: Fetch ALL visitors (for the Admin Dashboard list)
+    // Fetch ALL visitors (for the Admin Dashboard list)
     public function getAllVisitors()
     {
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
@@ -52,6 +52,10 @@ class VisitorController extends Controller
                     'purpose' => $visitor->purpose,
                     'status' => $visitor->status,
                     'timeIn' => $visitor->created_at->format('d/m/Y, h:i A'),
+                    // --- NEW FIELDS FOR FILTERING & SORTING ---
+                    'rawTimeIn' => $visitor->created_at->format('Y-m-d'), 
+                    'timestamp' => $visitor->created_at->timestamp,
+                    // ------------------------------------------
                     'timeOut' => $visitor->check_out_time ? $visitor->check_out_time->format('d/m/Y, h:i A') : '-',
                     'notes' => $visitor->notes ?? '-'
                 ];
