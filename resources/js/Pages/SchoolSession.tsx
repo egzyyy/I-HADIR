@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Edit, X, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { formatStandardDate } from '@/utils/dateFormatters';
 import DashboardLayout from '../Layouts/DashboardLayout';
 import axios from 'axios';
 
@@ -178,7 +179,7 @@ const SchoolProfile = () => {
                  sessions.map((session) => (
                    <tr key={session.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 font-bold text-[#1c3068]">{session.year}</td>
-                      <td className="px-6 py-4 text-gray-600 font-mono text-sm">{session.startDate}</td>
+                      <td className="px-6 py-4 text-gray-600 font-mono text-sm">{formatStandardDate(session.startDate)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                           session.status === 'Active' 

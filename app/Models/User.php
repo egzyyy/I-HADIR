@@ -67,5 +67,14 @@ class User extends Authenticatable
         return trim($this->first_name . ' ' . $this->last_name);
     }
 
-    
+    // 7. Employment Relationships
+    public function teacherEmployments()
+    {
+        return $this->hasMany(TeacherEmployment::class, 'teacher_id', 'user_id');
+    }
+
+    public function staffEmployments()
+    {
+        return $this->hasMany(StaffEmployment::class, 'staff_id', 'user_id');
+    }
 }

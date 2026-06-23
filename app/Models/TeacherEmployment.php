@@ -17,9 +17,10 @@ class TeacherEmployment extends Model
         'position',
     ];
 
+    // Renamed to teacher() for consistency
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class, 'teacher_id', 'teacher_id');
+        return $this->belongsTo(User::class, 'teacher_id', 'user_id');
     }
 
     public function schoolSession()

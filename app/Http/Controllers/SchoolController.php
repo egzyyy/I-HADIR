@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\SchoolSession;
 use App\Models\Classroom;
+use App\Models\Enrollment;
+use App\Models\TeacherEmployment;
+use App\Models\StaffEmployment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -166,7 +169,7 @@ class SchoolController extends Controller
 
         if ($session) {
             // 1. Delete all enrollments tied to this session FIRST
-            \App\Models\Enrollment::where('school_session_id', $session->school_session_id)->delete();
+            Enrollment::where('school_session_id', $session->school_session_id)->delete();
 
             // 2. Delete teacher and staff employments tied to this session
             DB::table('teacher_employments')->where('school_session_id', $session->school_session_id)->delete();
@@ -178,7 +181,7 @@ class SchoolController extends Controller
                 ->get();
 
             foreach ($oldClasses as $oldClass) {
-                $oldClass->delete();
+                $oldClass->forceDelete();
             }
         }
 
