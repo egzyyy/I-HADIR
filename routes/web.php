@@ -117,7 +117,10 @@ Route::post('/api/visitors', [VisitorController::class, 'store']);
 Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE
 Route::put('/api/visitors/{id}/checkout', [VisitorController::class, 'checkout']);
 Route::post('/api/reports/parent-student', [ReportController::class, 'parentStudentReport']);
-
+Route::get('/api/reports/facility', [ReportController::class, 'facilityReport']);
+Route::get('/api/reports/visitors', [ReportController::class, 'visitorReport']);
+Route::get('/api/reports/events', [ReportController::class, 'getEvents']); // To populate the dropdown
+Route::get('/api/reports/event-attendance', [ReportController::class, 'eventReport']); // Placeholder
 
 /*
 |--------------------------------------------------------------------------

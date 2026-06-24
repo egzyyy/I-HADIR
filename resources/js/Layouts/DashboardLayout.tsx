@@ -94,17 +94,19 @@ const ADMIN_MENU: MenuSection[] = [
     items: [
       {
         id: 'attendance-log',
-        label: 'Attendance Log',
+        label: 'School Attendance',
         icon: CheckSquare,
         subItems: [
           { id: 'attendance-log-list', label: 'Log' },
           { id: 'check-in', label: 'Check In' },
           { id: 'check-out', label: 'Check Out' },
+          { id: 'manual-entry', label: 'Manual Entry' },
           { id: 'time-setting', label: 'Time setting' }
+          
         ]
       },
-      { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
-      { id: 'manual-entry', label: 'Manual Entry', icon: Keyboard }
+      { id: 'facility-check-in', label: 'Facility & RMT', icon: ClipboardList },
+      
     ]
   },
   {
@@ -163,7 +165,7 @@ const TEACHER_MENU: MenuSection[] = [
   {
     category: "CHECK IN",
     items: [
-      { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList, badge: 'RMT' },
+      { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
       { id: 'manual-entry', label: 'Manual Student Check-In', icon: Keyboard }
     ]
   },
