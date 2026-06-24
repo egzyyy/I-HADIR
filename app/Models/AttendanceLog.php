@@ -20,6 +20,7 @@ class AttendanceLog extends Model
         'status',
         'scan_method',
         'scanned_by',
+        'reason_manual'
     ];
 
     protected $casts = [

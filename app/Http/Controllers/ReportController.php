@@ -8,15 +8,12 @@ use App\Models\Enrollment;
 use App\Models\SchoolSession;
 use App\Models\AttendanceSettingOverride;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
-    /**
-     * GET /api/reports/classes
-     * Returns classrooms for the active session (for the class dropdown).
-     */
     public function getClasses()
     {
         $schoolId = auth()->user()->school_id;
@@ -31,71 +28,84 @@ class ReportController extends Controller
     }
 
     /**
-     * GET /api/reports/attendance
-     * Full attendance list for a date + optional class filter.
-     * Returns every enrolled student with their status (absent if no log).
+     * Daily Attendance Report
+     * Now supports 'type' parameter to dynamically fetch Students, Teachers, or Staff
      */
     public function attendanceReport(Request $request)
     {
         $request->validate([
             'date'         => 'required|date',
             'classroom_id' => 'nullable|integer',
+            'type'         => 'nullable|in:student,teacher,staff'
         ]);
 
         $schoolId = auth()->user()->school_id;
         $date     = Carbon::parse($request->date)->toDateString();
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+        $type     = $request->type ?? 'student';
 
-        // Get enrolled students, optionally filtered by class
-        $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
-            ->with(['student:student_id,name,ic_number', 'classroom:classroom_id,name']);
+        $expectedUsers = collect();
 
-        if ($request->classroom_id) {
-            $enrollmentQuery->where('classroom_id', $request->classroom_id);
-        } else {
-            $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId)
-                ->where('school_session_id', $session?->school_session_id));
+        // 1. Fetch expected users based on type
+        if ($type === 'student') {
+            $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
+                ->with(['student:student_id,name,ic_number', 'classroom:classroom_id,name']);
+
+            if ($request->classroom_id) {
+                $enrollmentQuery->where('classroom_id', $request->classroom_id);
+            } else {
+                $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId)
+                    ->where('school_session_id', $session?->school_session_id));
+            }
+
+            $expectedUsers = $enrollmentQuery->get()->map(function($e) {
+                return [
+                    'id' => $e->student_id,
+                    'name' => $e->student?->name ?? '-',
+                    'class' => $e->classroom?->name ?? '-'
+                ];
+            });
+        } elseif ($type === 'teacher') {
+            $expectedUsers = User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('is_active', true)->get()->map(function($u) {
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Teacher'];
+            });
+        } elseif ($type === 'staff') {
+            $expectedUsers = User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('is_active', true)->get()->map(function($u) {
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Staff'];
+            });
         }
 
-        $enrollments = $enrollmentQuery->get();
-
-        // Fetch all logs for this date in one query
-        $studentIds = $enrollments->pluck('student_id')->toArray();
+        // 2. Fetch logs
+        $userIds = $expectedUsers->pluck('id')->toArray();
         $logs = AttendanceLog::where('school_id', $schoolId)
-            ->where('user_type', 'student')
-            ->whereIn('user_id', $studentIds)
+            ->where('user_type', $type)
+            ->whereIn('user_id', $userIds)
             ->whereDate('date', $date)
             ->get()
             ->keyBy('user_id');
 
-        // Determine if the absent threshold has passed for today
-        $now             = \Illuminate\Support\Carbon::now();
-        $isToday         = $date === $now->toDateString();
-        $setting         = \App\Models\AttendanceSetting::where('school_id', $schoolId)
-            ->where('is_default', true)
-            ->first();
-        $thresholdPassed = !$isToday // past dates always finalized
-            || !$setting              // no setting = assume finalized
-            || $now->format('H:i:s') >= $setting->absent_threshold ?? $setting->late_threshold ?? '23:59:59';
-
-        $rows = $enrollments->map(function ($enrollment) use ($logs, $date, $thresholdPassed) {
-            $log = $logs->get($enrollment->student_id);
-            $status = $log?->status ?? ($thresholdPassed ? 'absent' : 'not_in');
+        // 3. Map Data (If no log exists, immediately mark as 'absent')
+        $rows = $expectedUsers->map(function ($user) use ($logs, $date) {
+            $log = $logs->get($user['id']);
+            $status = $log?->status ?? 'absent';
+            
             return [
-                'student_id' => $enrollment->student_id,
-                'name'       => $enrollment->student?->name ?? '-',
-                'class'      => $enrollment->classroom?->name ?? '-',
+                'student_id' => $user['id'],
+                'name'       => $user['name'],
+                'class'      => $user['class'],
                 'date'       => Carbon::parse($date)->format('d-m-Y'),
-                'status'     => $status,
+                'status'     => strtolower($status),
                 'check_in'   => $log?->check_in_time?->format('H:i') ?? '-',
                 'check_out'  => $log?->check_out_time?->format('H:i') ?? '-',
             ];
         });
 
-        $present = $rows->whereIn('status', ['present', 'late'])->count();
+        // 4. Calculate Stats Accurately
+        $present = $rows->where('status', 'present')->count();
         $late    = $rows->where('status', 'late')->count();
         $absent  = $rows->where('status', 'absent')->count();
         $total   = $rows->count();
+
         return response()->json([
             'success' => true,
             'stats'   => compact('present', 'late', 'absent', 'total'),
@@ -104,74 +114,87 @@ class ReportController extends Controller
     }
 
     /**
-     * GET /api/reports/monthly
-     * Per-student monthly summary — total present/late/absent days.
+     * Monthly Report (Infographics)
      */
     public function monthlyReport(Request $request)
     {
         $request->validate([
             'month'        => 'required|date_format:Y-m',
             'classroom_id' => 'nullable|integer',
+            'type'         => 'nullable|in:student,teacher,staff'
         ]);
 
         $schoolId = auth()->user()->school_id;
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         [$year, $month] = explode('-', $request->month);
+        $type = $request->type ?? 'student';
 
-        $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
-            ->with(['student:student_id,name', 'classroom:classroom_id,name']);
+        $expectedUsers = collect();
 
-        if ($request->classroom_id) {
-            $enrollmentQuery->where('classroom_id', $request->classroom_id);
-        } else {
-            $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId));
+        // 1. Fetch Expected Users
+        if ($type === 'student') {
+            $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
+                ->with(['student:student_id,name', 'classroom:classroom_id,name']);
+
+            if ($request->classroom_id) {
+                $enrollmentQuery->where('classroom_id', $request->classroom_id);
+            } else {
+                $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId));
+            }
+
+            $expectedUsers = $enrollmentQuery->get()->map(function($e) {
+                return ['id' => $e->student_id, 'name' => $e->student?->name ?? '-', 'class' => $e->classroom?->name ?? '-'];
+            });
+        } elseif ($type === 'teacher') {
+            $expectedUsers = User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('is_active', true)->get()->map(function($u) {
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Teacher'];
+            });
+        } elseif ($type === 'staff') {
+            $expectedUsers = User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('is_active', true)->get()->map(function($u) {
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Staff'];
+            });
         }
 
-        $enrollments = $enrollmentQuery->get();
-        $studentIds  = $enrollments->pluck('student_id')->toArray();
+        $userIds = $expectedUsers->pluck('id')->toArray();
 
+        // 2. Fetch Logs
         $logs = AttendanceLog::where('school_id', $schoolId)
-            ->where('user_type', 'student')
-            ->whereIn('user_id', $studentIds)
+            ->where('user_type', $type)
+            ->whereIn('user_id', $userIds)
             ->whereYear('date', $year)
             ->whereMonth('date', $month)
             ->get()
             ->groupBy('user_id');
 
-        // Count school days in the month (Mon–Fri only, rough estimate)
         $schoolDays = $this->countSchoolDays((int)$year, (int)$month);
 
-        $rows = $enrollments->map(function ($enrollment) use ($logs, $schoolDays) {
-            $studentLogs = $logs->get($enrollment->student_id, collect());
+        $rows = $expectedUsers->map(function ($user) use ($logs, $schoolDays) {
+            $studentLogs = $logs->get($user['id'], collect());
             $present     = $studentLogs->where('status', 'present')->count();
             $late        = $studentLogs->where('status', 'late')->count();
-            $absent      = $schoolDays - $present - $late;
+            $absent      = max(0, $schoolDays - $present - $late);
 
             return [
-                'student_id'  => $enrollment->student_id,
-                'name'        => $enrollment->student?->name ?? '-',
-                'class'       => $enrollment->classroom?->name ?? '-',
+                'student_id'  => $user['id'],
+                'name'        => $user['name'],
+                'class'       => $user['class'],
                 'present'     => $present,
                 'late'        => $late,
-                'absent'      => max(0, $absent),
+                'absent'      => $absent,
                 'school_days' => $schoolDays,
-                'rate'        => $schoolDays > 0
-                    ? round((($present + $late) / $schoolDays) * 100, 1)
-                    : 0,
+                // Make sure late count is factored into the presence rate
+                'rate'        => $schoolDays > 0 ? round((($present + $late) / $schoolDays) * 100, 1) : 0,
             ];
         });
 
-        // Chart data — daily totals for the month
         $chartData = [];
         $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
         for ($d = 1; $d <= $daysInMonth; $d++) {
-            $dayLogs = $logs->flatten()->filter(
-                fn($l) => Carbon::parse($l->date)->day === $d
-            );
+            $dayLogs = $logs->flatten()->filter(fn($l) => Carbon::parse($l->date)->day === $d);
             $chartData[] = [
                 'day'     => $d,
-                'present' => $dayLogs->whereIn('status', ['present', 'late'])->count(),
-                'absent'  => count($studentIds) - $dayLogs->count(),
+                'present' => $dayLogs->where('status', 'present')->count() + $dayLogs->where('status', 'late')->count(),
+                'absent'  => count($userIds) - $dayLogs->count(),
             ];
         }
 
@@ -183,8 +206,8 @@ class ReportController extends Controller
     }
 
     /**
-     * GET /api/reports/summary
-     * Per-class breakdown for a given date.
+     * Summary Report
+     * Remains strictly for classes (Students only)
      */
     public function summaryReport(Request $request)
     {
@@ -196,7 +219,7 @@ class ReportController extends Controller
 
         $classrooms = Classroom::where('school_id', $schoolId)
             ->where('school_session_id', $session?->school_session_id)
-            ->with('teacher:teacher_id,name')
+            ->with('user:user_id,first_name,last_name')
             ->orderBy('name')
             ->get();
 
@@ -213,13 +236,14 @@ class ReportController extends Controller
                 ->whereDate('date', $date)
                 ->get();
 
+            // Include Late in Present Count for Summary
             $present = $logs->whereIn('status', ['present', 'late'])->count();
             $absent  = $total - $present;
 
             return [
                 'classroom_id'   => $classroom->classroom_id,
                 'class_name'     => $classroom->name,
-                'teacher'        => $classroom->teacher?->name ?? '-',
+                'teacher'        => $classroom->user?->full_name ?? '-',
                 'total_students' => $total,
                 'present'        => $present,
                 'present_pct'    => $total > 0 ? round($present / $total * 100, 2) : 0,
@@ -238,10 +262,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * POST /api/reports/parent-student
-     * Public endpoint for parents to check a student's monthly attendance by IC.
-     */
     public function parentStudentReport(Request $request)
     {
         $request->validate([
@@ -258,7 +278,6 @@ class ReportController extends Controller
 
         $schoolId = $student->school_id;
 
-        // Fetch logs for this specific student and month, keyed by date string
         $logs = AttendanceLog::where('school_id', $schoolId)
             ->where('user_type', 'student')
             ->where('user_id', $student->student_id)
@@ -267,7 +286,6 @@ class ReportController extends Controller
             ->get()
             ->keyBy(fn($log) => Carbon::parse($log->date)->toDateString());
 
-        // Fetch Overrides (Closed Days & Open Days)
         $overrides = AttendanceSettingOverride::where('school_id', $schoolId)
             ->whereYear('date', $request->year)
             ->whereMonth('date', $request->month)
@@ -283,9 +301,8 @@ class ReportController extends Controller
 
         $loopDate = Carbon::createFromDate($request->year, $request->month, 1);
         $endOfMonth = $loopDate->copy()->endOfMonth();
-        $today = Carbon::now('Asia/Kuala_Lumpur')->startOfDay(); // Local Timezone Safety
+        $today = Carbon::now('Asia/Kuala_Lumpur')->startOfDay(); 
         
-        // Loop stops at today (so future days aren't generated as absent)
         $capDate = $endOfMonth->greaterThan($today) ? $today->copy() : $endOfMonth->copy();
 
         while ($loopDate->lte($capDate)) {
@@ -295,7 +312,6 @@ class ReportController extends Controller
             $isSchoolDay = $isOpen || ($loopDate->isWeekday() && !$isClosed);
 
             if ($logs->has($dateStr)) {
-                // Determine Status & increment counters
                 $log = $logs->get($dateStr);
                 $status = strtolower($log->status);
                 
@@ -304,7 +320,7 @@ class ReportController extends Controller
                 else $absent++;
 
                 $formattedLogs->push([
-                    'raw_date' => $dateStr, // Kept for sorting purposes
+                    'raw_date' => $dateStr, 
                     'date' => $loopDate->format('d M Y'),
                     'attendance' => ucfirst($log->status),
                     'timeIn' => $log->check_in_time ? Carbon::parse($log->check_in_time)->format('h:i A') : '-',
@@ -312,7 +328,6 @@ class ReportController extends Controller
                     'reason' => $log->reason ?? '-',
                 ]);
             } elseif ($isSchoolDay) {
-                // If it's a school day and there is NO log, they are absent
                 $absent++;
                 $formattedLogs->push([
                     'raw_date' => $dateStr,
@@ -323,11 +338,9 @@ class ReportController extends Controller
                     'reason' => '-',
                 ]);
             }
-            
             $loopDate->addDay();
         }
 
-        // Catch edge cases: if there was somehow a log on a weekend/holiday, include it
         foreach ($logs as $dateStr => $log) {
             if (!$formattedLogs->contains('raw_date', $dateStr)) {
                 $status = strtolower($log->status);
@@ -347,7 +360,6 @@ class ReportController extends Controller
             }
         }
 
-        // Sort rows descending (newest dates first) and clean up raw_date
         $finalSortedLogs = $formattedLogs->sortByDesc('raw_date')->values()->map(function($item) {
             unset($item['raw_date']);
             return $item;
@@ -360,11 +372,27 @@ class ReportController extends Controller
                 'ic_number' => $student->ic_number,
             ],
             'stats' => [
-                'present' => $present + $late, // Groups present + late together for UI cards
+                'present' => $present + $late,
                 'absent' => $absent,
                 'late' => $late,
             ],
             'logs' => $finalSortedLogs
         ]);
+    }
+
+    private function countSchoolDays(int $year, int $month): int
+    {
+        $start = Carbon::createFromDate($year, $month, 1);
+        $end = $start->copy()->endOfMonth();
+        $today = Carbon::now('Asia/Kuala_Lumpur')->startOfDay();
+        
+        $end = $end->greaterThan($today) ? $today : $end;
+        
+        $days = 0;
+        while ($start->lte($end)) {
+            if ($start->isWeekday()) $days++;
+            $start->addDay();
+        }
+        return $days;
     }
 }

@@ -21,8 +21,6 @@ return new class extends Migration
             // Add gender field for consistency with teacher/staff tables
             $table->enum('gender', ['Male', 'Female'])->nullable()->after('ic_number');
             
-            // Rename address to street_address for clarity
-            $table->renameColumn('address', 'street_address');
         });
     }
 

@@ -116,7 +116,6 @@ class RegistrationController extends Controller
                     'email' => $validated['email'],
                     'phone_num' => $validated['phone'],
                     'profile_pic_path' => $photoPath,
-                    'address' => $validated['streetAddress'], // Keep for backward compatibility
                     'father_name' => $validated['fatherName'],
                     'father_ic' => $validated['fatherIc'],
                     'mother_name' => $validated['motherName'],

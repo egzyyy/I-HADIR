@@ -1,11 +1,12 @@
 ﻿import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { QrCode, Users, GraduationCap, Briefcase, User, MapPin, Clock, Calendar, Moon, Book, Monitor, ClipboardList, ChevronRight, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import QrScanner from '../../Components/common/QrScanner';
 
-type FacilityType = 'prayer' | 'pss' | 'ict' | 'activity';
+// Changed 'activity' to 'rmt' to match backend expectation exactly
+type FacilityType = 'prayer' | 'pss' | 'ict' | 'rmt';
 type ScanMode = 'check-in' | 'check-out';
 
 type ScanResult = {
@@ -82,7 +83,7 @@ const FacilityCheckIn = () => {
       const endpoint = scanMode === 'check-in' ? '/api/facility/check-in' : '/api/facility/check-out';
       const res = await axios.post(endpoint, {
         ic_number:     decoded.trim(),
-        user_type:     'student',
+        user_type:     'student', // Currently defaulting to student per QR logic
         facility_type: selectedType,
       });
       setResult(res.data);
@@ -91,6 +92,7 @@ const FacilityCheckIn = () => {
       if (err.response?.status === 409) {
         setResult({ ...data, success: false });
       } else {
+        // If it's 403 (RMT block), it will show up cleanly here
         setError(data?.message ?? 'Something went wrong.');
       }
     } finally {
@@ -153,10 +155,13 @@ const FacilityCheckIn = () => {
 
           {/* RMT Card */}
           <div
-            onClick={() => setSelectedType('activity')}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
+            onClick={() => setSelectedType('rmt')}
+            className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center relative overflow-hidden"
           >
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+            <div className="absolute top-0 right-0 bg-blue-100 text-blue-800 text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+              Students Only
+            </div>
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 mt-2">
               <ClipboardList size={32} className="text-[#1c3068]" />
             </div>
             <h3 className="text-lg font-bold text-[#1c3068]">RMT</h3>
@@ -171,7 +176,7 @@ const FacilityCheckIn = () => {
       case 'prayer': return 'Prayer Log';
       case 'pss': return 'PSS Log';
       case 'ict': return 'ICT Log';
-      case 'activity': return 'RMT Log';
+      case 'rmt': return 'RMT Log';
       default: return 'Log';
     }
   };
@@ -191,15 +196,15 @@ const FacilityCheckIn = () => {
             <ChevronRight size={16} className="rotate-180" /> Back to Selection
           </button>
           <div className="h-4 w-px bg-gray-300"></div>
-          <h2 className="text-2xl font-bold text-[#1c3068]">{getTitle()}</h2>
+          <h2 className="text-2xl font-bold text-[#1c3068]">{getTitle()} Scanner</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px]">
           <div className="p-8">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">QR Scanner</h3>
-                <p className="text-gray-500 text-sm mt-1">Please show your QR Code.</p>
+                <p className="text-gray-500 text-sm mt-1">Please show your QR Code to check in or out.</p>
               </div>
               {/* Check-in / Check-out toggle */}
               <div className="flex rounded-xl overflow-hidden border border-gray-200">

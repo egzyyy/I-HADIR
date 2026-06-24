@@ -30,7 +30,7 @@ return new class extends Migration
             $table->text('bio_desc')->nullable();
             
             // Address
-            $table->text('address')->nullable();
+            $table->text('street_address')->nullable();
             $table->string('city')->nullable();
             $table->string('state')->nullable();
             $table->string('postcode', 10)->nullable();
