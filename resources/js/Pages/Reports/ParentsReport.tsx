@@ -1,85 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import { Copy, FileText, FileSpreadsheet, FileType, Printer, Users, ArrowLeft, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, AlertCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-// Ensure Axios acts as an XHR request for Laravel
+// Import Shared Components
+import { ExportButtons } from '../../Components/dashboard/ExportButtons';
+import { usePagination } from '../../utils/usePagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../Components/ui/pagination';
+
+// Import Logo
+import logo from '../../assets/i_hadir_logo2.png';
+
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// Export Buttons Component updated to accept props
-const ExportButtons = ({ onCopy, onCSV, onExcel }: { onCopy: () => void, onCSV: () => void, onExcel: () => void }) => (
-  <div className="flex flex-wrap gap-2 mb-4">
-    <button onClick={onCopy} className="flex items-center gap-2 px-3 py-1.5 bg-[#c7393b] text-white rounded text-xs font-bold hover:bg-[#a02224] transition-colors shadow-sm">
-      <Copy size={14} /> Copy
-    </button>
-    <button onClick={onCSV} className="flex items-center gap-2 px-3 py-1.5 bg-[#1c3068] text-white rounded text-xs font-bold hover:bg-[#152450] transition-colors shadow-sm">
-      <FileText size={14} /> CSV
-    </button>
-    <button onClick={onExcel} className="flex items-center gap-2 px-3 py-1.5 bg-[#1c3068] text-white rounded text-xs font-bold hover:bg-[#152450] transition-colors shadow-sm">
-      <FileSpreadsheet size={14} /> Excel
-    </button>
-    <button className="flex items-center gap-2 px-3 py-1.5 bg-[#1c3068] text-white rounded text-xs font-bold hover:bg-[#152450] transition-colors shadow-sm opacity-50 cursor-not-allowed" title="Coming Soon">
-      <FileType size={14} /> PDF
-    </button>
-    <button className="flex items-center gap-2 px-3 py-1.5 bg-white text-[#1c3068] rounded text-xs font-bold border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm opacity-50 cursor-not-allowed" title="Coming Soon">
-      <Printer size={14} /> Print
-    </button>
-  </div>
-);
+// --- Shared Export Helpers ---
+function exportCSV(rows: any[], filename: string) {
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const csv  = [keys.join(','), ...rows.map(r => keys.map(k => `"${r[k] ?? ''}"`).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = filename + '.csv';
+  a.click();
+}
 
-// Search Bar removed from DataTable as requested
-const DataTable = ({ title, data, columns, onCopy, onCSV, onExcel }: any) => {
-  return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col w-full min-w-0">
-      {title && <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">{title}</h3>}
-      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-        <ExportButtons onCopy={onCopy} onCSV={onCSV} onExcel={onExcel} />
+function exportCopy(text: string) {
+  navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => {});
+}
+
+function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string, logoSrc: string) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        @page { margin: 15mm; size: A4 landscape; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #1c3068 !important; color: white !important; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        th:nth-child(2) { text-align: left; }
+        tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        <h1 class="report-title">${title}</h1>
+        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
       </div>
-      
-      <div className="overflow-x-auto flex-1 w-full">
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase text-xs tracking-wider">
-              {columns.map((col: any, idx: number) => (
-                <th key={idx} className="px-4 py-3 font-bold whitespace-nowrap text-[#1c3068]">{col.header}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.length > 0 ? (
-              data.map((row: any, idx: number) => (
-                <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  {columns.map((col: any, colIdx: number) => (
-                    <td key={colIdx} className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                      {col.accessor === 'attendance' ? (
-                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                          row[col.accessor] === 'Present' ? 'bg-green-100 text-green-700' :
-                          row[col.accessor] === 'Late' ? 'bg-amber-100 text-amber-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {row[col.accessor]}
-                        </span>
-                      ) : (
-                        row[col.accessor]
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-400 bg-gray-50/30 rounded-lg">
-                  No attendance records found for this month.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
+      <table>
+        <thead>${theadHtml}</thead>
+        <tbody>${tbodyHtml}</tbody>
+      </table>
+      <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
+    </body>
+    </html>
+  `;
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+}
 
 const MonthTabs = ({ activeMonth, onMonthChange }: { activeMonth: number, onMonthChange: (m: number) => void }) => (
   <div className="flex gap-1 mb-4 overflow-x-auto pb-2 scrollbar-hide w-full">
@@ -101,7 +94,6 @@ const MonthTabs = ({ activeMonth, onMonthChange }: { activeMonth: number, onMont
 
 export default function ParentsReport() {
   const navigate = useNavigate();
-  // Go back to wherever the user came from; fall back to home if no history.
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
@@ -116,20 +108,16 @@ export default function ParentsReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Fetch report logic
   const fetchReport = async (icToFetch: string, monthToFetch: number) => {
     if (!icToFetch) return;
-    
     setIsLoading(true);
     setErrorMsg(null);
-
     try {
       const response = await axios.post('/api/reports/parent-student', {
         ic_number: icToFetch,
         month: monthToFetch,
         year: activeYear
       });
-
       if (response.data.success) {
         setReportData(response.data);
       }
@@ -148,112 +136,36 @@ export default function ParentsReport() {
 
   const handleMonthChange = (month: number) => {
     setActiveMonth(month);
-    // Automatically re-fetch if they have already searched an IC successfully
     if (reportData?.student?.ic_number) {
       fetchReport(reportData.student.ic_number, month);
     }
   };
 
-  // --- EXPORT FUNCTIONS --- //
-  const handleCopy = async () => {
-    if (!reportData || reportData.logs.length === 0) return alert("No data to copy!");
+  // Pagination hook on retrieved logs
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(reportData?.logs || [], 10);
 
-    const tableHtml = `
-      <table border="1" style="border-collapse: collapse;">
-        <thead>
-          <tr><th>Date</th><th>Attendance</th><th>Time In</th><th>Time Out</th><th>Reason</th></tr>
-        </thead>
-        <tbody>
-          ${reportData.logs.map((item: any) => `
-            <tr><td>${item.date}</td><td>${item.attendance}</td><td>${item.timeIn}</td><td>${item.timeOut}</td><td>${item.reason}</td></tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-
-    try {
-      const blobHtml = new Blob([tableHtml], { type: 'text/html' });
-      const textFallback = reportData.logs.map((item: any) => `${item.date}\t${item.attendance}\t${item.timeIn}\t${item.timeOut}\t${item.reason}`).join('\n');
-      const blobText = new Blob([textFallback], { type: 'text/plain' });
-
-      const clipboardItem = new ClipboardItem({
-        'text/html': blobHtml,
-        'text/plain': blobText
-      });
-      await navigator.clipboard.write([clipboardItem]);
-      alert("Attendance records copied to clipboard!");
-    } catch (error) {
-      const textFallback = reportData.logs.map((item: any) => `${item.date}\t${item.attendance}\t${item.timeIn}\t${item.timeOut}\t${item.reason}`).join('\n');
-      navigator.clipboard.writeText(textFallback);
-      alert("Records copied to clipboard (Text Only)!");
-    }
+  // --- EXPORT TRIGGERS ---
+  const handleCopy = () => {
+    if (!reportData || reportData.logs.length === 0) return;
+    const text = ['Date\tAttendance\tTime In\tTime Out\tReason', ...reportData.logs.map((r: any) => `${r.date}\t${r.attendance}\t${r.timeIn}\t${r.timeOut}\t${r.reason}`)].join('\n');
+    exportCopy(text);
   };
 
-  const handleCSV = () => {
+  const handleExportPDF = () => {
     if (!reportData || reportData.logs.length === 0) return;
-
-    const headers = ['Date', 'Attendance', 'Time In', 'Time Out', 'Reason'];
-    const csvRows = [headers.join(',')];
-
-    reportData.logs.forEach((item: any) => {
-      const row = [ `"${item.date}"`, `"${item.attendance}"`, `"${item.timeIn}"`, `"${item.timeOut}"`, `"${item.reason}"` ];
-      csvRows.push(row.join(','));
-    });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `${reportData.student.name}_attendance_${activeMonth}_${activeYear}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleExcel = () => {
-    if (!reportData || reportData.logs.length === 0) return;
-
-    const tableHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="UTF-8"></head>
-      <body>
-        <h2>Attendance Report: ${reportData.student.name} (${activeMonth}/${activeYear})</h2>
-        <table border="1">
-          <thead>
-            <tr style="background-color: #1c3068; color: white;">
-              <th>Date</th><th>Attendance</th><th>Time In</th><th>Time Out</th><th>Reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${reportData.logs.map((item: any) => `
-              <tr><td>${item.date}</td><td>${item.attendance}</td><td>${item.timeIn}</td><td>${item.timeOut}</td><td>${item.reason}</td></tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `${reportData.student.name}_attendance_${activeMonth}_${activeYear}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const title = `${reportData.student.name} - Attendance Report (${activeMonth}/${activeYear})`;
+    const thead = `<tr><th style="width:5%">No</th><th style="width:20%">Date</th><th style="width:20%">Attendance</th><th style="width:15%">Time In</th><th style="width:15%">Time Out</th><th style="width:25%">Reason</th></tr>`;
+    const tbody = reportData.logs.map((r: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${r.date}</td><td style="text-align:center; text-transform:capitalize">${r.attendance}</td><td style="text-align:center">${r.timeIn}</td><td style="text-align:center">${r.timeOut}</td><td>${r.reason}</td></tr>`).join('');
+    generateStandardPDF(title, thead, tbody, logo);
   };
 
   return (
     <div className="min-h-screen bg-[#f8f9fc] pb-20 font-sans text-[#1c3068]">
-      {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <button
-                onClick={goBack}
-                className="p-2 hover:bg-gray-100 rounded-full text-[#1c3068] transition-colors inline-block"
-              >
+              <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-full text-[#1c3068] transition-colors inline-block">
                 <ArrowLeft size={20} />
               </button>
               <div>
@@ -275,9 +187,7 @@ export default function ParentsReport() {
           <h2 className="text-lg font-bold text-[#1c3068] mb-6 border-b border-gray-100 pb-4">Check Student Record</h2>
           <form onSubmit={handleSearch} className="max-w-xl">
              <div className="space-y-2">
-               <label className="block text-sm font-bold text-[#1c3068]">
-                 <span className="text-[#c7393b] mr-1">*</span> Student IC Number
-               </label>
+               <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c7393b] mr-1">*</span> Student IC Number</label>
                <div className="flex flex-col sm:flex-row gap-4">
                  <input 
                    type="text" 
@@ -299,7 +209,6 @@ export default function ParentsReport() {
              </div>
           </form>
 
-          {/* ERROR ALERT */}
           {errorMsg && (
             <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm">
               <AlertCircle size={18} className="flex-shrink-0" />
@@ -313,7 +222,7 @@ export default function ParentsReport() {
           <AnimatePresence>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               
-              {/* Student Identity Header */}
+              {/* Header Info */}
               <div className="bg-[#1c3068] rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-black">{reportData.student.name}</h3>
@@ -325,9 +234,9 @@ export default function ParentsReport() {
                 </div>
               </div>
 
-              {/* Stats Cards Row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-32">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-32 md:col-span-2">
                   <div className="bg-white h-full flex">
                      <div className="flex-1 border-r border-gray-100 flex flex-col items-center justify-center p-4">
                        <Users size={24} className="text-[#1c3068] mb-2" />
@@ -337,32 +246,26 @@ export default function ParentsReport() {
                         <div className="flex justify-between items-center mb-2">
                            <span className="text-xs font-bold text-gray-500 uppercase">Present Rate</span>
                            <span className="text-sm font-black text-[#1c3068]">
-                             {reportData.stats.present + reportData.stats.absent > 0 
-                               ? Math.round((reportData.stats.present / (reportData.stats.present + reportData.stats.absent)) * 100) 
+                             {reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0 
+                               ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100) 
                                : 0}%
                            </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                           <div className="bg-[#1c3068] h-2 rounded-full" style={{ width: `${reportData.stats.present + reportData.stats.absent > 0 ? Math.round((reportData.stats.present / (reportData.stats.present + reportData.stats.absent)) * 100) : 0}%` }}></div>
+                           <div className="bg-[#1c3068] h-2 rounded-full" style={{ width: `${reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0 ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100) : 0}%` }}></div>
                         </div>
                      </div>
                   </div>
                 </div>
 
-                {/* Card 2: Total Present */}
-                <div className="bg-[#1c3068] rounded-2xl p-6 text-white shadow-lg shadow-[#1c3068]/20 flex flex-col items-center justify-center h-32 relative overflow-hidden group">
-                   <div className="relative z-10 text-center">
-                     <h3 className="text-4xl font-black mb-1">{reportData.stats.present}</h3>
-                     <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Present</p>
-                   </div>
+                <div className="bg-[#1c3068] rounded-2xl p-6 text-white shadow-lg flex flex-col items-center justify-center h-32">
+                   <h3 className="text-4xl font-black mb-1">{reportData.stats.present + reportData.stats.late}</h3>
+                   <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Present</p>
                 </div>
 
-                {/* Card 3: Total Absent */}
-                <div className="bg-[#c7393b] rounded-2xl p-6 text-white shadow-lg shadow-[#c7393b]/20 flex flex-col items-center justify-center h-32 relative overflow-hidden group">
-                   <div className="relative z-10 text-center">
-                     <h3 className="text-4xl font-black mb-1">{reportData.stats.absent}</h3>
-                     <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Absent</p>
-                   </div>
+                <div className="bg-[#c7393b] rounded-2xl p-6 text-white shadow-lg flex flex-col items-center justify-center h-32">
+                   <h3 className="text-4xl font-black mb-1">{reportData.stats.absent}</h3>
+                   <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Absent</p>
                 </div>
               </div>
 
@@ -370,28 +273,81 @@ export default function ParentsReport() {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col min-w-0">
                 <MonthTabs activeMonth={activeMonth} onMonthChange={handleMonthChange} />
                 
-                <div className="flex-1 w-full overflow-hidden min-h-[400px] mt-4">
-                   <DataTable 
-                    title={`Attendance Log: ${new Date(activeYear, activeMonth - 1).toLocaleString('default', { month: 'long' })}`}
-                    data={reportData.logs}
-                    onCopy={handleCopy}
-                    onCSV={handleCSV}
-                    onExcel={handleExcel}
-                    columns={[
-                      { header: 'Date', accessor: 'date' },
-                      { header: 'Status', accessor: 'attendance' },
-                      { header: 'Time In', accessor: 'timeIn' },
-                      { header: 'Time Out', accessor: 'timeOut' },
-                      { header: 'Reason / Notes', accessor: 'reason' },
-                    ]}
-                  />
+                <div className="flex-1 w-full overflow-hidden mt-4">
+                  <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                      Attendance Log: {new Date(activeYear, activeMonth - 1).toLocaleString('default', { month: 'long' })}
+                    </h3>
+                    <ExportButtons 
+                       onCopy={handleCopy} 
+                       onExportCSV={() => exportCSV(reportData.logs, 'parent_report')} 
+                       onExportExcel={() => exportCSV(reportData.logs, 'parent_report')} 
+                       onExportPDF={handleExportPDF} 
+                       onPrint={handleExportPDF} 
+                    />
+                  </div>
+
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time Out</th>
+                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">Reason / Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentData.length > 0 ? (
+                          currentData.map((row: any, index: number) => (
+                            <tr key={index} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0">
+                              <td className="px-6 py-4 text-sm font-semibold text-gray-800 border-r border-gray-100">{row.date}</td>
+                              <td className="px-6 py-4 text-sm border-r border-gray-100">
+                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                                  row.attendance === 'Present' ? 'bg-green-50 text-green-700 border-green-200' :
+                                  row.attendance === 'Late' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                  'bg-red-50 text-red-700 border-red-200'
+                                }`}>
+                                  {row.attendance}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600 border-r border-gray-100 font-mono">{row.timeIn}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600 border-r border-gray-100 font-mono">{row.timeOut}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{row.reason}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">No attendance records found for this month.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {totalItems > 0 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
+                      <p>Showing {startIndex + 1} to {endIndex} of {totalItems} entries</p>
+                      {totalPages > 1 && (
+                        <Pagination className="mx-0 w-auto">
+                          <PaginationContent>
+                            <PaginationItem><PaginationPrevious onClick={() => setCurrentPage(currentPage - 1)} className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} /></PaginationItem>
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                              <PaginationItem key={page}><PaginationLink onClick={() => setCurrentPage(page)} isActive={currentPage === page} className="cursor-pointer">{page}</PaginationLink></PaginationItem>
+                            ))}
+                            <PaginationItem><PaginationNext onClick={() => setCurrentPage(currentPage + 1)} className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} /></PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               </div>
 
             </motion.div>
           </AnimatePresence>
         )}
-
       </div>
     </div>
   );

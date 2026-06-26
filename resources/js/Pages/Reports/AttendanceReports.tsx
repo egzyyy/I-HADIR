@@ -7,6 +7,7 @@ import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { CircularProgressBar } from '../../Components/dashboard/CircularProgressBar';
 import { formatStandardDate } from '@/utils/dateFormatters';
+import { useAuth } from '../../contexts/AuthContext';
 
 // PAGINATION
 import { usePagination } from '../../utils/usePagination';
@@ -21,6 +22,7 @@ import {
 
 // IMPORT LOGO
 import logo from '../../assets/i_hadir_logo2.png';
+
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -144,6 +146,8 @@ const AttendanceReport = () => {
   const [statusFilter, setStatusFilter]   = useState('all');
   const [loading, setLoading]             = useState(false);
   const [submitted, setSubmitted]         = useState(false);
+  const { role } = useAuth();
+  const canSeeStaffAndTeacher = role === 'Admin' || role === 'Security';
 
   // Clear data when tab changes
   useEffect(() => {
@@ -249,7 +253,11 @@ const AttendanceReport = () => {
                     <label className="block text-sm font-bold text-[#1c3068]">Class Filter</label>
                     <div className="relative">
                       <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
-                        <option value="">All Classes</option>
+                        {canSeeStaffAndTeacher ? (
+                          <option value="">All Classes</option>
+                        ) : (
+                          <option value="">All Manageable Classes</option>
+                        )}
                         {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -405,6 +413,8 @@ const InfographicReport = () => {
   const [stats, setStats]                     = useState<Stats | null>(null);
   const [search, setSearch]                   = useState('');
   const [loading, setLoading]                 = useState(false);
+  const { role } = useAuth();
+  const canSeeStaffAndTeacher = role === 'Admin' || role === 'Security';
 
   useEffect(() => {
     const timer = setTimeout(() => setIsMounted(true), 500);
@@ -488,7 +498,7 @@ const InfographicReport = () => {
            <p className="text-gray-500 text-sm mt-1">View monthly attendance infographics and statistics.</p>
         </div>
         <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
-          {['Student', 'Teacher', 'Staff'].map((tab) => (
+          {['Student', ...(canSeeStaffAndTeacher ? ['Teacher', 'Staff'] : [])].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}

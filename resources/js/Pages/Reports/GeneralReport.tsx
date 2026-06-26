@@ -655,7 +655,7 @@ const GeneralReport = () => {
 
   const tabs = [
     { id: 'facility', label: 'Facility Report' },
-    { id: 'activity', label: 'Activity Report' },
+    // { id: 'activity', label: 'Activity Report' },
     { id: 'rmt', label: 'RMT Report' },
     ...(canSeeVisitor ? [{ id: 'visitor', label: 'Visitor Report' }] : []),
   ];

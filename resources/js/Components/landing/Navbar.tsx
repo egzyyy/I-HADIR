@@ -26,8 +26,8 @@ export const Navbar: React.FC = () => {
       name: 'ATTENDANCE',
       hasDropdown: true,
       dropdownItems: [
-        { label: 'Check In', href: '#attendance-checkin' },
-        { label: 'Check Out', href: '#attendance-checkout' },
+        { label: 'Student Check In', href: '#attendance-checkin' },
+        { label: 'Student Check Out', href: '#attendance-checkout' },
         { label: 'Security Staff Check In', href: '#security-checkin' },
         { label: 'Security Staff Check Out', href: '#security-checkout' }
       ]
@@ -48,10 +48,10 @@ export const Navbar: React.FC = () => {
           { label: 'Check In', href: '#ict-checkin' },
           { label: 'Check Out', href: '#ict-checkout' },
         ] },
-        { label: 'ACTIVITY', subItems: [
-          { label: 'Check In', href: '#activity-checkin' },
-          { label: 'Check Out', href: '#activity-checkout' },
-        ] },
+        // { label: 'ACTIVITY', subItems: [
+        //   { label: 'Check In', href: '#activity-checkin' },
+        //   { label: 'Check Out', href: '#activity-checkout' },
+        // ] },
       ]
     },
     { name: 'PARENTS', href: '/parents-report' },

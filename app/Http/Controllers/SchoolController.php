@@ -61,6 +61,10 @@ class SchoolController extends Controller
             'is_active' => true 
         ]);
 
+        if ($newSession->year == $previousSession->year){
+            return response()->json(['success' => false, 'message' => 'Cannot create same year with current session.']);
+        }
+
         if ($previousSession) {
             // 4. CLONE CLASSES
             $oldClasses = Classroom::where('school_id', $schoolId)

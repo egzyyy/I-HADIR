@@ -19,13 +19,18 @@ class ReportController extends Controller
 {
     public function getClasses()
     {
-        $schoolId = auth()->user()->school_id;
+        $user = auth()->user();
+        $schoolId = $user->school_id;
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
 
-        $classes = Classroom::where('school_id', $schoolId)
-            ->where('school_session_id', $session?->school_session_id)
-            ->orderBy('name')
-            ->get(['classroom_id', 'name']);
+        $query = Classroom::where('school_id', $schoolId)
+            ->where('school_session_id', $session?->school_session_id);
+
+        if ($user->user_type === 'teacher') {
+            $query->where('user_id', $user->user_id);
+        }
+
+        $classes = $query->orderBy('name')->get(['classroom_id', 'name']);
 
         return response()->json(['success' => true, 'data' => $classes]);
     }
@@ -38,28 +43,52 @@ class ReportController extends Controller
             'type'         => 'nullable|in:student,teacher,staff'
         ]);
 
-        $schoolId = auth()->user()->school_id;
+        $user = auth()->user();
+        $schoolId = $user->school_id;
         $date     = Carbon::parse($request->date)->toDateString();
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         $type     = $request->type ?? 'student';
+
+        if ($user->user_type === 'teacher' && $type !== 'student') {
+            // Return empty data if they try to hack the API
+            return response()->json([
+                'success' => true, 
+                'stats' => ['present'=>0,'late'=>0,'absent'=>0,'total'=>0], 'data' => []
+            ]);
+        }
 
         $expectedUsers = collect();
 
         if ($type === 'student') {
             $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
-                ->with(['student:student_id,name,ic_number', 'classroom:classroom_id,name']);
+                ->with(['student:student_id,name', 'classroom:classroom_id,name']); // Added 'ic_number' for attendanceReport if needed
 
-            if ($request->classroom_id) {
-                $enrollmentQuery->where('classroom_id', $request->classroom_id);
+            // RESTRICTION 2: Limit class queries for teachers
+            if ($user->user_type === 'teacher') {
+                $teacherClassIds = Classroom::where('user_id', $user->user_id)->pluck('classroom_id')->toArray();
+                
+                if ($request->classroom_id) {
+                    // Prevent them from querying another teacher's class ID
+                    if (!in_array($request->classroom_id, $teacherClassIds)) {
+                        return response()->json(['success' => true, 'stats' => ['present'=>0,'late'=>0,'absent'=>0,'total'=>0], 'data' => []]);
+                    }
+                    $enrollmentQuery->where('classroom_id', $request->classroom_id);
+                } else {
+                    $enrollmentQuery->whereIn('classroom_id', $teacherClassIds);
+                }
             } else {
-                $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId)
-                    ->where('school_session_id', $session?->school_session_id));
+                // Admin/Security logic (Unchanged)
+                if ($request->classroom_id) {
+                    $enrollmentQuery->where('classroom_id', $request->classroom_id);
+                } else {
+                    $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId));
+                }
             }
 
             $expectedUsers = $enrollmentQuery->get()->map(function($e) {
                 return [
-                    'id' => $e->student_id,
-                    'name' => $e->student?->name ?? '-',
+                    'id' => $e->student_id, 
+                    'name' => $e->student?->name ?? '-', 
                     'class' => $e->classroom?->name ?? '-'
                 ];
             });
@@ -116,21 +145,44 @@ class ReportController extends Controller
             'type'         => 'nullable|in:student,teacher,staff'
         ]);
 
-        $schoolId = auth()->user()->school_id;
+        $user = auth()->user();
+        $schoolId = $user->school_id;
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         [$year, $month] = explode('-', $request->month);
         $type = $request->type ?? 'student';
+
+        // RESTRICTION 1: Block teachers from viewing other teachers or staff
+        if ($user->user_type === 'teacher' && $type !== 'student') {
+            // Return empty data if they try to hack the API
+            return response()->json(['success' => true, 'stats' => ['present'=>0,'late'=>0,'absent'=>0,'total'=>0], 'data' => []]);
+        }
 
         $expectedUsers = collect();
 
         if ($type === 'student') {
             $enrollmentQuery = Enrollment::where('school_session_id', $session?->school_session_id)
-                ->with(['student:student_id,name', 'classroom:classroom_id,name']);
+                ->with(['student:student_id,name', 'classroom:classroom_id,name']); // Added 'ic_number' for attendanceReport if needed
 
-            if ($request->classroom_id) {
-                $enrollmentQuery->where('classroom_id', $request->classroom_id);
+            // RESTRICTION 2: Limit class queries for teachers
+            if ($user->user_type === 'teacher') {
+                $teacherClassIds = Classroom::where('user_id', $user->user_id)->pluck('classroom_id')->toArray();
+                
+                if ($request->classroom_id) {
+                    // Prevent them from querying another teacher's class ID
+                    if (!in_array($request->classroom_id, $teacherClassIds)) {
+                        return response()->json(['success' => true, 'stats' => ['present'=>0,'late'=>0,'absent'=>0,'total'=>0], 'data' => []]);
+                    }
+                    $enrollmentQuery->where('classroom_id', $request->classroom_id);
+                } else {
+                    $enrollmentQuery->whereIn('classroom_id', $teacherClassIds);
+                }
             } else {
-                $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId));
+                // Admin/Security logic (Unchanged)
+                if ($request->classroom_id) {
+                    $enrollmentQuery->where('classroom_id', $request->classroom_id);
+                } else {
+                    $enrollmentQuery->whereHas('classroom', fn($q) => $q->where('school_id', $schoolId));
+                }
             }
 
             $expectedUsers = $enrollmentQuery->get()->map(function($e) {
@@ -198,15 +250,21 @@ class ReportController extends Controller
     {
         $request->validate(['date' => 'required|date']);
 
-        $schoolId = auth()->user()->school_id;
+        $user = auth()->user();
+        $schoolId = $user->school_id;
         $date     = Carbon::parse($request->date)->toDateString();
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
 
-        $classrooms = Classroom::where('school_id', $schoolId)
+        $query = Classroom::where('school_id', $schoolId)
             ->where('school_session_id', $session?->school_session_id)
-            ->with('user:user_id,first_name,last_name')
-            ->orderBy('name')
-            ->get();
+            ->with('user:user_id,first_name,last_name');
+
+        // RESTRICTION: If teacher, only fetch their assigned classes
+        if ($user->user_type === 'teacher') {
+            $query->where('user_id', $user->user_id);
+        }
+
+        $classrooms = $query->orderBy('name')->get();
 
         $rows = $classrooms->map(function ($classroom) use ($date, $session, $schoolId) {
             $studentIds = Enrollment::where('classroom_id', $classroom->classroom_id)
@@ -246,11 +304,6 @@ class ReportController extends Controller
         ]);
     }
 
-    public function parentStudentReport(Request $request)
-    {
-        // Keep your existing parentStudentReport logic...
-    }
-
     private function countSchoolDays(int $year, int $month): int
     {
         $start = Carbon::createFromDate($year, $month, 1);
@@ -265,13 +318,6 @@ class ReportController extends Controller
         return $days;
     }
 
-    // ========================================================================
-    // NEW: GENERAL REPORTS ENDPOINTS (FACILITY, VISITOR, EVENT)
-    // ========================================================================
-
-    /**
-     * General Facility / RMT Report
-     */
     public function facilityReport(Request $request)
     {
         $request->validate([
@@ -285,7 +331,6 @@ class ReportController extends Controller
         $facility = strtolower($request->facility_type);
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
 
-        // If a specific class is selected, we calculate Present/Absent based on all students in that class.
         if ($request->classroom_id) {
             $enrollments = Enrollment::where('school_session_id', $session?->school_session_id)
                 ->where('classroom_id', $request->classroom_id)
@@ -324,7 +369,6 @@ class ReportController extends Controller
             ]);
         } 
         
-        // If NO class is selected, we just dump all logs of people who successfully checked in.
         else {
             $logs = FacilityLog::where('school_id', $schoolId)
                 ->where('facility_type', $facility)
@@ -336,7 +380,7 @@ class ReportController extends Controller
                 $name = 'Unknown';
                 $class = '-';
                 if ($log->user_type === 'student') {
-                    $s = Student::find($log->user_id);
+                    $s = Student::where('student_id', $log->user_id)->first();
                     $name = $s?->name ?? 'Unknown';
                     $e = Enrollment::where('student_id', $log->user_id)->with('classroom')->first();
                     $class = $e?->classroom?->name ?? '-';
@@ -368,9 +412,6 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * General Visitor Report (Monthly)
-     */
     public function visitorReport(Request $request)
     {
         $request->validate([
@@ -404,9 +445,6 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Get Events for Dropdown
-     */
     public function getEvents()
     {
         $schoolId = auth()->user()->school_id;
@@ -417,20 +455,139 @@ class ReportController extends Controller
         return response()->json(['success' => true, 'data' => $events]);
     }
 
-    /**
-     * General Event Attendance Report (Placeholder/Scaffolding)
-     */
     public function eventReport(Request $request)
     {
         $request->validate([
             'event_id' => 'required|integer',
         ]);
         
-        // Return empty for now as requested (event attendance feature is pending)
         return response()->json([
             'success' => true,
             'stats'   => ['present' => 0, 'absent' => 0],
             'data'    => []
+        ]);
+    }
+
+    // ========================================================================
+    // PARENT STUDENT REPORT LOGIC 
+    // ========================================================================
+    public function parentStudentReport(Request $request)
+    {
+        $request->validate([
+            'ic_number' => 'required|string',
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer',
+        ]);
+
+        $student = Student::where('ic_number', $request->ic_number)->first();
+
+        if (!$student) {
+            return response()->json(['success' => false, 'message' => 'No student found with this IC Number.'], 404);
+        }
+
+        $schoolId = $student->school_id;
+
+        $logs = AttendanceLog::where('school_id', $schoolId)
+            ->where('user_type', 'student')
+            ->where('user_id', $student->student_id)
+            ->whereYear('date', $request->year)
+            ->whereMonth('date', $request->month)
+            ->get()
+            ->keyBy(fn($log) => Carbon::parse($log->date)->toDateString());
+
+        $overrides = AttendanceSettingOverride::where('school_id', $schoolId)
+            ->whereYear('date', $request->year)
+            ->whereMonth('date', $request->month)
+            ->get();
+        
+        $closedDates = $overrides->whereNull('setting_id')->pluck('date')->map(fn($d) => Carbon::parse($d)->toDateString())->toArray();
+        $openDates = $overrides->whereNotNull('setting_id')->pluck('date')->map(fn($d) => Carbon::parse($d)->toDateString())->toArray();
+
+        $formattedLogs = collect();
+        $present = 0;
+        $late = 0;
+        $absent = 0;
+
+        $loopDate = Carbon::createFromDate($request->year, $request->month, 1);
+        $endOfMonth = $loopDate->copy()->endOfMonth();
+        $today = Carbon::now('Asia/Kuala_Lumpur')->startOfDay(); 
+        
+        // Stop generating "absent" tags for future dates that haven't happened yet
+        $capDate = $endOfMonth->greaterThan($today) ? $today->copy() : $endOfMonth->copy();
+
+        while ($loopDate->lte($capDate)) {
+            $dateStr = $loopDate->toDateString();
+            $isOpen = in_array($dateStr, $openDates);
+            $isClosed = in_array($dateStr, $closedDates);
+            $isSchoolDay = $isOpen || ($loopDate->isWeekday() && !$isClosed);
+
+            if ($logs->has($dateStr)) {
+                $log = $logs->get($dateStr);
+                $status = strtolower($log->status);
+                
+                if ($status === 'late') $late++;
+                elseif ($status === 'present') $present++;
+                else $absent++;
+
+                $formattedLogs->push([
+                    'raw_date' => $dateStr, 
+                    'date' => $loopDate->format('d M Y'),
+                    'attendance' => ucfirst($log->status),
+                    'timeIn' => $log->check_in_time ? Carbon::parse($log->check_in_time)->format('h:i A') : '-',
+                    'timeOut' => $log->check_out_time ? Carbon::parse($log->check_out_time)->format('h:i A') : '-',
+                    'reason' => $log->reason_manual ?? '-', 
+                ]);
+            } elseif ($isSchoolDay) {
+                $absent++;
+                $formattedLogs->push([
+                    'raw_date' => $dateStr,
+                    'date' => $loopDate->format('d M Y'),
+                    'attendance' => 'Absent',
+                    'timeIn' => '-',
+                    'timeOut' => '-',
+                    'reason' => '-',
+                ]);
+            }
+            $loopDate->addDay();
+        }
+
+        // Add any stray logs (e.g. they somehow scanned on a weekend/holiday)
+        foreach ($logs as $dateStr => $log) {
+            if (!$formattedLogs->contains('raw_date', $dateStr)) {
+                $status = strtolower($log->status);
+                if ($status === 'late') $late++;
+                elseif ($status === 'present') $present++;
+                else $absent++;
+
+                $logDate = Carbon::parse($dateStr);
+                $formattedLogs->push([
+                    'raw_date' => $dateStr,
+                    'date' => $logDate->format('d M Y'),
+                    'attendance' => ucfirst($log->status),
+                    'timeIn' => $log->check_in_time ? Carbon::parse($log->check_in_time)->format('h:i A') : '-',
+                    'timeOut' => $log->check_out_time ? Carbon::parse($log->check_out_time)->format('h:i A') : '-',
+                    'reason' => $log->reason_manual ?? '-',
+                ]);
+            }
+        }
+
+        $finalSortedLogs = $formattedLogs->sortByDesc('raw_date')->values()->map(function($item) {
+            unset($item['raw_date']);
+            return $item;
+        });
+
+        return response()->json([
+            'success' => true,
+            'student' => [
+                'name' => $student->name,
+                'ic_number' => $student->ic_number,
+            ],
+            'stats' => [
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+            ],
+            'logs' => $finalSortedLogs
         ]);
     }
 }
