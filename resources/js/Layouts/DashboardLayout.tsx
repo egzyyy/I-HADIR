@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, School, MessageSquare, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
-  HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar
+  HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
+  UserCheck
 } from 'lucide-react';
 import logo from '../assets/i_hadir_logo2.png';
+import { useAuth } from '../contexts/AuthContext';
 
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -27,8 +29,21 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-// --- Menu Data Structure ---
-const MENU_SECTIONS: MenuSection[] = [
+// --- Roles (FRONTEND MOCK) ---
+// Switch this default to preview a different dashboard, or use the role
+// switcher in the header. Replace with real auth role once backend is wired.
+type Role = 'Admin' | 'Teacher' | 'Security';
+
+const ROLE_META: Record<Role, { initial: string; name: string; title: string; email: string }> = {
+  Admin:    { initial: 'A', name: 'Admin',    title: 'Administrator', email: 'admin@skpulauserai.edu.my' },
+  Teacher:  { initial: 'T', name: 'Teacher',  title: 'Class Teacher', email: 'teacher@skpulauserai.edu.my' },
+  Security: { initial: 'S', name: 'Security', title: 'Security Guard', email: 'security@skpulauserai.edu.my' },
+};
+
+// --- Menu Data Structure (per role) ---
+
+// View: ADMIN (full access — original menu, unchanged)
+const ADMIN_MENU: MenuSection[] = [
   {
     category: "DASHBOARD",
     items: [
@@ -50,9 +65,9 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     category: "MAIN MENU",
     items: [
-      { 
-        id: 'users', 
-        label: 'Users', 
+      {
+        id: 'users',
+        label: 'Users',
         icon: Users,
         subItems: [
           { id: 'user-registration', label: 'User Registration' },
@@ -77,19 +92,21 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     category: "CHECK IN",
     items: [
-      { 
-        id: 'attendance-log', 
-        label: 'Attendance Log', 
+      {
+        id: 'attendance-log',
+        label: 'School Attendance',
         icon: CheckSquare,
         subItems: [
           { id: 'attendance-log-list', label: 'Log' },
           { id: 'check-in', label: 'Check In' },
           { id: 'check-out', label: 'Check Out' },
+          { id: 'manual-entry', label: 'Manual Entry' },
           { id: 'time-setting', label: 'Time setting' }
+          
         ]
       },
-      { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
-      { id: 'manual-entry', label: 'Manual Entry', icon: Keyboard }
+      { id: 'facility-check-in', label: 'Facility & RMT', icon: ClipboardList },
+      
     ]
   },
   {
@@ -107,6 +124,104 @@ const MENU_SECTIONS: MenuSection[] = [
     ]
   }
 ];
+
+// View: TEACHER (own attendance + own class students + class-level reports)
+const TEACHER_MENU: MenuSection[] = [
+  {
+    category: "DASHBOARD",
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+    ]
+  },
+  {
+    category: "MY ATTENDANCE",
+    items: [
+      {
+        id: 'teacher-attendance',
+        label: 'Teacher Attendance',
+        icon: UserCheck,
+        subItems: [
+          { id: 'check-in', label: 'Check In' },
+          { id: 'check-out', label: 'Check Out' },
+          { id: 'my-attendance', label: 'Self Attendance Report' }
+        ]
+      }
+    ]
+  },
+  {
+    category: "ACADEMIC",
+    items: [
+      {
+        id: 'academic',
+        label: 'Academic',
+        icon: GraduationCap,
+        subItems: [
+          { id: 'class', label: 'Class' },
+          { id: 'user-list', label: 'Student List' }
+        ]
+      }
+    ]
+  },
+  {
+    category: "CHECK IN",
+    items: [
+      { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
+      { id: 'manual-entry', label: 'Manual Student Check-In', icon: Keyboard }
+    ]
+  },
+  {
+    category: "REPORT",
+    items: [
+      { id: 'attendance-reports', label: 'Attendance Reports', icon: BarChart3 },
+      { id: 'general-report', label: 'General Report', icon: FileText }
+    ]
+  },
+  {
+    category: "SUPPORT",
+    items: [
+      { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+      { id: 'logout', label: 'Log Out', icon: LogOut, action: 'logout' }
+    ]
+  }
+];
+
+// View: SECURITY (manage own attendance + visitor report only)
+const SECURITY_MENU: MenuSection[] = [
+  {
+    category: "MY ATTENDANCE",
+    items: [
+      {
+        id: 'security-attendance',
+        label: 'My Attendance',
+        icon: UserCheck,
+        subItems: [
+          { id: 'check-in', label: 'Check In' },
+          { id: 'check-out', label: 'Check Out' },
+          { id: 'my-attendance', label: 'My Attendance Record' }
+        ]
+      }
+    ]
+  },
+  {
+    category: "REPORT",
+    items: [
+      { id: 'visitor-list', label: 'Visitor Report', icon: FileText }
+    ]
+  },
+  {
+    category: "SUPPORT",
+    items: [
+      { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+      { id: 'logout', label: 'Log Out', icon: LogOut, action: 'logout' }
+    ]
+  }
+];
+
+const MENU_BY_ROLE: Record<Role, MenuSection[]> = {
+  Admin: ADMIN_MENU,
+  Teacher: TEACHER_MENU,
+  Security: SECURITY_MENU,
+};
 
 const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collapsed, subItems, activePageId, onSubItemClick }: any) => {
   const isChildActive = subItems?.some((sub: any) => sub.id === activePageId);
@@ -191,7 +306,23 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
   const [isSidebarOpen, setSidebarOpen] = React.useState(true);
   const [isAdminDropdownOpen, setAdminDropdownOpen] = React.useState(false);
   const [isNotificationOpen, setNotificationOpen] = React.useState(false);
-  
+
+  const navigate = useNavigate();
+
+  // --- ROLE: comes from the shared auth context (loaded once at app start),
+  // so it's already known on every navigation — no per-page fetch, no flash.
+  const { user, role, clear } = useAuth();
+  const currentRole: Role = role ?? 'Admin';
+  const MENU_SECTIONS = MENU_BY_ROLE[currentRole];
+  const roleMeta = ROLE_META[currentRole];
+
+  const handleLogout = () => {
+    axios.post('/logout').finally(() => {
+      clear();
+      navigate('/login');
+    });
+  };
+
   // Dynamic Session State
   const [activeSessionYear, setActiveSessionYear] = useState<string>('Loading...');
 
@@ -243,11 +374,9 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
     return 'Dashboard';
   };
 
-  const navigate = useNavigate();
-
   const handleMenuClick = (id: string, action?: string) => {
     if (action === 'logout') {
-      axios.post('/logout').then(() => navigate('/login'));
+      handleLogout();
       return;
     }
     
@@ -272,9 +401,9 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'attendance-reports': '/attendance-reports',
       'general-report': '/general-report',
       'faqs': '/faqs',
-      'my-profile': '/admin-profile',
-      'my-attendance': '/admin-attendance',
-      'change-password': '/admin-password',
+      'my-profile': '/my-profile',
+      'my-attendance': '/my-attendance',
+      'change-password': '/change-password',
     };
 
     const route = routes[id];
@@ -425,11 +554,11 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                 onClick={() => setAdminDropdownOpen(!isAdminDropdownOpen)}
               >
                 <div className="w-10 h-10 rounded-lg bg-[#1c3068] flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20">
-                  A
+                  {(user?.name?.[0] ?? roleMeta.initial).toUpperCase()}
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-bold text-[#1c3068] leading-tight">Admin</p>
-                  <p className="text-[10px] text-gray-500 font-medium tracking-wide uppercase">Administrator</p>
+                  <p className="text-sm font-bold text-[#1c3068] leading-tight">{user?.name ?? roleMeta.name}</p>
+                  <p className="text-[10px] text-gray-500 font-medium tracking-wide uppercase">{roleMeta.title}</p>
                 </div>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${isAdminDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
@@ -443,21 +572,21 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 origin-top-right"
                   >
                     <div className="px-4 py-3 border-b border-gray-100 mb-1">
-                      <p className="text-sm font-bold text-[#1c3068]">Administrator</p>
-                      <p className="text-xs text-gray-500 truncate">admin@skpulauserai.edu.my</p>
+                      <p className="text-sm font-bold text-[#1c3068]">{user?.name ?? roleMeta.title}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email ?? roleMeta.email}</p>
                     </div>
                     
-                    <button onClick={() => { navigate('/admin-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+                    <button onClick={() => { navigate('/my-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Users size={16} /> My Profile
                     </button>
-                    
-                    <button onClick={() => { navigate('/admin-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+
+                    <button onClick={() => { navigate('/change-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Keyboard size={16} /> Change Password
                     </button>
                     
                     <div className="h-px bg-gray-100 my-1"></div>
                     
-                    <button onClick={() => axios.post('/logout').then(() => navigate('/login'))} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#c53336] hover:bg-red-50 transition-colors text-left font-medium">
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#c53336] hover:bg-red-50 transition-colors text-left font-medium">
                       <LogOut size={16} /> Log Out
                     </button>
                   </motion.div>

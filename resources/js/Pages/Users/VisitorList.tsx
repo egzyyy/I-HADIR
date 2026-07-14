@@ -1,27 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Clock, LogOut, Info, X, ClipboardList, ChevronDown, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react'; 
+import { Search, LogOut, Info, X, ClipboardList, ChevronDown, CheckCircle, AlertCircle, HelpCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'; 
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import axios from 'axios';
+
+// IMPORT PAGINATION
+import { usePagination } from '../../utils/usePagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../Components/ui/pagination';
 
 // IMPORT LOGO
 import logo from '../../assets/i_hadir_logo2.png';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+type SortColumn = 'timestamp' | 'status' | null;
+type SortDirection = 'asc' | 'desc';
+
 const VisitorListContent = () => {
   const [visitors, setVisitors] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   
-  // New Filter States
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [purposeFilter, setPurposeFilter] = useState('All');
-  
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const [dateFilter, setDateFilter] = useState(''); // NEW: Date Filter
+
+  // Sort States
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Modal States
   const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
@@ -52,28 +68,63 @@ const VisitorListContent = () => {
     fetchVisitors();
   }, []);
 
-  // Complex Filtering Logic
+  // 1. Apply Filters
   const filteredData = visitors.filter((visitor) => {
-    // 1. Search Query Filter
     const matchesSearch = 
         visitor.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
         visitor.plateNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         visitor.personToMeet?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // 2. Status Filter
     const matchesStatus = statusFilter === 'All' || visitor.status === statusFilter;
-    
-    // 3. Purpose Filter
     const matchesPurpose = purposeFilter === 'All' || visitor.purpose === purposeFilter;
+    
+    // NEW: Check against the raw ISO date string sent from backend
+    const matchesDate = !dateFilter || visitor.rawTimeIn === dateFilter;
 
-    return matchesSearch && matchesStatus && matchesPurpose;
+    return matchesSearch && matchesStatus && matchesPurpose && matchesDate;
   });
 
-  // Pagination Logic
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-  const currentData = filteredData.slice(startIndex, endIndex);
+  // 2. Apply Sorting
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortColumn) return 0; // Default backend sorting if no column clicked
+
+    let aValue = a[sortColumn];
+    let bValue = b[sortColumn];
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // 3. Apply Pagination Hook
+  const { 
+    currentPage, 
+    setCurrentPage, 
+    totalPages, 
+    startIndex, 
+    endIndex, 
+    currentData, 
+    totalItems 
+  } = usePagination(sortedData, 20);
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset page on sort change
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={14} className="text-[#1c3068] ml-1 inline-block" />
+    ) : (
+      <ArrowDown size={14} className="text-[#1c3068] ml-1 inline-block" />
+    );
+  };
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -107,7 +158,7 @@ const VisitorListContent = () => {
 
   // 1. Copy to Clipboard
   const handleCopy = async () => {
-    if (filteredData.length === 0) {
+    if (sortedData.length === 0) {
       setErrorMsg("No data available to copy!");
       return;
     }
@@ -116,11 +167,11 @@ const VisitorListContent = () => {
       <table border="1" style="border-collapse: collapse;">
         <thead>
           <tr>
-            <th>No</th><th>Name</th><th>Phone</th><th>Plate Number</th><th>Category</th><th>To Meet</th><th>Pass No</th><th>Status</th><th>Time In</th><th>Time Out</th>
+            <th>No</th><th>Name</th><th>Phone</th><th>Plate Number</th><th>Category</th><th>To Meet</th><th>Pass No</th><th>Status</th><th>Date / Time In</th><th>Time Out</th>
           </tr>
         </thead>
         <tbody>
-          ${filteredData.map((item: any, index: number) => `
+          ${sortedData.map((item: any, index: number) => `
             <tr>
               <td>${index + 1}</td>
               <td>${item.name}</td>
@@ -140,7 +191,7 @@ const VisitorListContent = () => {
 
     try {
       const blobHtml = new Blob([tableHtml], { type: 'text/html' });
-      const textFallback = filteredData.map((item: any, i: number) => 
+      const textFallback = sortedData.map((item: any, i: number) => 
         `${i + 1}\t${item.name}\t${item.phone}\t${item.plateNumber}\t${item.category}\t${item.personToMeet}\t${item.passNo}\t${item.status}\t${item.timeIn}\t${item.timeOut}`
       ).join('\n');
       const blobText = new Blob([textFallback], { type: 'text/plain' });
@@ -154,7 +205,7 @@ const VisitorListContent = () => {
       alert("Table copied to clipboard! You can now paste it into Word, Excel, or Google Docs.");
     } catch (error) {
       console.error("Clipboard API failed, trying fallback:", error);
-      const textFallback = filteredData.map((item: any, i: number) => 
+      const textFallback = sortedData.map((item: any, i: number) => 
         `${i + 1}\t${item.name}\t${item.phone}\t${item.plateNumber}\t${item.category}\t${item.personToMeet}\t${item.passNo}\t${item.status}\t${item.timeIn}\t${item.timeOut}`
       ).join('\n');
       navigator.clipboard.writeText(textFallback);
@@ -164,12 +215,12 @@ const VisitorListContent = () => {
 
   // 2. Export Data to CSV
   const handleExportCSV = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
-    const headers = ['No', 'Name', 'Phone', 'Plate Number', 'Category', 'To Meet', 'Pass No', 'Status', 'Time In', 'Time Out'];
+    const headers = ['No', 'Name', 'Phone', 'Plate Number', 'Category', 'To Meet', 'Pass No', 'Status', 'Date / Time In', 'Time Out'];
     const csvRows = [headers.join(',')];
 
-    filteredData.forEach((item, index) => {
+    sortedData.forEach((item, index) => {
       const row = [
         index + 1,
         `"${item.name}"`,
@@ -197,7 +248,7 @@ const VisitorListContent = () => {
 
   // 3. Export to Excel (.xls)
   const handleExportExcel = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
     const tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -214,12 +265,12 @@ const VisitorListContent = () => {
               <th>To Meet</th>
               <th>Pass No</th>
               <th>Status</th>
-              <th>Time In</th>
+              <th>Date / Time In</th>
               <th>Time Out</th>
             </tr>
           </thead>
           <tbody>
-            ${filteredData.map((item: any, index: number) => `
+            ${sortedData.map((item: any, index: number) => `
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.name}</td>
@@ -250,9 +301,9 @@ const VisitorListContent = () => {
 
   // 4. Export to PDF / Print (Standardized Format)
   const handleExportPDF = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
-    const rows = filteredData.map((item: any, index: number) => `
+    const rows = sortedData.map((item: any, index: number) => `
       <tr>
         <td style="text-align:center">${index + 1}</td>
         <td style="font-weight:bold">${item.name}</td>
@@ -318,7 +369,7 @@ const VisitorListContent = () => {
               <th style="width:15%">Category</th>
               <th style="width:15%">Meeting With</th>
               <th style="width:13%">Pass / Plate No</th>
-              <th style="width:10%">Time In</th>
+              <th style="width:10%">Date / Time In</th>
               <th style="width:10%">Status</th>
             </tr>
           </thead>
@@ -365,7 +416,7 @@ const VisitorListContent = () => {
         </div>
 
         <div className="p-6">
-          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+          <div className="items-start xl:items-center gap-4 mb-6">
             
             <ExportButtons 
                 onExportCSV={handleExportCSV} 
@@ -375,10 +426,20 @@ const VisitorListContent = () => {
                 onPrint={handleExportPDF} 
             />
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-               
+            <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto mt-4">
+
+               {/* DATE FILTER */}
+               <div className="relative w-full sm:w-auto">
+                 <input 
+                   type="date"
+                   value={dateFilter}
+                   onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
+                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none text-gray-600 bg-gray-50 focus:bg-white transition-all"
+                 />
+               </div>
+
                {/* STATUS FILTER DROPDOWN */}
-               <div className="relative w-full sm:w-40">
+               <div className="relative w-full sm:w-36">
                  <select 
                    value={statusFilter}
                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
@@ -430,15 +491,26 @@ const VisitorListContent = () => {
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Visitor Info</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Pass / Plate No</th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Meeting With</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                   <th 
+                      onClick={() => handleSort('timestamp')} 
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                   >
+                      Date <SortIcon column="timestamp" />
+                   </th>
+                   <th 
+                      onClick={() => handleSort('status')} 
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                   >
+                      Status <SortIcon column="status" />
+                   </th>
                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-gray-500">Loading visitor data...</td></tr>
+                  <tr><td colSpan={7} className="text-center py-12 text-gray-500">Loading visitor data...</td></tr>
                 ) : currentData.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-gray-500">No visitor records found matching your filters.</td></tr>
+                  <tr><td colSpan={7} className="text-center py-12 text-gray-500">No visitor records found matching your filters.</td></tr>
                 ) : (
                   currentData.map((item: any, index: number) => (
                     <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
@@ -463,6 +535,10 @@ const VisitorListContent = () => {
                       <td className="px-4 py-4">
                         <p className="text-sm font-medium text-gray-800">{item.personToMeet}</p>
                         <p className="text-sm text-gray-500 mt-0.5">{item.purpose}</p>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <p className="text-sm font-medium text-gray-800">{item.timeIn?.split(', ')[0]}</p>
                       </td>
 
                       <td className="px-4 py-4">
@@ -506,16 +582,42 @@ const VisitorListContent = () => {
             </table>
           </div>
 
-          {!isLoading && filteredData.length > 0 && (
+          {/* Pagination */}
+          {!isLoading && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
-              <p>Showing {startIndex + 1} to {endIndex} of {filteredData.length} records</p>
-              <div className="flex gap-1">
-                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50">Previous</button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded border ${currentPage === page ? 'bg-[#c53336] text-white border-[#c53336]' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>{page}</button>
-                ))}
-                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50">Next</button>
-              </div>
+              <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
+              
+              {totalPages > 1 && (
+                <Pagination className="mx-0 w-auto">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <PaginationItem key={page}>
+                        <PaginationLink 
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
             </div>
           )}
         </div>
@@ -536,16 +638,27 @@ const VisitorListContent = () => {
              onClick={(e) => e.stopPropagation()}
            >
               <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
-                 <h3 className="font-bold text-[#1c3068] flex items-center gap-2"><ClipboardList size={18} /> Visitor Details</h3>
+                 <h3 className="font-bold text-[#1c3068] flex items-center gap-2"><ClipboardList size={18} /> 
+                   Visitor Details
+                   <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${
+                       selectedVisitor.status === 'In Premise' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
+                   }`}>
+                       {selectedVisitor.status}
+                   </span>
+                 </h3>
+                 
                  <button onClick={() => setSelectedVisitor(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
               </div>
               <div className="p-6 space-y-4">
-                 <div><p className="text-xs text-gray-500 uppercase font-bold">Name</p><p className="font-medium text-gray-800">{selectedVisitor.name}</p></div>
                  <div className="grid grid-cols-2 gap-4">
+                    <div><p className="text-xs text-gray-500 uppercase font-bold">Name</p><p className="font-medium text-gray-800">{selectedVisitor.name}</p></div>
                     <div><p className="text-xs text-gray-500 uppercase font-bold">Phone</p><p className="font-medium text-gray-800">{selectedVisitor.phone}</p></div>
                     <div><p className="text-xs text-gray-500 uppercase font-bold">Plate No</p><p className="font-medium text-gray-800 uppercase font-mono">{selectedVisitor.plateNumber}</p></div>
                     <div><p className="text-xs text-gray-500 uppercase font-bold">Category</p><p className="font-medium text-gray-800">{selectedVisitor.category}</p></div>
                     <div><p className="text-xs text-gray-500 uppercase font-bold">Pass Badge</p><p className="font-medium text-gray-800">{selectedVisitor.passNo}</p></div>
+                    <div><p className="text-xs text-gray-500 uppercase font-bold">Date</p><p className="font-medium text-gray-800">{selectedVisitor.timeIn.split(', ')[0]}</p></div>
+                    <div><p className="text-xs text-gray-500 uppercase font-bold">Time In</p><p className="font-medium text-gray-800">{selectedVisitor.timeIn.split(', ')[1]}</p></div>
+                    <div><p className="text-xs text-gray-500 uppercase font-bold">Time Out</p><p className="font-medium text-gray-800">{selectedVisitor.timeOut}</p></div>
                  </div>
                  <div className="border-t border-gray-100 pt-4">
                     <div><p className="text-xs text-gray-500 uppercase font-bold">Person Meet</p><p className="font-medium text-gray-800">{selectedVisitor.personToMeet}</p></div>

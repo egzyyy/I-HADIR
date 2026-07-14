@@ -20,6 +20,7 @@ class AttendanceLog extends Model
         'status',
         'scan_method',
         'scanned_by',
+        'reason_manual'
     ];
 
     protected $casts = [
@@ -52,13 +53,13 @@ class AttendanceLog extends Model
 
     private function resolveTeacher(): array
     {
-        $teacher = Teacher::where('teacher_id', $this->user_id)->first();
-        return ['name' => $teacher?->name ?? 'Unknown', 'class' => 'Teacher'];
+        $teacher = User::where('user_id', $this->user_id)->where('user_type', 'teacher')->first();
+        return ['name' => $teacher?->full_name ?? 'Unknown', 'class' => 'Teacher'];
     }
 
     private function resolveStaff(): array
     {
-        $staff = Staff::where('staff_id', $this->user_id)->first();
-        return ['name' => $staff?->name ?? 'Unknown', 'class' => 'Staff'];
+        $staff = User::where('user_id', $this->user_id)->whereIn('user_type', ['staff', 'security_staff'])->first();
+        return ['name' => $staff?->full_name ?? 'Unknown', 'class' => 'Staff'];
     }
 }

@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, ChevronDown, X } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditClassModal } from '../../Components/modals/EditClassModal';
 import { AddStudentToClass } from '../../Components/modals/AddStudentToClass';
+import { useAuth } from '../../contexts/AuthContext';
+
+import { usePagination } from '../../utils/usePagination';
+
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../Components/ui/pagination';
 
 // IMPORT THE LOGO
 import logo from '../../assets/i_hadir_logo2.png';
 
-// Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,8 +45,10 @@ interface Teacher {
   name: string;
 }
 
-// ─── Add Class Modal ───────────────────────────────────────────────────────────
+type SortColumn = 'name' | 'teacher' | 'totalStudents' | 'capacity' | 'sessionName';
+type SortDirection = 'asc' | 'desc';
 
+// ─── Add Class Modal ───────────────────────────────────────────────────────────
 const AddClassModal = ({
   onClose,
   teachers,
@@ -307,11 +320,25 @@ function copyToClipboard(classes: ClassItem[]) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const ClassList = () => {
+  const { role } = useAuth();
+  // Teachers can view/manage students in a class but not create classes.
+  const canAddClass = role !== 'Teacher';
+
+  // Session States
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('all');
+
   const [classes, setClasses]                 = useState<ClassItem[]>([]);
   const [teachers, setTeachers]               = useState<Teacher[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [loading, setLoading]                 = useState(true);
+  
+  // Search & Pagination States
   const [searchTerm, setSearchTerm]           = useState('');
+  const [currentSessionActive, setCurrentSessionActive] = useState(false);
+
+  // Sorter State (Default: Session Descending)
+  const [sortColumn, setSortColumn] = useState<SortColumn>('sessionName');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const [showAddModal, setShowAddModal]           = useState(false);
   const [selectedClass, setSelectedClass]         = useState<ClassItem | null>(null);
@@ -320,11 +347,33 @@ const ClassList = () => {
   const [deletingId, setDeletingId]               = useState<number | null>(null);
   const [view, setView]                           = useState<'list' | 'add_student'>('list');
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchData = async (sessionId?: string | null) => {
+  // 1. Initial Load: Fetch Sessions First
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const sessionRes = await axios.get('/api/sessions');
+        if (sessionRes.data.success) {
+          const fetchedSessions = sessionRes.data.data;
+          setSessions(fetchedSessions);
+
+          // Find the active session and set it as default
+          const activeSession = fetchedSessions.find((s: any) => s.status === 'Active');
+          if (activeSession) {
+            setCurrentSessionActive(activeSession.id);
+            setSelectedSessionId(activeSession.id.toString());
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch sessions", error);
+      }
+    };
+    fetchInitialData();
+  }, []);
+
+  // 2. Fetch Classes whenever the selected Session changes
+  const fetchData = async (sid: string) => {
     setLoading(true);
     try {
-      const sid = sessionId ?? activeSessionId ?? '';
       const [classRes, teacherRes] = await Promise.all([
         axios.get(`/api/classes?session_id=${sid}`),
         axios.get(`/api/classes/teachers?session_id=${sid}`),
@@ -339,33 +388,69 @@ const ClassList = () => {
   };
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const sessionRes = await axios.get('/api/sessions/active');
-        const sid = sessionRes.data.data?.school_session_id ?? '';
-        setActiveSessionId(sid);
-        await fetchData(sid);
-      } catch {
-        await fetchData('');
-      }
-    };
-    init();
-  }, []);
+    if (selectedSessionId) {
+      fetchData(selectedSessionId);
+    }
+  }, [selectedSessionId]);
 
-  // ── Filtered list ──────────────────────────────────────────────────────────
+  // Fetch teachers for editing a specific class (exclude current class from assigned check)
+  const fetchTeachersForEdit = async (classId: number) => {
+    try {
+      const sid = selectedSessionId === 'all' ? '' : selectedSessionId;
+      const teacherRes = await axios.get(`/api/classes/teachers?session_id=${sid}&exclude_class_id=${classId}`);
+      setTeachers(teacherRes.data.data);
+    } catch {
+      // silently fail
+    }
+  };
+
+  // ── Filtered & Sorted & Paginated list ──────────────────────────────────────
   const filtered = classes.filter(
     (c) =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.teacher.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedClasses = [...filtered].sort((a, b) => {
+    let aValue: any = a[sortColumn];
+    let bValue: any = b[sortColumn];
+
+    if (aValue === null) aValue = '';
+    if (bValue === null) bValue = '';
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // ── CALL THE HOOK HERE ──────────────────────────────────────────────────
+  const { 
+    currentPage, 
+    setCurrentPage, 
+    totalPages, 
+    startIndex, 
+    endIndex, 
+    currentData, 
+    totalItems 
+  } = usePagination(sortedClasses, 10);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page on sort
+  };
+
   const handleSaved = (newClass: ClassItem) => {
     setClasses((prev) => [...prev, newClass].sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   const handleUpdated = async () => {
-    await fetchData();
+    await fetchData(selectedSessionId);
     setIsEditModalOpen(false);
     setSelectedClass(null);
   };
@@ -375,6 +460,10 @@ const ClassList = () => {
     try {
       await axios.delete(`/api/classes/${deletingId}`);
       setClasses((prev) => prev.filter((c) => c.id !== deletingId));
+      // Adjust page if we delete the last item on the current page
+      if (currentData.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch {
       alert('Failed to delete class. Please try again.');
     } finally {
@@ -384,6 +473,16 @@ const ClassList = () => {
     }
   };
 
+  // UI Helper for Sort Icon
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={14} className="text-[#1c3068] ml-1 inline-block" />
+    ) : (
+      <ArrowDown size={14} className="text-[#1c3068] ml-1 inline-block" />
+    );
+  };
+
   // ── Add-student view ───────────────────────────────────────────────────────
   if (view === 'add_student' && selectedClass) {
     return (
@@ -391,6 +490,9 @@ const ClassList = () => {
         onBack={() => setView('list')}
         classId={selectedClass.id}
         classNameStr={selectedClass.name}
+        isTeacher={role === 'Teacher'}
+        classSessionId={selectedClass.sessionId}
+        currentSessionActiveId={currentSessionActive ? Number(currentSessionActive) : undefined}
       />
     );
   }
@@ -404,12 +506,14 @@ const ClassList = () => {
       >
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-[#1c3068]">Class List</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
-          >
-            <Plus size={18} /> Add Class
-          </button>
+          {canAddClass && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
+            >
+              <Plus size={18} /> Add Class
+            </button>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -417,24 +521,50 @@ const ClassList = () => {
             <p className="text-gray-500 text-sm mb-4">Click button above table to export to Copy, CSV, Excel, PDF &amp; Print</p>
 
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+            <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
               <ExportButtons
-                onCopy={() => copyToClipboard(filtered)}
-                onExportCSV={() => exportCSV(filtered)}
-                onExportExcel={() => exportExcel(filtered)}
-                
-                // PASS THE LOGO URL TO THE PDF/PRINT FUNCTIONS HERE
-                onExportPDF={() => exportPDF(filtered, logo)}
-                onPrint={() => printTable(filtered, logo)}
+                onCopy={() => copyToClipboard(sortedClasses)}
+                onExportCSV={() => exportCSV(sortedClasses)}
+                onExportExcel={() => exportExcel(sortedClasses)}
+                onExportPDF={() => exportPDF(sortedClasses, logo)}
+                onPrint={() => printTable(sortedClasses, logo)}
               />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-600">Search:</span>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                />
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                 {/* SESSION FILTER DROPDOWN */}
+                 <div className="relative w-full sm:w-48">
+                   <select 
+                     value={selectedSessionId}
+                     onChange={(e) => {
+                       setSelectedSessionId(e.target.value);
+                       setCurrentPage(1); // Reset page on filter
+                     }}
+                     className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
+                   >
+                     <option value="all">All Time History</option>
+                     {sessions.map(session => (
+                       <option key={session.id} value={session.id}>
+                         Session {session.year} {session.status === 'Active' ? '(Active)' : ''}
+                       </option>
+                     ))}
+                   </select>
+                   <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                 </div>
+
+                 {/* SEARCH BAR */}
+                 <div className="relative w-full sm:w-64">
+                   <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                   <input
+                     type="text"
+                     placeholder="Search classes or teachers..."
+                     value={searchTerm}
+                     onChange={(e) => {
+                       setSearchTerm(e.target.value);
+                       setCurrentPage(1); // Reset page on search
+                     }}
+                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
+                   />
+                 </div>
               </div>
             </div>
 
@@ -444,11 +574,36 @@ const ClassList = () => {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Class Name</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Classroom Teacher</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Total Number of Students</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Capacity</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Session</th>
+                    <th 
+                      onClick={() => handleSort('name')} 
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                    >
+                      Class Name <SortIcon column="name" />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('teacher')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
+                    >
+                      Classroom Teacher <SortIcon column="teacher" />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('totalStudents')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
+                    >
+                      Total Number of Students <SortIcon column="totalStudents" />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('capacity')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
+                    >
+                      Capacity <SortIcon column="capacity" />
+                    </th>
+                    <th 
+                      onClick={() => handleSort('sessionName')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
+                    >
+                      Session <SortIcon column="sessionName" />
+                    </th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Registered Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Action</th>
                   </tr>
@@ -458,14 +613,14 @@ const ClassList = () => {
                     <tr>
                       <td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">Loading...</td>
                     </tr>
-                  ) : filtered.length === 0 ? (
+                  ) : currentData.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">No classes found.</td>
                     </tr>
                   ) : (
-                    filtered.map((item, idx) => (
+                    currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 text-sm text-gray-500 text-center">{idx + 1}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + idx + 1}</td>
                         <td className="px-4 py-3 text-sm font-bold text-[#c53336]">{item.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-semibold">{item.teacher}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 text-center font-mono">{item.totalStudents}</td>
@@ -481,13 +636,19 @@ const ClassList = () => {
                             >
                               <Plus size={16} />
                             </button>
-                            <button
-                              onClick={() => { setSelectedClass(item); setIsEditModalOpen(true); }}
-                              className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100 hover:border-[#10b981]"
-                              title="Edit"
-                            >
-                              <Edit size={16} />
-                            </button>
+                            {canAddClass && (
+                              <button
+                                onClick={async () => { 
+                                  setSelectedClass(item); 
+                                  await fetchTeachersForEdit(item.id);
+                                  setIsEditModalOpen(true); 
+                                }}
+                                className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100 hover:border-[#10b981]"
+                                title="Edit"
+                              >
+                                <Edit size={16} />
+                              </button>
+                            )}
                             <button
                               onClick={() => { setSelectedClass(item); setDeletingId(item.id); setIsDeleteModalOpen(true); }}
                               className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100 hover:border-[#c53336]"
@@ -504,10 +665,42 @@ const ClassList = () => {
               </table>
             </div>
 
-            {/* Count */}
+            {/* Pagination & Count */}
             {!loading && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
-                <p>Showing {filtered.length} of {classes.length} entries</p>
+                <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <PaginationItem key={page}>
+                          <PaginationLink 
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
               </div>
             )}
           </div>

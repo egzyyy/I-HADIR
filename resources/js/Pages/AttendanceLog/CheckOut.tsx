@@ -4,6 +4,7 @@ import { QrCode, CheckCircle, XCircle, Clock, AlertTriangle, X } from 'lucide-re
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import QrScanner from '../../Components/common/QrScanner';
+import { useAuth } from '../../contexts/AuthContext';
 
 type ScanResult = {
   success: boolean;
@@ -69,6 +70,10 @@ const ResultModal = ({ result, onClose }: { result: ScanResult; onClose: () => v
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const AttendanceCheckOut = () => {
+  const { role } = useAuth();
+  const userType = role === 'Teacher' ? 'teacher' : role === 'Security' ? 'staff' : 'student';
+  const scanTargetLabel = role === 'Teacher' || role === 'Security' ? 'your' : "a student's";
+
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [result, setResult]     = useState<ScanResult | null>(null);
@@ -81,7 +86,7 @@ const AttendanceCheckOut = () => {
     try {
       const res = await axios.post('/api/attendance/check-out', {
         ic_number: decoded.trim(),
-        user_type: 'student',
+        user_type: userType,
       });
       setResult(res.data);
     } catch (err: any) {
@@ -105,7 +110,7 @@ const AttendanceCheckOut = () => {
       >
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-[#1c3068]">Scan Out Attendance</h2>
-          <p className="text-gray-500 text-sm mt-1">Point the camera at a student's QR code to record check-out.</p>
+          <p className="text-gray-500 text-sm mt-1">Point the camera at {scanTargetLabel} QR code to record check-out.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

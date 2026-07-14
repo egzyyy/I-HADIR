@@ -16,7 +16,7 @@ class CoCurricular extends Model
         'school_id',
         'name',
         'capacity',
-        'teacher_id',
+        'user_id',
         'is_active',
     ];
 
@@ -26,6 +26,12 @@ class CoCurricular extends Model
 
     public function teacher()
     {
-        return $this->belongsTo(Teacher::class, 'teacher_id', 'teacher_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
+    }
+
+    // Alias for backward compatibility
+    public function user()
+    {
+        return $this->teacher();
     }
 }

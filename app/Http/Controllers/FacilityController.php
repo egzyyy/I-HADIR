@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\FacilityLog;
 use App\Models\Student;
-use App\Models\Teacher;
-use App\Models\Staff;
+use App\Models\User; // <-- Switched to unified User model
+use App\Models\Enrollment;
+use App\Models\SchoolSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -16,8 +17,16 @@ class FacilityController extends Controller
         $request->validate([
             'ic_number'     => 'required|string',
             'user_type'     => 'required|in:student,teacher,staff',
-            'facility_type' => 'required|in:prayer,pss,ict,activity',
+            // Replaced 'activity' with 'rmt'
+            'facility_type' => 'required|in:prayer,pss,ict,rmt', 
         ]);
+
+        // RESTRICTION: RMT is for students only
+        if ($request->facility_type === 'rmt' && $request->user_type !== 'student') {
+            return response()->json([
+                'message' => 'RMT facility is restricted to students only.'
+            ], 403);
+        }
 
         $schoolId = auth()->user()->school_id;
         $today    = Carbon::today()->toDateString();
@@ -30,7 +39,7 @@ class FacilityController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         // Allow multiple facility visits per day — only block if already checked in but not yet out
@@ -75,7 +84,7 @@ class FacilityController extends Controller
         $request->validate([
             'ic_number'     => 'required|string',
             'user_type'     => 'required|in:student,teacher,staff',
-            'facility_type' => 'required|in:prayer,pss,ict,activity',
+            'facility_type' => 'required|in:prayer,pss,ict,rmt',
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -88,7 +97,7 @@ class FacilityController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         $log = FacilityLog::where('school_id', $schoolId)
@@ -120,7 +129,7 @@ class FacilityController extends Controller
     public function getLog(Request $request)
     {
         $request->validate([
-            'facility_type' => 'required|in:prayer,pss,ict,activity',
+            'facility_type' => 'required|in:prayer,pss,ict,rmt',
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -134,8 +143,8 @@ class FacilityController extends Controller
 
         $logs = $query->orderBy('check_in_time', 'desc')->get();
 
-        $data = $logs->map(function ($log) {
-            [$name, $class] = $this->resolveNameClass($log->user_type, $log->user_id);
+        $data = $logs->map(function ($log) use ($schoolId) {
+            [$name, $class] = $this->resolveNameClass($log->user_type, $log->user_id, $schoolId);
             return [
                 'id'        => $log->id,
                 'name'      => $name,
@@ -167,35 +176,49 @@ class FacilityController extends Controller
     private function resolveStudent(string $ic, int $schoolId): array
     {
         $s = Student::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $s ? [$s->student_id, $s->name, $s->class ?? '-'] : [null, null, null];
+        if (!$s) return [null, null, null];
+
+        // Fetch dynamic class based on active session
+        $enrollment = Enrollment::where('student_id', $s->student_id)
+            ->whereHas('schoolSession', fn($q) => $q->where('school_id', $schoolId)->where('is_active', true))
+            ->with('classroom:classroom_id,name')
+            ->first();
+
+        return [$s->student_id, $s->name, $enrollment?->classroom?->name ?? '-'];
     }
 
     private function resolveTeacher(string $ic, int $schoolId): array
     {
-        $t = Teacher::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $t ? [$t->teacher_id, $t->name, 'Teacher'] : [null, null, null];
+        $t = User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('ic_number', $ic)->first();
+        return $t ? [$t->user_id, $t->full_name, 'Teacher'] : [null, null, null];
     }
 
     private function resolveStaff(string $ic, int $schoolId): array
     {
-        $s = Staff::where('school_id', $schoolId)->where('ic_number', $ic)->first();
-        return $s ? [$s->staff_id, $s->name, 'Staff'] : [null, null, null];
+        $s = User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('ic_number', $ic)->first();
+        return $s ? [$s->user_id, $s->full_name, 'Staff'] : [null, null, null];
     }
 
-    private function resolveNameClass(string $type, string $userId): array
+    private function resolveNameClass(string $type, string $userId, int $schoolId): array
     {
         return match ($type) {
-            'student' => (function () use ($userId) {
+            'student' => (function () use ($userId, $schoolId) {
                 $s = Student::where('student_id', $userId)->first();
-                return [$s?->name ?? 'Unknown', $s?->class ?? '-'];
+                
+                $enrollment = Enrollment::where('student_id', $userId)
+                    ->whereHas('schoolSession', fn($q) => $q->where('school_id', $schoolId)->where('is_active', true))
+                    ->with('classroom:classroom_id,name')
+                    ->first();
+
+                return [$s?->name ?? 'Unknown', $enrollment?->classroom?->name ?? '-'];
             })(),
             'teacher' => (function () use ($userId) {
-                $t = Teacher::where('teacher_id', $userId)->first();
-                return [$t?->name ?? 'Unknown', 'Teacher'];
+                $t = User::where('user_id', $userId)->where('user_type', 'teacher')->first();
+                return [$t?->full_name ?? 'Unknown', 'Teacher'];
             })(),
             'staff' => (function () use ($userId) {
-                $s = Staff::where('staff_id', $userId)->first();
-                return [$s?->name ?? 'Unknown', 'Staff'];
+                $s = User::where('user_id', $userId)->whereIn('user_type', ['staff', 'security_staff'])->first();
+                return [$s?->full_name ?? 'Unknown', 'Staff'];
             })(),
             default => ['Unknown', '-'],
         };

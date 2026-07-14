@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('status', ['present', 'late', 'absent'])->default('present');
             $table->string('scan_method')->default('qr');
             $table->string('scanned_by')->nullable();
+            $table->string('reason_manual')->nullable();
             $table->timestamps();
             $table->unique(['user_type', 'user_id', 'date'], 'unique_daily_attendance');
         });

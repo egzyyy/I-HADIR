@@ -1,9 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Edit, Trash2, X, Search } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
+import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
+
+// IMPORT PAGINATION
+import { usePagination } from '../../utils/usePagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '../../Components/ui/pagination';
+
+// IMPORT LOGO
+import logo from '../../assets/i_hadir_logo2.png';
+
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 interface EventItem {
   id: number; name: string; date: string; time: string | null;
@@ -69,7 +86,7 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
           className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400 resize-none" />
       </div>
       <div className="space-y-2 md:col-span-2">
-        <label className="block text-sm font-bold text-gray-700">Event Image</label>
+        <label className="block text-sm font-bold text-gray-700">Event Image / Banner / Poster</label>
         {imagePreview ? (
           <div className="relative group">
             <img src={imagePreview} alt="Event preview" className="w-full h-64 object-cover rounded-lg border-2 border-gray-200" />
@@ -221,10 +238,145 @@ const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boolean; o
   );
 };
 
+// ─── Export helpers ────────────────────────────────────────────────────────────
+
+function buildTableText(items: EventItem[]): string {
+  const header = ['#', 'Event Name', 'Date', 'Time', 'Event Spot', 'Participants'].join('\t');
+  const rows = items.map((e, i) =>
+    [i + 1, e.name, e.date, e.time ?? '-', e.spot, (e.participantTypes ?? []).join(', ')].join('\t')
+  );
+  return [header, ...rows].join('\n');
+}
+
+function downloadFile(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV(items: EventItem[]) {
+  const header = ['#', 'Event Name', 'Date', 'Time', 'Event Spot', 'Participants'].join(',');
+  const rows   = items.map((e, i) =>
+    [`${i + 1}`, `"${e.name}"`, `"${e.date}"`, `"${e.time ?? '-'}"`, `"${e.spot}"`, `"${(e.participantTypes ?? []).join(', ')}"`].join(',')
+  );
+  downloadFile([header, ...rows].join('\n'), 'events.csv', 'text/csv');
+}
+
+function exportExcel(items: EventItem[]) {
+  downloadFile(buildTableText(items), 'events.xls', 'application/vnd.ms-excel');
+}
+
+// ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
+
+function exportPDF(items: EventItem[], logoSrc: string) {
+  const rows = items.map((e, i) => `
+    <tr>
+      <td style="text-align:center">${i + 1}</td>
+      <td style="font-weight:bold">${e.name}</td>
+      <td style="text-align:center">${e.date}</td>
+      <td style="text-align:center">${e.time ?? '-'}</td>
+      <td style="text-align:center">${e.spot}</td>
+      <td style="text-align:center; text-transform:uppercase;">${(e.participantTypes ?? []).join(', ')}</td>
+    </tr>`).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Event List Report</title>
+      <style>
+        @page { margin: 15mm; size: A4 landscape; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
+        
+        /* Standard Header Styling */
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+        
+        /* Enforce colors in print */
+        th { 
+          background-color: #1c3068 !important; 
+          color: white !important; 
+          font-weight: bold; 
+          text-align: left; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+        
+        th[style*="text-align:center"] { text-align: center; }
+        tr:nth-child(even) { 
+          background-color: #f9fafb !important; 
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        <h1 class="report-title">Event List Report</h1>
+        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+      </div>
+      
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:center; width:5%">No</th>
+            <th style="width:25%">Event Name</th>
+            <th style="text-align:center; width:15%">Date</th>
+            <th style="text-align:center; width:10%">Time</th>
+            <th style="text-align:center; width:20%">Event Spot</th>
+            <th style="text-align:center; width:25%">Participants</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        }
+      </script>
+    </body>
+    </html>`;
+
+  const win = window.open('', '_blank');
+  if (win) { 
+    win.document.write(html); 
+    win.document.close(); 
+  }
+}
+
+function printTable(items: EventItem[], logoSrc: string) { 
+  exportPDF(items, logoSrc); 
+}
+
+function copyToClipboard(items: EventItem[]) {
+  navigator.clipboard.writeText(buildTableText(items)).then(() => {
+    alert('Table data copied to clipboard!');
+  });
+}
+
 // ── List ──────────────────────────────────────────────────────────────────────
 const EventList = () => {
-  const [events, setEvents] = useState<EventItem[]>([]); const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false); const [showEditModal, setShowEditModal] = useState(false); const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [events, setEvents] = useState<EventItem[]>([]); 
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [showAddModal, setShowAddModal] = useState(false); 
+  const [showEditModal, setShowEditModal] = useState(false); 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selected, setSelected] = useState<EventItem | null>(null);
 
   const fetchAll = async () => {
@@ -234,9 +386,33 @@ const EventList = () => {
   };
   useEffect(() => { fetchAll(); }, []);
 
+  // 1. Filter events based on Search (name or location)
+  const filtered = events.filter(e => 
+    e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    e.spot.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // 2. Apply Pagination Hook
+  const { 
+    currentPage, 
+    setCurrentPage, 
+    totalPages, 
+    startIndex, 
+    endIndex, 
+    currentData, 
+    totalItems 
+  } = usePagination(filtered, 10);
+
   const handleConfirmDelete = async () => {
     if (!selected) return;
-    try { await axios.delete(`/api/events/${selected.id}`); setEvents(prev => prev.filter(e => e.id !== selected.id)); }
+    try { 
+      await axios.delete(`/api/events/${selected.id}`); 
+      setEvents(prev => prev.filter(e => e.id !== selected.id)); 
+      
+      if (currentData.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    }
     catch { alert('Failed to delete.'); } finally { setShowDeleteModal(false); setSelected(null); }
   };
 
@@ -247,8 +423,33 @@ const EventList = () => {
           <h2 className="text-2xl font-bold text-[#1c3068]">Event List</h2>
           <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Event</button>
         </div>
+        
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+              <ExportButtons
+                onCopy={() => copyToClipboard(filtered)}
+                onExportCSV={() => exportCSV(filtered)}
+                onExportExcel={() => exportExcel(filtered)}
+                onExportPDF={() => exportPDF(filtered, logo)}
+                onPrint={() => printTable(filtered, logo)}
+              />
+              
+              {/* Search Bar */}
+              <div className="flex items-center gap-2 w-full sm:w-auto relative">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  value={searchTerm} 
+                  onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} 
+                  placeholder="Search events or locations..."
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none transition-all" 
+                />
+              </div>
+            </div>
+
+            {/* Table */}
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="w-full text-left border-collapse">
                 <thead><tr className="bg-gray-50 border-b border-gray-200">
@@ -262,10 +463,10 @@ const EventList = () => {
                 </tr></thead>
                 <tbody className="divide-y divide-gray-100">
                   {loading ? <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">Loading...</td></tr>
-                  : events.length === 0 ? <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">No events found.</td></tr>
-                  : events.map((item, idx) => (
+                  : currentData.length === 0 ? <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">No events found.</td></tr>
+                  : currentData.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-500 text-center">{idx + 1}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 text-center">{startIndex + idx + 1}</td>
                       <td className="px-6 py-4 text-sm font-medium text-[#c53336]">{item.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{item.date}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{item.time ?? '-'}</td>
@@ -288,7 +489,45 @@ const EventList = () => {
                 </tbody>
               </table>
             </div>
-            {!loading && <div className="mt-4 text-sm text-gray-500">Showing {events.length} of {events.length} entries</div>}
+            
+            {/* --- PAGINATION & COUNT --- */}
+            {!loading && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
+                <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
+                
+                {totalPages > 1 && (
+                  <Pagination className="mx-0 w-auto">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <PaginationItem key={page}>
+                          <PaginationLink 
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

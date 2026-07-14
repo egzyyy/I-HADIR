@@ -7,12 +7,24 @@ import axios from 'axios';
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+interface ClassroomOption {
+  id: number;
+  name: string;
+  teacher: string;
+  totalStudents?: number;
+  capacity?: number | null;
+  isActive?: boolean;
+}
+
 const UserRegistration = () => {
   const [selectedType, setSelectedType] = useState<'staff' | 'teacher' | 'student' | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [classroomOptions, setClassroomOptions] = useState<ClassroomOption[]>([]);
+  const [isClassroomsLoading, setIsClassroomsLoading] = useState(false);
+  const [classroomsError, setClassroomsError] = useState<string | null>(null);
 
   const [data, setData] = useState({
     name: '',
@@ -22,7 +34,12 @@ const UserRegistration = () => {
     gender: '',
     specificType: '',
     position: '',
-    address: '',
+    streetAddress: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country: 'Malaysia',
+    password: '',
     fatherName: '',
     fatherIc: '',
     motherName: '',
@@ -42,11 +59,61 @@ const UserRegistration = () => {
     }
   }, [selectedType]);
 
+  useEffect(() => {
+    if (selectedType !== 'student') {
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchClassrooms = async () => {
+      setIsClassroomsLoading(true);
+      setClassroomsError(null);
+
+      try {
+        let activeSessionId = '';
+
+        try {
+          const sessionRes = await axios.get('/api/sessions');
+          const activeSession = sessionRes.data.data?.find((session: any) => session.status === 'Active');
+          activeSessionId = activeSession?.id ? String(activeSession.id) : '';
+        } catch {
+          activeSessionId = '';
+        }
+
+        const classesUrl = activeSessionId ? `/api/classes?session_id=${activeSessionId}` : '/api/classes';
+        const classRes = await axios.get(classesUrl);
+        const classes = (classRes.data.data || []) as ClassroomOption[];
+        const activeClasses = classes.filter((classroom) => classroom.isActive !== false);
+
+        if (isMounted) {
+          setClassroomOptions(activeClasses);
+        }
+      } catch (error) {
+        console.error('Failed to fetch classrooms', error);
+        if (isMounted) {
+          setClassroomOptions([]);
+          setClassroomsError('Unable to load classrooms');
+        }
+      } finally {
+        if (isMounted) {
+          setIsClassroomsLoading(false);
+        }
+      }
+    };
+
+    fetchClassrooms();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedType]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     // Restrict specific fields to NUMBERS ONLY
-    const numberOnlyFields = ['icNumber', 'phone', 'emergencyPhone', 'fatherIc', 'motherIc'];
+    const numberOnlyFields = ['icNumber', 'phone', 'emergencyPhone', 'fatherIc', 'motherIc', 'postcode'];
     if (numberOnlyFields.includes(name)) {
       const onlyNums = value.replace(/\D/g, '');
       setData(prev => ({ ...prev, [name]: onlyNums }));
@@ -70,16 +137,24 @@ const UserRegistration = () => {
   };
 
   const handleSubmit = async () => {
-    // 1. Check Required Fields (Address is now required for everyone)
-    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'address', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
+    // Check if password is required (for teacher and Security Staff)
+    const isSecurityStaff = selectedType === 'staff' && data.specificType === 'Security Staff';
+    const isTeacher = selectedType === 'teacher';
+    const requiresPassword = isSecurityStaff || isTeacher;
+
+    // 1. Check Required Fields
+    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'streetAddress', 'city', 'state', 'postcode', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
     let requiredFields = [...baseRequired];
     
     if (selectedType === 'student') {
       requiredFields.push('specificType', 'fatherName', 'fatherIc', 'motherName', 'motherIc');
     } else if (selectedType === 'teacher') {
-      requiredFields.push('position');
+      requiredFields.push('position', 'email', 'password');
     } else if (selectedType === 'staff') {
       requiredFields.push('specificType');
+      if (isSecurityStaff) {
+        requiredFields.push('email', 'password');
+      }
     }
 
     for (const field of requiredFields) {
@@ -107,6 +182,10 @@ const UserRegistration = () => {
         setErrorModalMsg("Parent Identification Numbers must be exactly 12 digits.");
         return;
       }
+    }
+    if (requiresPassword && data.password.length < 8) {
+      setErrorModalMsg("Password must be at least 8 characters.");
+      return;
     }
 
     setIsProcessing(true);
@@ -138,7 +217,8 @@ const UserRegistration = () => {
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
     setData({
-      name: '', icNumber: '', email: '', phone: '', gender: '', specificType: '', position: '', address: '',
+      name: '', icNumber: '', email: '', phone: '', gender: '', specificType: '', position: '',
+      streetAddress: '', city: '', state: '', postcode: '', country: 'Malaysia', password: '',
       fatherName: '', fatherIc: '', motherName: '', motherIc: '', emergencyName: '', emergencyRelation: '', emergencyPhone: '', type: '', profilePic: null
     });
     setPreviewUrl(null);
@@ -146,22 +226,30 @@ const UserRegistration = () => {
     setCurrentStep(1);
   };
 
+  const formatClassroomLabel = (classroom: ClassroomOption) => {
+    const teacherName = classroom.teacher && classroom.teacher !== '-' ? classroom.teacher : 'Unassigned';
+    const enrollmentCount = typeof classroom.totalStudents === 'number'
+      ? ` (${classroom.totalStudents}${classroom.capacity ? `/${classroom.capacity}` : ''} enrolled)`
+      : '';
+
+    return `${classroom.name}, Classroom Teacher: ${teacherName}${enrollmentCount}`;
+  };
+
   const getTypeOptions = () => {
     switch (selectedType) {
       case 'staff':
         return [
-          { value: 'store_staff', label: 'Store Staff' },
-          { value: 'cleaning_staff', label: 'Cleaning Staff' },
-          { value: 'security_staff', label: 'Security Staff' },
-          { value: 'temporary_staff', label: 'Temporary Staff' },
-          { value: 'admin_clerk', label: 'Admin Clerk' },
+          { value: 'Security Staff', label: 'Security Staff' },
+          { value: 'Store Staff', label: 'Store Staff' },
+          { value: 'Cleaning Staff', label: 'Cleaning Staff' },
+          { value: 'Temporary Staff', label: 'Temporary Staff' },
+          { value: 'Admin Clerk', label: 'Admin Clerk' },
         ];
       case 'student':
-        return [
-          { value: '1-kreatif', label: '1 KREATIF, Classroom Teacher: ROHANA BINTI MOHD NOR' },
-          { value: '1-progresif', label: '1 PROGRESIF, Classroom Teacher: MARIAM BINTI MUDA ' },
-          { value: '2-inovatif', label: '2 INOVATIF, Classroom Teacher: ISA BINTI ASA' },
-        ];
+        return classroomOptions.map((classroom) => ({
+          value: classroom.name,
+          label: formatClassroomLabel(classroom),
+        }));
       default:
         return [];
     }
@@ -210,13 +298,24 @@ const UserRegistration = () => {
 
   const title = selectedType.charAt(0).toUpperCase() + selectedType.slice(1) + " Registration";
   const shouldShowTypeDropdown = selectedType === 'staff' || selectedType === 'student';
+  const typeOptions = getTypeOptions();
 
   const getTypeLabel = () => {
     switch(selectedType) {
-      case 'staff': return 'Staff Type';
+      case 'staff': return 'Position';
       case 'student': return 'Class';
       default: return 'Type';
     }
+  };
+
+  const getTypePlaceholder = () => {
+    if (selectedType === 'student') {
+      if (isClassroomsLoading) return 'Loading classrooms...';
+      if (classroomsError) return classroomsError;
+      if (typeOptions.length === 0) return 'No classrooms found';
+    }
+
+    return `Select ${getTypeLabel()}`;
   };
 
   const steps = selectedType === 'student' 
@@ -299,13 +398,21 @@ const UserRegistration = () => {
                       <input type="text" name="name" value={data.name} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">Identification number : <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-bold text-gray-700">Identification number (IC) : <span className="text-red-500">*</span></label>
                       <input type="text" name="icNumber" value={data.icNumber} onChange={handleInputChange} maxLength={12} placeholder="e.g. 860102075555" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       <p className="text-xs text-gray-400 mt-1">12 digits without "-" or space</p>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-gray-700">Email Address :</label>
+                      <label className="block text-sm font-bold text-gray-700">
+                        Email Address : 
+                        {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
+                          <span className="text-red-500"> *</span>
+                        )}
+                      </label>
                       <input type="email" name="email" value={data.email} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
+                        <p className="text-xs text-gray-400 mt-1">Required for login access</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Phone Number : <span className="text-red-500">*</span></label>
@@ -328,8 +435,8 @@ const UserRegistration = () => {
                         <label className="block text-sm font-bold text-gray-700">{getTypeLabel()} : <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <select name="specificType" value={data.specificType} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
-                            <option value="">Select {getTypeLabel()}</option>
-                            {getTypeOptions().map((opt) => (
+                            <option value="">{getTypePlaceholder()}</option>
+                            {typeOptions.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
@@ -345,11 +452,40 @@ const UserRegistration = () => {
                       </div>
                     )}
                     
-                    {/* ALL USERS NOW HAVE ADDRESS */}
+                    {/* SEPARATED ADDRESS FIELDS */}
                     <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700">Address : <span className="text-red-500">*</span></label>
-                      <input type="text" name="address" value={data.address} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <label className="block text-sm font-bold text-gray-700">Street Address : <span className="text-red-500">*</span></label>
+                      <input type="text" name="streetAddress" value={data.streetAddress} onChange={handleInputChange} placeholder="e.g. No. 123, Jalan ABC" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">City : <span className="text-red-500">*</span></label>
+                      <input type="text" name="city" value={data.city} onChange={handleInputChange} placeholder="e.g. Kuala Lumpur" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">State : <span className="text-red-500">*</span></label>
+                      <input type="text" name="state" value={data.state} onChange={handleInputChange} placeholder="e.g. Selangor" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Postcode : <span className="text-red-500">*</span></label>
+                      <input type="text" name="postcode" value={data.postcode} onChange={handleInputChange} maxLength={5} placeholder="e.g. 50000" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Country :</label>
+                      <input type="text" name="country" value={data.country} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+
+                    {/* PASSWORD FIELD - Only for Teacher and Security Staff */}
+                    {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-sm font-bold text-gray-700">Password : <span className="text-red-500">*</span></label>
+                        <input type="password" name="password" value={data.password} onChange={handleInputChange} placeholder="Minimum 8 characters" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                        <p className="text-xs text-gray-400 mt-1">This password will be used to log in to the system</p>
+                      </div>
+                    )}
                     
                   </div>
                 </motion.div>
@@ -401,7 +537,7 @@ const UserRegistration = () => {
                         <input type="text" name="fatherName" value={data.fatherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Identification Number : <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-bold text-gray-700">Identification Number (IC) : <span className="text-red-500">*</span></label>
                         <input type="text" name="fatherIc" value={data.fatherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                       </div>
                       <div className="space-y-2">

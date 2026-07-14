@@ -45,6 +45,7 @@ export const CircularProgressBar = ({ percentage, total, present, absent }: { pe
         <div className="text-center">
           <p className="text-3xl font-bold text-[#1c3068]">{present}</p>
           <p className="text-sm text-gray-500 mt-1">Present</p>
+          <p className="text-sm text-gray-500">(With Late)</p>
         </div>
         <div className="text-center">
           <p className="text-3xl font-bold text-[#c53336]">{absent}</p>

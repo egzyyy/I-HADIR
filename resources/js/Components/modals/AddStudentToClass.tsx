@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ChevronRight, Home, Printer, QrCode, Search, UserPlus, Users, Calendar, Hash, ArrowRightLeft, X, ChevronDown, Trash2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, ChevronRight, Home, Printer, QrCode, Search, UserPlus, Users, Calendar, Hash, ArrowRightLeft, X, ChevronDown, Trash2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { StudentQrModal } from './StudentQrModal';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { formatStandardDate } from '@/utils/dateFormatters';
 
 interface Student {
   enrollment_id: number;
@@ -30,15 +32,20 @@ interface OtherClass {
   id: number;
   name: string;
   teacher: string;
+  capacity: number | null;
+  totalStudents: number;
 }
 
 interface AddStudentToClassProps {
   onBack: () => void;
   classId: number;
   classNameStr: string;
+  isTeacher?: boolean;
+  classSessionId?: number | null;
+  currentSessionActiveId?: number; 
 }
 
-export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentToClassProps) => {
+export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, classSessionId, currentSessionActiveId }: AddStudentToClassProps) => {
   const [classroom, setClassroom]       = useState<ClassroomInfo | null>(null);
   const [enrolled, setEnrolled]         = useState<Student[]>([]);
   const [available, setAvailable]       = useState<AvailableStudent[]>([]);
@@ -48,9 +55,16 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
   const [enrolling, setEnrolling]       = useState(false);
   const [enrollError, setEnrollError]   = useState('');
 
+  // Calculate if class is full
+  const isClassFull = classroom?.capacity ? enrolled.length >= classroom.capacity : false;
+
   // QR modal state
   const [isQrModalOpen, setIsQrModalOpen]           = useState(false);
   const [qrStudent, setQrStudent]                   = useState<Student | null>(null);
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen]   = useState(false);
+  const [studentToRemove, setStudentToRemove]       = useState<Student | null>(null);
 
   const handleOpenQr = (student: Student) => {
     setQrStudent(student);
@@ -122,14 +136,22 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
     }
   };
 
-  // Fetch other classes for transfer dropdown
+  // Fetch other classes for transfer dropdown (Filtered to same session)
   const fetchOtherClasses = async () => {
     try {
-      const res = await axios.get('/api/classes');
+      // Ensure we only fetch classes from the SAME session as this current class
+      const sid = classSessionId ?? '';
+      const res = await axios.get(`/api/classes?session_id=${sid}`);
       setOtherClasses(
         res.data.data
           .filter((c: any) => c.id !== classId)
-          .map((c: any) => ({ id: c.id, name: c.name, teacher: c.teacher }))
+          .map((c: any) => ({ 
+            id: c.id, 
+            name: c.name, 
+            teacher: c.teacher,
+            capacity: c.capacity,
+            totalStudents: c.totalStudents 
+          }))
       );
     } catch {
       // silently fail
@@ -138,12 +160,16 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
 
   useEffect(() => {
     fetchStudents();
-    fetchOtherClasses();
-  }, [classId]);
+    if (classSessionId) {
+      fetchOtherClasses();
+    }
+  }, [classId, classSessionId]);
 
   // ── Enroll ─────────────────────────────────────────────────────────────────
   const handleEnroll = async () => {
     if (!selectedStudentId) { setEnrollError('Please select a student.'); return; }
+    if (isClassFull) { setEnrollError('Class capacity reached.'); return; }
+
     setEnrollError('');
     setEnrolling(true);
     try {
@@ -161,15 +187,23 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
   };
 
   // ── Remove ─────────────────────────────────────────────────────────────────
-  const handleRemove = async (student: Student) => {
-    if (!confirm(`Remove ${student.name} from this class?`)) return;
+  const handleRemoveClick = (student: Student) => {
+    setStudentToRemove(student);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmRemoveStudent = async () => {
+    if (!studentToRemove) return;
     try {
-      await axios.delete(`/api/classes/${classId}/students/${student.student_id}`);
-      setEnrolled((prev) => prev.filter((s) => s.enrollment_id !== student.enrollment_id));
-      setAvailable((prev) => [...prev, { student_id: student.student_id, name: student.name }]
+      await axios.delete(`/api/classes/${classId}/students/${studentToRemove.student_id}`);
+      setEnrolled((prev) => prev.filter((s) => s.enrollment_id !== studentToRemove.enrollment_id));
+      setAvailable((prev) => [...prev, { student_id: studentToRemove.student_id, name: studentToRemove.name }]
         .sort((a, b) => a.name.localeCompare(b.name)));
     } catch {
       alert('Failed to remove student. Please try again.');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setStudentToRemove(null);
     }
   };
 
@@ -264,10 +298,10 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
                   </span>
                 </div>
                 {classroom?.capacity && (
-                  <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Capacity</span>
-                    <span className="text-lg font-bold text-[#1c3068]">
-                      {enrolled.length} / {classroom.capacity}
+                  <div className={`p-4 rounded-lg border ${isClassFull ? 'bg-orange-50/50 border-orange-200' : 'bg-blue-50/50 border-blue-100'}`}>
+                    <span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${isClassFull ? 'text-orange-500' : 'text-gray-400'}`}>Capacity</span>
+                    <span className={`text-lg font-bold ${isClassFull ? 'text-orange-600' : 'text-[#1c3068]'}`}>
+                      {enrolled.length} / {classroom.capacity} {isClassFull && '(FULL)'}
                     </span>
                   </div>
                 )}
@@ -276,53 +310,86 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
           </div>
 
           {/* Enroll Student Form Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit flex flex-col">
             <div className="border-b border-gray-100 px-6 py-4 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-gray-800 font-bold text-base flex items-center gap-2">
                 <UserPlus size={18} className="text-[#0ea5e9]" /> Enroll New Student
               </h3>
             </div>
-            <div className="p-6">
-              <p className="text-gray-500 text-sm mb-6">Search and select a student to enroll them into this class.</p>
-
-              {enrollError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{enrollError}</div>
-              )}
-
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
-                    Student Name <span className="text-[#c53336]">*</span>
-                  </label>
-                  <div className="relative group">
-                    <select
-                      value={selectedStudentId}
-                      onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-sm text-gray-700 appearance-none cursor-pointer"
-                    >
-                      <option value="">Select a student...</option>
-                      {available.map((s) => (
-                        <option key={s.student_id} value={s.student_id}>{s.name}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                      <Search size={16} />
-                    </div>
+            
+            <div className="p-6 flex-1 flex flex-col">
+              {isTeacher ? (
+                /* --- RESTRICTED VIEW FOR TEACHERS --- */
+                <div className="flex flex-col items-center justify-center flex-1 py-8 text-center min-h-[200px]">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                    <AlertCircle size={28} className="text-gray-400" />
                   </div>
-                  {available.length === 0 && !loading && (
-                    <p className="text-xs text-gray-400 mt-1">All students are already enrolled in a class for this session.</p>
-                  )}
+                  <h4 className="text-gray-600 font-bold mb-2">Restricted Action</h4>
+                  <p className="text-gray-400 text-sm max-w-[250px] mx-auto leading-relaxed">
+                    Only administrators possess the privileges to enroll or transfer students.
+                  </p>
                 </div>
+              ) : (
+                /* --- FULL FORM FOR ADMINS --- */
+                <>
+                  <p className="text-gray-500 text-sm mb-6">Search and select a student to enroll them into this class.</p>
 
-                <button
-                  onClick={handleEnroll}
-                  disabled={enrolling || !selectedStudentId}
-                  className="w-full bg-[#1c3068] hover:bg-[#152450] disabled:opacity-60 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
-                >
-                  <UserPlus size={18} />
-                  <span>{enrolling ? 'Enrolling...' : 'Enroll Student'}</span>
-                </button>
-              </div>
+                  {enrollError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{enrollError}</div>
+                  )}
+
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
+                        Student Name <span className="text-[#c53336]">*</span>
+                      </label>
+                      
+                      {currentSessionActiveId != classSessionId ? (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
+                          <AlertCircle size={18} />
+                          Enrollment is disabled because this class belongs to an inactive past session.
+                        </div>
+                      ) : isClassFull ? (
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-orange-700 text-sm font-bold flex items-center gap-2">
+                          <AlertCircle size={18} />
+                          Class capacity reached ({classroom.capacity}/{classroom.capacity}). Transfer or remove a student to free up space.
+                        </div>
+                      ) : (
+                        <div className="relative group">
+                          <select
+                            value={selectedStudentId}
+                            onChange={(e) => setSelectedStudentId(e.target.value)}
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-sm text-gray-700 appearance-none cursor-pointer"
+                          >
+                            <option value="">Select a student...</option>
+                            {available.map((s) => (
+                              <option key={s.student_id} value={s.student_id}>{s.name}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                            <Search size={16} />
+                          </div>
+                        </div>  
+                      )}
+                      
+                      {available.length === 0 && !loading && !isClassFull && currentSessionActiveId == classSessionId && (
+                        <p className="text-xs text-gray-400 mt-1">All available students are already enrolled in a class for this session.</p>
+                      )}
+                    </div>
+
+                    {currentSessionActiveId == classSessionId && !isClassFull && (
+                      <button
+                        onClick={handleEnroll}
+                        disabled={enrolling || !selectedStudentId}
+                        className="w-full bg-[#1c3068] hover:bg-[#152450] disabled:opacity-60 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+                      >
+                        <UserPlus size={18} />
+                        <span>{enrolling ? 'Enrolling...' : 'Enroll Student'}</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -379,7 +446,12 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
                             {student.gender?.toUpperCase() ?? '-'}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.enrolledAt}</td>
+                        <td className="py-4 px-6 text-sm text-gray-500 font-medium">
+                          {(() => {
+                            const [dd, mm, yyyy] = student.enrolledAt.split('-');
+                            return `${dd}/${mm}/${yyyy}`;
+                          })()}
+                        </td>
                         <td className="py-4 px-6 text-center">
                           <div className="flex justify-center items-center gap-2">
                             <button
@@ -396,20 +468,24 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
                             >
                               <QrCode size={16} />
                             </button>
-                            <button
-                              onClick={() => handleOpenTransfer(student)}
-                              className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"
-                              title="Transfer Student"
-                            >
-                              <ArrowRightLeft size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleRemove(student)}
-                              className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100"
-                              title="Remove from Class"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {!isTeacher && currentSessionActiveId == classSessionId && (
+                              <button
+                                onClick={() => handleOpenTransfer(student)}
+                                className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"
+                                title="Transfer Student"
+                              >
+                                <ArrowRightLeft size={16} />
+                              </button>
+                            )}
+                            {!isTeacher && currentSessionActiveId == classSessionId && (
+                              <button
+                                onClick={() => handleRemoveClick(student)}
+                                className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100"
+                                title="Remove from Class"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -483,11 +559,14 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
                         className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
                       >
                         <option value="">Select a class to transfer to...</option>
-                        {otherClasses.map((cls) => (
-                          <option key={cls.id} value={cls.id}>
-                            {cls.name} {cls.teacher !== '-' ? `(Teacher: ${cls.teacher})` : ''}
-                          </option>
-                        ))}
+                        {otherClasses.map((cls) => {
+                          const targetIsFull = cls.capacity ? cls.totalStudents >= cls.capacity : false;
+                          return (
+                            <option key={cls.id} value={cls.id} disabled={targetIsFull}>
+                              {cls.name} {cls.teacher !== '-' ? `(Teacher: ${cls.teacher})` : ''} {targetIsFull ? '(FULL)' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -513,6 +592,20 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr }: AddStudentT
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {isDeleteModalOpen && studentToRemove && (
+          <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => { setIsDeleteModalOpen(false); setStudentToRemove(null); }}
+            onConfirm={confirmRemoveStudent}
+            itemName={studentToRemove.name}
+            title="Remove Student?"
+            message={`Are you sure you want to remove ${studentToRemove.name} from this class? They will be moved to the available students list.`}
+          />
         )}
       </AnimatePresence>
     </motion.div>

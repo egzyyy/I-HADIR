@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Classroom;
-use App\Models\Teacher;
+use App\Models\User;
 use App\Models\Student;
 use App\Models\Enrollment;
 use App\Models\SchoolSession;
@@ -13,7 +13,8 @@ class ClassController extends Controller
 {
     public function index(Request $request)
     {
-        $schoolId  = auth()->user()->school_id;
+        $authUser = auth()->user();
+        $schoolId  = $authUser->school_id;
         $sessionId = $request->query('session_id');
 
         // Resolve active session for is_active derivation
@@ -21,13 +22,25 @@ class ClassController extends Controller
             ->where('is_active', true)
             ->first();
 
-        $classrooms = Classroom::where('school_id', $schoolId)
-            ->with([
-                'teacher:teacher_id,name',
+        // Base Query
+        $query = Classroom::where('school_id', $schoolId);
+
+        // Filter by Session if provided and not 'all'
+        if ($sessionId && $sessionId !== 'all') {
+            $query->where('school_session_id', $sessionId);
+        }
+
+        // If the logged-in user is a Teacher, restrict the query to only their assigned classes
+        if ($authUser->user_type === 'teacher') {
+            $query->where('user_id', $authUser->user_id);
+        }
+
+        $classrooms = $query->with([
+                'user:user_id,first_name,last_name',  // Changed from teacher to user
                 'session:school_session_id,year',
             ])
             ->withCount(['enrollments' => function ($q) use ($sessionId) {
-                if ($sessionId) {
+                if ($sessionId && $sessionId !== 'all') {
                     $q->where('school_session_id', $sessionId);
                 }
             }])
@@ -37,11 +50,11 @@ class ClassController extends Controller
                 return [
                     'id'            => $c->classroom_id,
                     'name'          => $c->name,
-                    'teacher_id'    => $c->teacher_id,
-                    'teacher'       => $c->teacher ? strtoupper($c->teacher->name) : '-',
+                    'teacher_id'    => $c->user_id,
+                    'teacher'       => $c->user ? strtoupper($c->user->full_name) : '-',  
                     'totalStudents' => $c->enrollments_count,
                     'capacity'      => $c->capacity,
-                    'createdAt'     => $c->created_at->format('d-m-Y'),
+                    'createdAt'     => $c->created_at->format('d/m/Y'),
                     'sessionId'     => $c->school_session_id,
                     'sessionName'   => $c->session ? $c->session->year : '-',
                     'isActive'      => (bool) ($activeSession && $c->school_session_id
@@ -50,24 +63,55 @@ class ClassController extends Controller
                 ];
             });
 
-        return response()->json(['success' => true, 'data' => $classrooms]);
+        return response()->json([
+            'success' => true, 
+            'data' => $classrooms, 
+            'authUser' => $authUser,
+            'activeSessionId' => $activeSession?->school_session_id
+        ]);
     }
 
     public function getTeachers(Request $request)
     {
         $schoolId  = auth()->user()->school_id;
         $sessionId = $request->query('session_id');
+        $excludeClassId = $request->query('exclude_class_id'); 
+        $includeAssigned = $request->boolean('include_assigned');
 
-        $query = Teacher::where('school_id', $schoolId)
-            ->where('is_active', true);
-
-        if ($sessionId) {
-            $query->whereHas('employments', function ($q) use ($sessionId) {
-                $q->where('school_session_id', $sessionId);
-            });
+        // Get active session if not provided or if 'all' is passed
+        if (!$sessionId || $sessionId === 'all') {
+            $activeSession = SchoolSession::where('school_id', $schoolId)
+                ->where('is_active', true)
+                ->first();
+            $sessionId = $activeSession?->school_session_id;
         }
 
-        $teachers = $query->orderBy('name')->get(['teacher_id', 'name']);
+        $assignedTeacherIds = [];
+
+        if (!$includeAssigned) {
+            $query = Classroom::where('school_id', $schoolId)
+                ->where('school_session_id', $sessionId)
+                ->whereNotNull('user_id');
+
+            if ($excludeClassId) {
+                $query->where('classroom_id', '!=', $excludeClassId);
+            }
+
+            $assignedTeacherIds = $query->pluck('user_id')->toArray();
+        }
+
+        $teachers = User::where('school_id', $schoolId)
+            ->where('user_type', 'teacher')
+            ->where('is_active', true)
+            ->whereNotIn('user_id', $assignedTeacherIds)
+            ->orderBy('first_name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'teacher_id' => $user->user_id,
+                    'name' => $user->full_name ?? trim($user->first_name . ' ' . $user->last_name),
+                ];
+            });
 
         return response()->json(['success' => true, 'data' => $teachers]);
     }
@@ -76,35 +120,35 @@ class ClassController extends Controller
     {
         $request->validate([
             'name'       => 'required|string|max:255',
-            'teacher_id' => 'nullable|exists:teachers,teacher_id',
+            'teacher_id' => 'nullable|exists:users,user_id',
             'capacity'   => 'nullable|integer|min:1|max:9999',
         ]);
 
         $schoolId = auth()->user()->school_id;
 
-        $exists = Classroom::where('school_id', $schoolId)
-            ->where('name', $request->name)
-            ->exists();
-
-        if ($exists) {
-            return response()->json(['message' => 'A class with this name already exists.'], 422);
-        }
-
-        // Auto-assign active session
         $activeSession = SchoolSession::where('school_id', $schoolId)
             ->where('is_active', true)
             ->first();
 
+        $exists = Classroom::where('school_id', $schoolId)
+            ->where('school_session_id', $activeSession?->school_session_id)
+            ->where('name', $request->name)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'A class with this name already exists in the current session.'], 422);
+        }
+
         $classroom = Classroom::create([
             'school_id'         => $schoolId,
             'name'              => $request->name,
-            'teacher_id'        => $request->teacher_id,
+            'user_id'           => $request->teacher_id, 
             'capacity'          => $request->capacity,
             'school_session_id' => $activeSession?->school_session_id,
             'is_active'         => true,
         ]);
 
-        $classroom->load(['teacher:teacher_id,name', 'session:school_session_id,year']);
+        $classroom->load(['user:user_id,first_name,last_name', 'session:school_session_id,year']); 
 
         return response()->json([
             'success' => true,
@@ -112,8 +156,8 @@ class ClassController extends Controller
             'data'    => [
                 'id'            => $classroom->classroom_id,
                 'name'          => $classroom->name,
-                'teacher_id'    => $classroom->teacher_id,
-                'teacher'       => $classroom->teacher ? strtoupper($classroom->teacher->name) : '-',
+                'teacher_id'    => $classroom->user_id,
+                'teacher'       => $classroom->user ? strtoupper($classroom->user->full_name) : '-',
                 'totalStudents' => 0,
                 'capacity'      => $classroom->capacity,
                 'createdAt'     => $classroom->created_at->format('d-m-Y'),
@@ -128,7 +172,7 @@ class ClassController extends Controller
     {
         $request->validate([
             'name'       => 'required|string|max:255',
-            'teacher_id' => 'nullable|exists:teachers,teacher_id',
+            'teacher_id' => 'nullable|exists:users,user_id',
             'capacity'   => 'nullable|integer|min:1|max:9999',
         ]);
 
@@ -138,40 +182,40 @@ class ClassController extends Controller
             ->firstOrFail();
 
         $exists = Classroom::where('school_id', $schoolId)
+            ->where('school_session_id', $classroom->school_session_id) 
             ->where('name', $request->name)
             ->where('classroom_id', '!=', $id)
             ->exists();
 
         if ($exists) {
-            return response()->json(['message' => 'A class with this name already exists.'], 422);
+            return response()->json(['message' => 'A class with this name already exists in this session.'], 422);
         }
 
         $classroom->update([
-            'name'       => $request->name,
-            'teacher_id' => $request->teacher_id,
-            'capacity'   => $request->capacity,
+            'name'     => $request->name,
+            'user_id' => $request->teacher_id, 
+            'capacity' => $request->capacity,
         ]);
 
         return response()->json(['success' => true, 'message' => 'Class updated successfully!']);
     }
 
-    /**
-     * List enrolled students + available (unenrolled) students for a classroom.
-     */
     public function getStudents(Request $request, $id)
     {
-        $schoolId  = auth()->user()->school_id;
-        $classroom = Classroom::where('school_id', $schoolId)
-            ->where('classroom_id', $id)
-            ->firstOrFail();
+        $authUser = auth()->user();
+        $schoolId  = $authUser->school_id;
+        
+        $query = Classroom::where('school_id', $schoolId)
+            ->where('classroom_id', $id);
 
-        $activeSession = SchoolSession::where('school_id', $schoolId)
-            ->where('is_active', true)
-            ->first();
+        if ($authUser->user_type === 'teacher') {
+            $query->where('user_id', $authUser->user_id);
+        }
 
-        $sessionId = $activeSession?->school_session_id;
+        $classroom = $query->firstOrFail();
+        $sessionId = $classroom->school_session_id;
+        $session = SchoolSession::find($sessionId);
 
-        // Students already enrolled in this class for the active session
         $enrolled = Enrollment::where('classroom_id', $id)
             ->where('school_session_id', $sessionId)
             ->with('student:student_id,name,ic_number,gender,phone_num,created_at')
@@ -186,7 +230,6 @@ class ClassController extends Controller
                 'enrolledAt'    => $e->created_at->format('d-m-Y'),
             ]);
 
-        // Students in this school NOT yet enrolled in any class for the active session
         $enrolledStudentIds = Enrollment::where('school_session_id', $sessionId)
             ->pluck('student_id');
 
@@ -205,7 +248,7 @@ class ClassController extends Controller
             'classroom' => [
                 'id'          => $classroom->classroom_id,
                 'name'        => $classroom->name,
-                'sessionName' => $activeSession?->year ?? '-',
+                'sessionName' => $session?->year ?? '-',
                 'capacity'    => $classroom->capacity,
             ],
             'enrolled'  => $enrolled,
@@ -213,9 +256,6 @@ class ClassController extends Controller
         ]);
     }
 
-    /**
-     * Enroll a student into a classroom for the active session.
-     */
     public function addStudent(Request $request, $id)
     {
         $request->validate([
@@ -224,15 +264,23 @@ class ClassController extends Controller
 
         $schoolId = auth()->user()->school_id;
 
-        Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
+        $classroom = Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
+        $sessionId = $classroom->school_session_id;
 
-        $activeSession = SchoolSession::where('school_id', $schoolId)
-            ->where('is_active', true)
-            ->firstOrFail();
+        if ($classroom->capacity !== null) {
+            $currentEnrolledCount = Enrollment::where('classroom_id', $id)
+                ->where('school_session_id', $sessionId)
+                ->count();
+                
+            if ($currentEnrolledCount >= $classroom->capacity) {
+                return response()->json([
+                    'message' => 'This class has reached its maximum capacity of ' . $classroom->capacity . ' students.'
+                ], 422);
+            }
+        }
 
-        // Check the unique constraint: one enrollment per student per session
         $alreadyEnrolled = Enrollment::where('student_id', $request->student_id)
-            ->where('school_session_id', $activeSession->school_session_id)
+            ->where('school_session_id', $sessionId)
             ->exists();
 
         if ($alreadyEnrolled) {
@@ -241,7 +289,7 @@ class ClassController extends Controller
 
         $enrollment = Enrollment::create([
             'student_id'        => $request->student_id,
-            'school_session_id' => $activeSession->school_session_id,
+            'school_session_id' => $sessionId,
             'classroom_id'      => $id,
         ]);
 
@@ -262,22 +310,16 @@ class ClassController extends Controller
         ], 201);
     }
 
-    /**
-     * Remove a student's enrollment from this classroom.
-     */
     public function removeStudent($id, $studentId)
     {
         $schoolId = auth()->user()->school_id;
 
-        Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
-
-        $activeSession = SchoolSession::where('school_id', $schoolId)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $classroom = Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
+        $sessionId = $classroom->school_session_id;
 
         $enrollment = Enrollment::where('classroom_id', $id)
             ->where('student_id', $studentId)
-            ->where('school_session_id', $activeSession->school_session_id)
+            ->where('school_session_id', $sessionId)
             ->firstOrFail();
 
         $enrollment->delete();
@@ -285,9 +327,6 @@ class ClassController extends Controller
         return response()->json(['success' => true, 'message' => 'Student removed from class.']);
     }
 
-    /**
-     * Transfer a student from this classroom to another.
-     */
     public function transferStudent(Request $request, $id, $studentId)
     {
         $request->validate([
@@ -296,19 +335,37 @@ class ClassController extends Controller
 
         $schoolId = auth()->user()->school_id;
 
-        Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
-        Classroom::where('school_id', $schoolId)->where('classroom_id', $request->target_classroom_id)->firstOrFail();
+        $classroom = Classroom::where('school_id', $schoolId)->where('classroom_id', $id)->firstOrFail();
+        $targetClassroom = Classroom::where('school_id', $schoolId)->where('classroom_id', $request->target_classroom_id)->firstOrFail();
+        $sessionId = $classroom->school_session_id;
 
-        $activeSession = SchoolSession::where('school_id', $schoolId)
-            ->where('is_active', true)
-            ->firstOrFail();
+        // --- NEW: Verify target class is in the same session ---
+        if ($targetClassroom->school_session_id !== $sessionId) {
+            return response()->json(['message' => 'The destination class must be in the same school session.'], 422);
+        }
+
+        // --- NEW: Check target class capacity ---
+        if ($targetClassroom->capacity !== null) {
+            $currentEnrolledCount = Enrollment::where('classroom_id', $targetClassroom->classroom_id)
+                ->where('school_session_id', $targetClassroom->school_session_id)
+                ->count();
+                
+            if ($currentEnrolledCount >= $targetClassroom->capacity) {
+                return response()->json([
+                    'message' => 'The destination class has reached its maximum capacity of ' . $targetClassroom->capacity . ' students.'
+                ], 422);
+            }
+        }
 
         $enrollment = Enrollment::where('classroom_id', $id)
             ->where('student_id', $studentId)
-            ->where('school_session_id', $activeSession->school_session_id)
+            ->where('school_session_id', $sessionId)
             ->firstOrFail();
 
-        $enrollment->update(['classroom_id' => $request->target_classroom_id]);
+        $enrollment->update([
+            'classroom_id' => $request->target_classroom_id,
+            'school_session_id' => $targetClassroom->school_session_id,
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Student transferred successfully!']);
     }

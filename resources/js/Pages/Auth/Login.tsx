@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/i_hadir_logo2.png';
+import { useAuth, homeForRole } from '../../contexts/AuthContext';
 
 // Set default axios configuration
 axios.defaults.withCredentials = true;
@@ -10,6 +11,7 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { refresh } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
 
@@ -32,7 +34,10 @@ export default function Login() {
     try {
       await axios.get('/sanctum/csrf-cookie');
       await axios.post('/login', data);
-      navigate('/dashboard');
+      // Load the freshly authenticated user so the dashboard knows the role
+      // before we navigate (avoids a redirect bounce / wrong-menu flash).
+      const me = await refresh();
+      navigate(homeForRole(me?.role ?? null));
     } catch (error: any) {
       if (error.response && error.response.status === 422) {
         setErrors(error.response.data.errors);

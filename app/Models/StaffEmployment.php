@@ -19,7 +19,7 @@ class StaffEmployment extends Model
 
     public function staff()
     {
-        return $this->belongsTo(Staff::class, 'staff_id', 'staff_id');
+        return $this->belongsTo(User::class, 'staff_id', 'user_id');
     }
 
     public function schoolSession()

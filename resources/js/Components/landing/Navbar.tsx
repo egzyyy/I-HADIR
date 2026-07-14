@@ -4,51 +4,54 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import logo from '../../assets/i_hadir_logo2.png';
 
+// --- Nav data types (supports one optional level of nested submenus) ---
+interface SubLink { label: string; href: string; }
+interface DropdownEntry { label: string; href?: string; subItems?: SubLink[]; }
+interface NavItem {
+  name: string;
+  icon?: React.ReactNode;
+  href?: string;
+  hasDropdown?: boolean;
+  dropdownItems?: DropdownEntry[];
+}
+
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { name: 'HOME', icon: <Home size={16} />, href: '#' },
-    { 
-      name: 'ATTENDANCE', 
+    {
+      name: 'ATTENDANCE',
       hasDropdown: true,
       dropdownItems: [
-        { label: 'Check In', href: '#attendance-checkin' },
-        { label: 'Check Out', href: '#attendance-checkout' },
+        { label: 'Student Check In', href: '#attendance-checkin' },
+        { label: 'Student Check Out', href: '#attendance-checkout' },
         { label: 'Security Staff Check In', href: '#security-checkin' },
         { label: 'Security Staff Check Out', href: '#security-checkout' }
       ]
     },
-    { 
-      name: 'PRAYER', 
-      hasDropdown: true, 
-      dropdownItems: [
-        { label: 'Check In', href: '#prayer-checkin' },
-        { label: 'Check Out', href: '#prayer-checkout' }
-      ]
-    },
-    { 
-      name: 'PSS', 
+    {
+      name: 'FACILITY',
       hasDropdown: true,
       dropdownItems: [
-        { label: 'Check In', href: '#pss-checkin' },
-        { label: 'Check Out', href: '#pss-checkout' }
-      ]
-    },
-    { 
-      name: 'ICT', 
-      hasDropdown: true,
-      dropdownItems: [
-        { label: 'Check In', href: '#ict-checkin' },
-        { label: 'Check Out', href: '#ict-checkout' }
-      ]
-    },
-    { 
-      name: 'ACTIVITY', 
-      hasDropdown: true,
-      dropdownItems: [
-        { label: 'Check Out', href: '#activity-checkout' }
+        { label: 'PRAYER', subItems: [
+          { label: 'Check In', href: '#prayer-checkin' },
+          { label: 'Check Out', href: '#prayer-checkout' },
+        ] },
+        { label: 'PSS', subItems: [
+          { label: 'Check In', href: '#pss-checkin' },
+          { label: 'Check Out', href: '#pss-checkout' },
+        ] },
+        { label: 'ICT', subItems: [
+          { label: 'Check In', href: '#ict-checkin' },
+          { label: 'Check Out', href: '#ict-checkout' },
+        ] },
+        // { label: 'ACTIVITY', subItems: [
+        //   { label: 'Check In', href: '#activity-checkin' },
+        //   { label: 'Check Out', href: '#activity-checkout' },
+        // ] },
       ]
     },
     { name: 'PARENTS', href: '/parents-report' },
@@ -64,6 +67,7 @@ export const Navbar: React.FC = () => {
   const handleMouseLeave = () => {
     if (window.innerWidth >= 768) {
       setActiveDropdown(null);
+      setActiveSubmenu(null);
     }
   };
 
@@ -130,13 +134,48 @@ export const Navbar: React.FC = () => {
                         className="absolute top-full left-0 w-56 bg-white shadow-xl rounded-b-lg border-t-2 border-[#c53336] py-2"
                       >
                         {item.dropdownItems?.map((dropdownItem, index) => (
-                          <a 
-                            key={index}
-                            href={dropdownItem.href} 
-                            className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
-                          >
-                            {dropdownItem.label}
-                          </a>
+                          dropdownItem.subItems ? (
+                            <div
+                              key={index}
+                              className="relative"
+                              onMouseEnter={() => setActiveSubmenu(dropdownItem.label)}
+                              onMouseLeave={() => setActiveSubmenu(null)}
+                            >
+                              <div className="flex items-center justify-between px-4 py-2 text-sm font-bold uppercase tracking-wide text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336] cursor-default">
+                                {dropdownItem.label}
+                                <ChevronDown size={12} className="-rotate-90" />
+                              </div>
+                              <AnimatePresence>
+                                {activeSubmenu === dropdownItem.label && (
+                                  <motion.div
+                                    initial={{ opacity: 0, x: 8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 8 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute top-0 left-full w-44 bg-white shadow-xl rounded-lg border-t-2 border-[#c53336] py-2"
+                                  >
+                                    {dropdownItem.subItems.map((sub, i) => (
+                                      <a
+                                        key={i}
+                                        href={sub.href}
+                                        className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
+                                      >
+                                        {sub.label}
+                                      </a>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          ) : (
+                            <a
+                              key={index}
+                              href={dropdownItem.href}
+                              className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
+                            >
+                              {dropdownItem.label}
+                            </a>
+                          )
                         ))}
                       </motion.div>
                     )}
@@ -211,15 +250,43 @@ export const Navbar: React.FC = () => {
                 
                 {/* Mobile Dropdown */}
                 {item.hasDropdown && activeDropdown === item.name && (
-                  <div className="pl-8 bg-[#fcfafa] space-y-1 py-2 rounded-md mt-1">
+                  <div className="pl-4 bg-[#fcfafa] space-y-1 py-2 rounded-md mt-1">
                     {item.dropdownItems?.map((dropdownItem, index) => (
-                      <a 
-                        key={index}
-                        href={dropdownItem.href} 
-                        className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
-                      >
-                        {dropdownItem.label}
-                      </a>
+                      dropdownItem.subItems ? (
+                        <div key={index}>
+                          <button
+                            onClick={() => setActiveSubmenu(activeSubmenu === dropdownItem.label ? null : dropdownItem.label)}
+                            className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold uppercase tracking-wide text-[#1c3068] hover:text-[#c53336]"
+                          >
+                            {dropdownItem.label}
+                            <ChevronDown
+                              size={14}
+                              className={`transform transition-transform ${activeSubmenu === dropdownItem.label ? 'rotate-180' : ''}`}
+                            />
+                          </button>
+                          {activeSubmenu === dropdownItem.label && (
+                            <div className="pl-5 space-y-1 pb-1">
+                              {dropdownItem.subItems.map((sub, i) => (
+                                <a
+                                  key={i}
+                                  href={sub.href}
+                                  className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
+                                >
+                                  {sub.label}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <a
+                          key={index}
+                          href={dropdownItem.href}
+                          className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
+                        >
+                          {dropdownItem.label}
+                        </a>
+                      )
                     ))}
                   </div>
                 )}

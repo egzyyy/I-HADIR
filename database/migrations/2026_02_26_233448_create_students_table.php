@@ -19,7 +19,11 @@ return new class extends Migration
             $table->string('profile_pic_path')->nullable();
         
             // Student Contact & Address
-            $table->text('address')->nullable();
+            $table->text('street_address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('postcode', 10)->nullable();
+            $table->string('country')->default('Malaysia');
             $table->string('email')->nullable();
             $table->string('phone_num')->nullable();
             
