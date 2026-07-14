@@ -388,7 +388,7 @@ class UserController extends Controller
         return response()->json(['success' => true, 'message' => 'User updated successfully.']);
     }
 
-    public function getAdminProfile(Request $request)
+    public function getMyProfile(Request $request)
     {
         $admin = auth()->user();
         if (!$admin) { $admin = User::first(); }
@@ -443,7 +443,7 @@ class UserController extends Controller
         return 'Admin';
     }
 
-    public function updateAdminProfile(Request $request)
+    public function updateMyProfile(Request $request)
     {
         $admin = auth()->user();
         if (!$admin) { $admin = User::first(); }

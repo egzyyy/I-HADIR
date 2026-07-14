@@ -17,8 +17,9 @@ export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, classNa
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
     QRCode.toCanvas(canvasRef.current, icNumber, {
-      width: 240,
-      margin: 2,
+      width: 280,
+      margin: 3,
+      errorCorrectionLevel: 'H',
       color: { dark: '#1c3068', light: '#ffffff' },
     });
   }, [isOpen, icNumber]);

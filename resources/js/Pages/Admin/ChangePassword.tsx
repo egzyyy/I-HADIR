@@ -7,7 +7,7 @@ import axios from 'axios';
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-export default function AdminPassword() {
+export default function ChangePassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -35,7 +35,7 @@ export default function AdminPassword() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post('/api/admin/password', {
+      const response = await axios.post('/api/password', {
         password: password,
         password_confirmation: passwordConfirmation
       });

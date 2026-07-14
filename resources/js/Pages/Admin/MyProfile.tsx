@@ -10,7 +10,7 @@ import axios from 'axios';
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-export default function AdminProfile() {
+export default function MyProfile() {
   const [activeTab, setActiveTab] = useState<'profile' | 'e-contact' | 'address' | 'picture' | 'settings'>('profile');
   const [adminData, setAdminData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function AdminProfile() {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const response = await axios.get('/api/admin/profile');
+        const response = await axios.get('/api/profile');
         if (response.data.success) {
           const data = response.data.data;
           setAdminData(data);
@@ -112,7 +112,7 @@ export default function AdminProfile() {
     }
 
     try {
-      const response = await axios.post('/api/admin/profile', submitData, {
+      const response = await axios.post('/api/profile', submitData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

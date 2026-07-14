@@ -32,10 +32,10 @@ Route::put('/api/users/{id}', [UserController::class, 'update']);
 // Current authenticated user (drives role-based dashboard menu)
 Route::get('/api/me', [UserController::class, 'me']);
 
-// Admin Profile Management
-Route::get('/api/admin/profile', [UserController::class, 'getAdminProfile']);
-Route::post('/api/admin/profile', [UserController::class, 'updateAdminProfile']);
-Route::post('/api/admin/password', [UserController::class, 'updatePassword']);
+// Profile Management (self-service, all roles)
+Route::get('/api/profile', [UserController::class, 'getMyProfile']);
+Route::post('/api/profile', [UserController::class, 'updateMyProfile']);
+Route::post('/api/password', [UserController::class, 'updatePassword']);
 
 // School Sessions Management
 Route::get('/api/sessions', [SchoolController::class, 'getSessions']);
@@ -82,7 +82,9 @@ Route::post('/api/attendance/manual', [AttendanceController::class, 'manualEntry
 Route::post('/api/attendance/manual-check-in', [AttendanceController::class, 'manualCheckIn']);
 Route::post('/api/attendance/manual-check-out/{id}', [AttendanceController::class, 'manualCheckOut']);
 Route::get('/api/attendance/log', [AttendanceController::class, 'getLog']);
+Route::get('/api/attendance/my-log', [AttendanceController::class, 'myLog']);
 Route::get('/api/attendance/dashboard', [AttendanceController::class, 'getDashboard']);
+Route::get('/api/attendance/teacher-dashboard', [AttendanceController::class, 'teacherDashboard']);
 
 // Time Settings
 Route::get('/api/time-settings', [TimeSettingController::class, 'index']);
@@ -97,6 +99,7 @@ Route::put('/api/time-settings/overrides/{id}', [TimeSettingController::class, '
 Route::delete('/api/time-settings/overrides/{id}', [TimeSettingController::class, 'destroyOverride']);
 
 // QR Code
+Route::get('/api/qr/me', [QrController::class, 'me']);
 Route::get('/api/qr/{userType}/{userId}', [QrController::class, 'generate']);
 Route::post('/api/qr/resolve', [QrController::class, 'resolve']);
 

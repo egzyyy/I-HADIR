@@ -35,9 +35,9 @@ import TimeSetting from './Pages/AttendanceLog/TimeSetting';
 import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 
 // Pages — Admin (folder)
-import AdminProfile from './Pages/Admin/AdminProfile';
-import AdminAttendance from './Pages/Admin/AdminAttendance';
-import AdminPassword from './Pages/Admin/AdminPassword';
+import MyProfile from './Pages/Admin/MyProfile';
+import MyAttendance from './Pages/Admin/MyAttendance';
+import ChangePassword from './Pages/Admin/ChangePassword';
 
 // Pages — Check In (folder)
 import FacilityCheckIn from './Pages/CheckIn/FacilityCheckIn';
@@ -120,9 +120,9 @@ root.render(
       <Route path="/faqs" element={<RequireRole allow={ALL}><Faqs /></RequireRole>} />
 
       {/* Personal account — all roles */}
-      <Route path="/admin-profile" element={<RequireRole allow={ALL}><AdminProfile /></RequireRole>} />
-      <Route path="/admin-attendance" element={<RequireRole allow={ALL}><AdminAttendance /></RequireRole>} />
-      <Route path="/admin-password" element={<RequireRole allow={ALL}><AdminPassword /></RequireRole>} />
+      <Route path="/my-profile" element={<RequireRole allow={ALL}><MyProfile /></RequireRole>} />
+      <Route path="/my-attendance" element={<RequireRole allow={ALL}><MyAttendance /></RequireRole>} />
+      <Route path="/change-password" element={<RequireRole allow={ALL}><ChangePassword /></RequireRole>} />
     </Routes>
     </AuthProvider>
   </BrowserRouter>

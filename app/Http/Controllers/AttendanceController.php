@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Models\Classroom;
 use App\Models\Enrollment;
+use App\Models\Visitor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -34,7 +35,7 @@ class AttendanceController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         // Prevent duplicate check-in
@@ -119,7 +120,7 @@ class AttendanceController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         $log = AttendanceLog::where('user_type', $request->user_type)
@@ -178,7 +179,7 @@ class AttendanceController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         $existing = AttendanceLog::where('user_type', $request->user_type)
@@ -327,6 +328,106 @@ class AttendanceController extends Controller
         ]);
     }
 
+    // ─── Teacher Dashboard ───────────────────────────────────────────────────
+
+    public function teacherDashboard()
+    {
+        $user = auth()->user();
+
+        if ($user->user_type !== 'teacher') {
+            return response()->json([
+                'message' => 'This endpoint is only available for teacher accounts.',
+            ], 422);
+        }
+
+        $schoolId = $user->school_id;
+        $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+
+        $classroomIds = Classroom::where('school_id', $schoolId)
+            ->where('user_id', $user->user_id)
+            ->when($session, fn($q) => $q->where('school_session_id', $session->school_session_id))
+            ->pluck('classroom_id');
+
+        $totalStudents = $classroomIds->isEmpty() ? 0 : Enrollment::whereIn('classroom_id', $classroomIds)
+            ->when($session, fn($q) => $q->where('school_session_id', $session->school_session_id))
+            ->count();
+
+        $today = Carbon::today()->toDateString();
+
+        $logs = $classroomIds->isEmpty() ? collect() : AttendanceLog::where('school_id', $schoolId)
+            ->where('user_type', 'student')
+            ->whereIn('classroom_id', $classroomIds)
+            ->whereDate('date', $today)
+            ->get();
+
+        $presentToday = $logs->whereIn('status', ['present', 'late'])->count();
+
+        $recent = $logs->sortByDesc('check_in_time')->take(8)->map(function ($log) {
+            $student = Student::where('student_id', $log->user_id)->first();
+            return [
+                'name'      => $student?->name ?? 'Unknown',
+                'status'    => $log->status,
+                'time'      => $log->check_in_time?->format('H:i'),
+                'timestamp' => $log->check_in_time?->timestamp,
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'total_students' => $totalStudents,
+                'present_today'  => $presentToday,
+                'classes_count'  => $classroomIds->count(),
+                'recent'         => $recent,
+            ],
+        ]);
+    }
+
+    // ─── My Attendance (self, Teacher / Security) ───────────────────────────
+
+    public function myLog(Request $request)
+    {
+        $user = auth()->user();
+
+        $userType = match (true) {
+            $user->user_type === 'teacher' => 'teacher',
+            in_array($user->user_type, ['staff', 'security_staff']) => 'staff',
+            default => null,
+        };
+
+        if (!$userType) {
+            return response()->json([
+                'message' => 'Self attendance records are only available for teacher and staff accounts.',
+            ], 422);
+        }
+
+        $query = AttendanceLog::where('school_id', $user->school_id)
+            ->where('user_type', $userType)
+            ->where('user_id', $user->user_id);
+
+        if ($request->from) {
+            $query->whereDate('date', '>=', $request->from);
+        }
+        if ($request->to) {
+            $query->whereDate('date', '<=', $request->to);
+        }
+
+        $logs = $query->orderByDesc('date')->orderByDesc('check_in_time')->get();
+
+        $data = $logs->map(function ($log) {
+            return [
+                'id'          => $log->id,
+                'date'        => $log->date->format('d-m-Y'),
+                'check_in'    => $log->check_in_time?->format('H:i:s'),
+                'check_out'   => $log->check_out_time?->format('H:i:s'),
+                'status'      => $log->status,
+                'scan_method' => $log->scan_method,
+            ];
+        });
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
     // ─── Dashboard Stats ─────────────────────────────────────────────────────
 
     public function getDashboard()
@@ -338,9 +439,10 @@ class AttendanceController extends Controller
             ->whereDate('date', $today)
             ->get();
 
-        $present = $logs->where('status', 'present')->count();
-        $late    = $logs->where('status', 'late')->count();
-        $absent  = $logs->where('status', 'absent')->count();
+        $present  = $logs->where('status', 'present')->count();
+        $late     = $logs->where('status', 'late')->count();
+        $absent   = $logs->where('status', 'absent')->count();
+        $inSchool = $logs->whereNotNull('check_in_time')->whereNull('check_out_time')->count();
 
         $recent = $logs->sortByDesc('check_in_time')->take(10)->map(function ($log) {
             [$name, $class] = $this->resolveNameClass($log);
@@ -350,18 +452,37 @@ class AttendanceController extends Controller
                 'user_type' => $log->user_type,
                 'status'    => $log->status,
                 'time'      => $log->check_in_time?->format('H:i'),
+                'timestamp' => $log->check_in_time?->timestamp,
+            ];
+        })->values();
+
+        $todaysVisitors = Visitor::where('school_id', $schoolId)
+            ->whereDate('created_at', $today)
+            ->get();
+
+        $recentVisitors = $todaysVisitors->sortByDesc('created_at')->take(10)->map(function ($v) {
+            return [
+                'name'      => $v->name,
+                'class'     => 'Visitor',
+                'user_type' => 'visitor',
+                'status'    => $v->status === 'Checked Out' ? 'checked_out' : 'in_premise',
+                'time'      => $v->created_at->format('H:i'),
+                'timestamp' => $v->created_at->timestamp,
             ];
         })->values();
 
         return response()->json([
             'success' => true,
             'data'    => [
-                'date'    => Carbon::today()->format('d/m/Y'),
-                'present' => $present,
-                'late'    => $late,
-                'absent'  => $absent,
-                'total'   => $present + $late + $absent,
-                'recent'  => $recent,
+                'date'            => Carbon::today()->format('d/m/Y'),
+                'present'         => $present,
+                'late'            => $late,
+                'absent'          => $absent,
+                'total'           => $present + $late + $absent,
+                'in_school'       => $inSchool,
+                'visitors_today'  => $todaysVisitors->count(),
+                'recent'          => $recent,
+                'recent_visitors' => $recentVisitors,
             ],
         ]);
     }

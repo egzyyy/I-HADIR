@@ -39,7 +39,7 @@ class FacilityController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         // Allow multiple facility visits per day — only block if already checked in but not yet out
@@ -97,7 +97,7 @@ class FacilityController extends Controller
         );
 
         if (!$userId) {
-            return response()->json(['message' => 'Person not found with that IC number.'], 404);
+            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
         $log = FacilityLog::where('school_id', $schoolId)
