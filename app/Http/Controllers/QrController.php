@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
-use App\Models\Teacher;
-use App\Models\Staff;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class QrController extends Controller
@@ -24,11 +23,9 @@ class QrController extends Controller
 
         return response()->json([
             'success' => true,
-            'payload' => json_encode([
-                'type' => $userType,
-                'ic'   => $person->ic_number,
-            ]),
-            'name' => $person->name,
+            'payload' => $person->ic_number,
+            'name'    => $person->name ?? $person->full_name,
+            'label'   => $this->labelFor($userType, $person),
         ]);
     }
 
@@ -54,8 +51,37 @@ class QrController extends Controller
             'success'   => true,
             'user_type' => $request->user_type,
             'user_id'   => $person->getKey(),
-            'name'      => $person->name,
-            'class'     => $request->user_type === 'student' ? ($person->class ?? '-') : ucfirst($request->user_type),
+            'name'      => $person->name ?? $person->full_name,
+            'class'     => $this->labelFor($request->user_type, $person),
+        ]);
+    }
+
+    /**
+     * Return the authenticated user's own QR payload (Teacher / Security self-service).
+     * GET /api/qr/me
+     */
+    public function me()
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $userType = match (true) {
+            $user->user_type === 'teacher' => 'teacher',
+            in_array($user->user_type, ['staff', 'security_staff']) => 'staff',
+            default => null,
+        };
+
+        if (!$userType) {
+            return response()->json(['message' => 'QR codes are only available for teacher and staff accounts.'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'payload' => $user->ic_number,
+            'name'    => $user->full_name,
+            'label'   => $user->user_type === 'security_staff' ? 'Security' : ucfirst($userType),
         ]);
     }
 
@@ -65,8 +91,8 @@ class QrController extends Controller
     {
         return match ($type) {
             'student' => Student::where('school_id', $schoolId)->where('student_id', $id)->first(),
-            'teacher' => Teacher::where('school_id', $schoolId)->where('teacher_id', $id)->first(),
-            'staff'   => Staff::where('school_id', $schoolId)->where('staff_id', $id)->first(),
+            'teacher' => User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('user_id', $id)->first(),
+            'staff'   => User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('user_id', $id)->first(),
             default   => null,
         };
     }
@@ -75,9 +101,20 @@ class QrController extends Controller
     {
         return match ($type) {
             'student' => Student::where('school_id', $schoolId)->where('ic_number', $ic)->first(),
-            'teacher' => Teacher::where('school_id', $schoolId)->where('ic_number', $ic)->first(),
-            'staff'   => Staff::where('school_id', $schoolId)->where('ic_number', $ic)->first(),
+            'teacher' => User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('ic_number', $ic)->first(),
+            'staff'   => User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('ic_number', $ic)->first(),
             default   => null,
         };
+    }
+
+    private function labelFor(string $type, $person): string
+    {
+        if ($type === 'student') {
+            return $person->class ?? '-';
+        }
+        if ($type === 'staff' && ($person->user_type ?? null) === 'security_staff') {
+            return 'Security';
+        }
+        return ucfirst($type);
     }
 }

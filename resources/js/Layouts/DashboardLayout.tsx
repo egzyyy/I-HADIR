@@ -401,9 +401,9 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'attendance-reports': '/attendance-reports',
       'general-report': '/general-report',
       'faqs': '/faqs',
-      'my-profile': '/admin-profile',
-      'my-attendance': '/admin-attendance',
-      'change-password': '/admin-password',
+      'my-profile': '/my-profile',
+      'my-attendance': '/my-attendance',
+      'change-password': '/change-password',
     };
 
     const route = routes[id];
@@ -576,11 +576,11 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                       <p className="text-xs text-gray-500 truncate">{user?.email ?? roleMeta.email}</p>
                     </div>
                     
-                    <button onClick={() => { navigate('/admin-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+                    <button onClick={() => { navigate('/my-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Users size={16} /> My Profile
                     </button>
-                    
-                    <button onClick={() => { navigate('/admin-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+
+                    <button onClick={() => { navigate('/change-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Keyboard size={16} /> Change Password
                     </button>
                     

@@ -243,7 +243,7 @@ const FacilityCheckIn = () => {
                       <div className="w-10 h-10 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
-                  <QrScanner onScan={handleScan} active={scanning} qrboxSize={400} />
+                  <QrScanner onScan={handleScan} active={scanning} qrboxSize={280} />
                 </div>
 
                 {error && (
