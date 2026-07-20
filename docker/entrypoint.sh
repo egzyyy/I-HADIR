@@ -6,6 +6,15 @@ cd /var/www/html
 # .env is bind-mounted from docker/.env.docker (see docker-compose.yml) —
 # it always exists and is intentionally separate from any host .env.
 
+# This stack always runs dev-mode Vite (the `vite` service). If a stale
+# public/build/ (from an old `npm run build`, e.g. on the host) is present,
+# Laravel's @vite directive silently serves THAT instead of the live dev
+# server whenever public/hot is momentarily missing (briefly on every `vite`
+# container restart) — no error, just old/wrong frontend behavior that looks
+# like a mystery bug. Since a prebuilt bundle is never wanted here, remove it
+# every boot so this can't happen.
+rm -rf public/build
+
 if [ ! -f vendor/autoload.php ]; then
   echo "[entrypoint] Installing PHP dependencies..."
   composer install --no-interaction --prefer-dist --optimize-autoloader

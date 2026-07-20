@@ -54,6 +54,7 @@ services:
     volumes:
       - .:/var/www/html
       - node-modules-data:/var/www/html/node_modules
+      - ./docker/.env.docker:/var/www/html/.env
     depends_on:
       - app
 
