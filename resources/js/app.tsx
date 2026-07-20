@@ -27,10 +27,10 @@ import ClassPage from './Pages/Academic/Class';
 import CoCurricular from './Pages/Academic/CoCurricular';
 import Sport from './Pages/Academic/Sport';
 import EventPage from './Pages/Academic/Event';
+import EventScanPage from './Pages/Academic/EventScan';
 
 // Pages — Attendance Log dropdown (folder)
 import CheckIn from './Pages/AttendanceLog/CheckIn';
-import CheckOut from './Pages/AttendanceLog/CheckOut';
 import TimeSetting from './Pages/AttendanceLog/TimeSetting';
 import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 
@@ -38,6 +38,7 @@ import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 import MyProfile from './Pages/Admin/MyProfile';
 import MyAttendance from './Pages/Admin/MyAttendance';
 import ChangePassword from './Pages/Admin/ChangePassword';
+import LandingContent from './Pages/Admin/LandingContent';
 
 // Pages — Check In (folder)
 import FacilityCheckIn from './Pages/CheckIn/FacilityCheckIn';
@@ -48,6 +49,7 @@ import ParentsReport from './Pages/Reports/ParentsReport';
 
 // Pages — Other
 import Visitor from './Pages/Visitor';
+import PublicScan from './Pages/PublicScan';
 
 // Role groups for route access
 const ALL: Role[] = ['Admin', 'Teacher', 'Security'];
@@ -79,6 +81,7 @@ root.render(
       <Route path="/school/:slug" element={<SchoolLanding />} />
       <Route path="/login" element={<Login />} />
       <Route path="/visitor" element={<Visitor />} />
+      <Route path="/scan" element={<PublicScan />} />
       <Route path="/parents-report" element={<ParentsReport />} />
 
       {/* Dashboard — all roles */}
@@ -86,6 +89,7 @@ root.render(
 
       {/* School Management — admin only */}
       <Route path="/school-session" element={<RequireRole allow={ADMIN}><SchoolSession /></RequireRole>} />
+      <Route path="/landing-content" element={<RequireRole allow={ADMIN}><LandingContent /></RequireRole>} />
 
       {/* SMS API — admin only */}
       <Route path="/set-sms-api" element={<RequireRole allow={ADMIN}><SetSmsApi /></RequireRole>} />
@@ -101,11 +105,12 @@ root.render(
       <Route path="/academic/co-curricular" element={<RequireRole allow={ADMIN}><CoCurricular /></RequireRole>} />
       <Route path="/academic/sport" element={<RequireRole allow={ADMIN}><Sport /></RequireRole>} />
       <Route path="/academic/event" element={<RequireRole allow={ADMIN}><EventPage /></RequireRole>} />
+      <Route path="/academic/event/:id/scan" element={<RequireRole allow={ADMIN}><EventScanPage /></RequireRole>} />
 
       {/* Attendance Log (dropdown) */}
       <Route path="/attendance-log" element={<RequireRole allow={ADMIN}><AttendanceLogList /></RequireRole>} />
       <Route path="/attendance-log/check-in" element={<RequireRole allow={ALL}><CheckIn /></RequireRole>} />
-      <Route path="/attendance-log/check-out" element={<RequireRole allow={ALL}><CheckOut /></RequireRole>} />
+      <Route path="/attendance-log/check-out" element={<Navigate to="/attendance-log/check-in?mode=check-out" replace />} />
       <Route path="/attendance-log/time-setting" element={<RequireRole allow={ADMIN}><TimeSetting /></RequireRole>} />
 
       {/* Check In */}

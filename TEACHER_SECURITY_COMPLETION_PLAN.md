@@ -183,18 +183,50 @@ Requested: make `QrScanner.tsx` more tolerant of imperfect scanning angles/dista
 - [ ] Not independently verified against a live camera (no camera/browser access in this environment) — needs your on-device re-test, particularly on whatever device/webcam actually supports zoom (check browser devtools console for whether the auto-zoom interval is running by inspecting `getRunningTrackCapabilities()` manually, if curious).
 
 ### Phase 6 — Landing page goes dynamic
-- [ ] Migration: `schools` table gains nullable unique `slug`.
-- [ ] Backfill `pulau-serai` onto the existing `MEA0001` row (seeder or one-off `DB::table` update).
-- [ ] `School` model — add `slug` to `$fillable`.
-- [ ] New `app/Http/Controllers/PublicController.php`:
-  - [ ] `schools()` → `GET /api/public/schools`
-  - [ ] `show($slug)` → `GET /api/public/schools/{slug}` (name/city/state + live counts: students, teachers, active co-curriculars)
-  - [ ] `events($slug)` → `GET /api/public/schools/{slug}/events` (upcoming, `is_active`, ordered by `event_date`)
-- [ ] Register all three routes **without** any auth dependency, above the SPA catch-all.
-- [ ] `SchoolDirectory.tsx` — fetch `/api/public/schools` on mount, cross-reference `data/schools.ts` by slug, mark `hasPortal` dynamically.
-- [ ] `SchoolLanding.tsx` (`SchoolAbout`) — fetch `/api/public/schools/{slug}`, replace the 4 hardcoded stat cards with live counts.
-- [ ] `Hero.tsx` — fetch `/api/public/schools/{slug}/events`, replace the 3 hardcoded events; handle 0/1/many gracefully; use each event's `bannerUrl` with a neutral fallback graphic when absent.
-- [ ] Manual check: visit `/school/pulau-serai` logged out, confirm live stats + real events render (or a clean empty state if no events exist yet).
+- [x] Migration: `schools` table gains nullable unique `slug` (`2026_07_15_000001_add_slug_to_schools_table`), with the `pulau-serai` backfill onto `MEA0001` done inside the migration itself; `DatabaseSeeder` also seeds the slug for fresh installs.
+- [x] `School` model — `slug` added to `$fillable`.
+- [x] New `app/Http/Controllers/PublicController.php`:
+  - [x] `schools()` → `GET /api/public/schools` — only schools with a `slug` set and `is_active`.
+  - [x] `show($slug)` → `GET /api/public/schools/{slug}` — name/city/state + live counts (active students, teachers, active co-curriculars); 404 on unknown slug.
+  - [x] `events($slug)` → `GET /api/public/schools/{slug}/events` — upcoming (`event_date >= today`), `is_active`, ordered ascending, with `bannerUrl`.
+- [x] All three routes registered auth-free, above the SPA catch-all (verified via `route:list`).
+- [x] `SchoolDirectory.tsx` — fetches `/api/public/schools` on mount; `hasPortal` now comes from the backend slug match, static flags only as offline fallback.
+- [x] `SchoolLanding.tsx` (`SchoolAbout`) — live counts replace the hardcoded 600+/40+/20+ cards ("Est." card kept static pending Phase 6b).
+- [x] `Hero.tsx` — full rewrite: fetches `/api/public/schools/{slug}/events`; loading spinner, clean "No upcoming events" empty state, single-event mode (nav arrows/dots hidden), neutral gradient fallback when an event has no banner. Takes `slug` as a prop from `SchoolLanding`.
+- [x] Smoke-tested via `tinker`: all 3 endpoints return correct JSON (schools list, live stats, 404 on bad slug); event formatting verified with a temporary event fixture (deleted after). `npm run build` passes.
+- [ ] Manual check (on-device): visit `/school/pulau-serai` logged out, confirm live stats + real events render.
+
+### Phase 6b — Admin-managed landing page content (added per Harith's request, 2026-07-15)
+The events banner is now data-driven, but the rest of the school landing page (tagline,
+"about the school" copy, established year, vision/mission) is still hardcoded, and there's
+no organization-hierarchy section at all. This phase makes all of it admin-editable.
+
+**Design:**
+- New `school_profiles` table — one row per school: `tagline`, `established_year`, `about`
+  (multi-paragraph text), `vision`, `mission`, `organization` (JSON array of
+  `{name, position, level}` where level 1 = head, 2 = deputies, 3 = others), timestamps.
+- New `SchoolProfileController` — `GET`/`POST /api/school/landing-profile` (auth'd, admin
+  sidebar page), upserting the caller's school row.
+- `PublicController::show` additionally returns the `profile` object (nulls when unset).
+- New admin page `Pages/Admin/LandingContent.tsx` ("Landing Page" under SCHOOL MANAGEMENT,
+  admin-only): form for all text fields + an organization-members editor (name, position,
+  tier; add/remove rows). Route `/landing-content`.
+- `SchoolLanding.tsx` — the page fetches `/api/public/schools/{slug}` once and passes data
+  down; DB-backed values override the static `data/schools.ts` copy wherever present
+  (tagline, about, est. year, vision, mission); a new "Organization" section renders the
+  hierarchy grouped by tier, only when members exist. Static copy remains the fallback so
+  the page never looks empty for schools that haven't filled anything in.
+- Not in scope: member photos (text-only chart for now), per-school branding colors in DB
+  (stays in `data/schools.ts` as before).
+
+**Checklist:**
+- [x] Migration `create_school_profiles_table` + `SchoolProfile` model (migrated).
+- [x] `SchoolProfileController` (`show`/`update`, upsert by caller's `school_id`) + `GET/POST /api/school/landing-profile` routes.
+- [x] `PublicController::show` includes the `profile` object (nulls when unset).
+- [x] `Pages/Admin/LandingContent.tsx` — sectioned form (identity / about / vision & mission / organization member editor with tier select), success/error modals matching `MyProfile.tsx` conventions; app.tsx route `/landing-content` (ADMIN only); sidebar "Landing Page" entry under SCHOOL MANAGEMENT.
+- [x] `SchoolLanding.tsx` — page-level single fetch of `/api/public/schools/{slug}` passed down; tagline/about (multi-paragraph)/est. year/vision/mission override static copy when set; new `SchoolOrganization` section renders tiered member cards, hidden when no members.
+- [x] Smoke test via `tinker`: admin save → authed read-back → public endpoint all reflect the same profile (incl. organization array); test row cleaned up after. `npm run build` passes.
+- [ ] Manual check (on-device): fill in the Landing Page form as admin, confirm `/school/pulau-serai` shows it logged-out.
 
 ---
 

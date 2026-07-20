@@ -426,7 +426,7 @@ const ActivityReport = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500 text-sm">No records available yet. Feature pending.</td></tr>
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500 text-sm">No attendance recorded for this event yet.</td></tr>
                     )}
                  </tbody>
                </table>

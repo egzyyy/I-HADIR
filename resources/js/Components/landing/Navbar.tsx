@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import logo from '../../assets/i_hadir_logo2.png';
 
 // --- Nav data types (supports one optional level of nested submenus) ---
@@ -20,16 +20,26 @@ export const Navbar: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
 
+  // School context travels with the kiosk links so /scan can send visitors back
+  // to the school page they came from: the route param covers /school/:slug,
+  // the ?school= query param covers being on /scan itself.
+  const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const school = slug ?? searchParams.get('school');
+  const schoolSuffix = school ? `&school=${school}` : '';
+  const homeHref = school ? `/school/${school}` : '/';
+
   const navItems: NavItem[] = [
-    { name: 'HOME', icon: <Home size={16} />, href: '#' },
+    { name: 'HOME', icon: <Home size={16} />, href: homeHref },
+    // Public kiosk scanner — no login needed (see Pages/PublicScan.tsx).
     {
       name: 'ATTENDANCE',
       hasDropdown: true,
       dropdownItems: [
-        { label: 'Student Check In', href: '#attendance-checkin' },
-        { label: 'Student Check Out', href: '#attendance-checkout' },
-        { label: 'Security Staff Check In', href: '#security-checkin' },
-        { label: 'Security Staff Check Out', href: '#security-checkout' }
+        { label: 'Student Check In', href: `/scan?mode=check-in&type=student${schoolSuffix}` },
+        { label: 'Student Check Out', href: `/scan?mode=check-out&type=student${schoolSuffix}` },
+        { label: 'Security Staff Check In', href: `/scan?mode=check-in&type=staff${schoolSuffix}` },
+        { label: 'Security Staff Check Out', href: `/scan?mode=check-out&type=staff${schoolSuffix}` }
       ]
     },
     {
@@ -37,21 +47,17 @@ export const Navbar: React.FC = () => {
       hasDropdown: true,
       dropdownItems: [
         { label: 'PRAYER', subItems: [
-          { label: 'Check In', href: '#prayer-checkin' },
-          { label: 'Check Out', href: '#prayer-checkout' },
+          { label: 'Check In', href: `/scan?facility=prayer&mode=check-in${schoolSuffix}` },
+          { label: 'Check Out', href: `/scan?facility=prayer&mode=check-out${schoolSuffix}` },
         ] },
         { label: 'PSS', subItems: [
-          { label: 'Check In', href: '#pss-checkin' },
-          { label: 'Check Out', href: '#pss-checkout' },
+          { label: 'Check In', href: `/scan?facility=pss&mode=check-in${schoolSuffix}` },
+          { label: 'Check Out', href: `/scan?facility=pss&mode=check-out${schoolSuffix}` },
         ] },
         { label: 'ICT', subItems: [
-          { label: 'Check In', href: '#ict-checkin' },
-          { label: 'Check Out', href: '#ict-checkout' },
+          { label: 'Check In', href: `/scan?facility=ict&mode=check-in${schoolSuffix}` },
+          { label: 'Check Out', href: `/scan?facility=ict&mode=check-out${schoolSuffix}` },
         ] },
-        // { label: 'ACTIVITY', subItems: [
-        //   { label: 'Check In', href: '#activity-checkin' },
-        //   { label: 'Check Out', href: '#activity-checkout' },
-        // ] },
       ]
     },
     { name: 'PARENTS', href: '/parents-report' },
@@ -155,26 +161,28 @@ export const Navbar: React.FC = () => {
                                     className="absolute top-0 left-full w-44 bg-white shadow-xl rounded-lg border-t-2 border-[#c53336] py-2"
                                   >
                                     {dropdownItem.subItems.map((sub, i) => (
-                                      <a
+                                      <Link
                                         key={i}
-                                        href={sub.href}
+                                        to={sub.href}
+                                        onClick={handleMouseLeave}
                                         className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
                                       >
                                         {sub.label}
-                                      </a>
+                                      </Link>
                                     ))}
                                   </motion.div>
                                 )}
                               </AnimatePresence>
                             </div>
                           ) : (
-                            <a
+                            <Link
                               key={index}
-                              href={dropdownItem.href}
+                              to={dropdownItem.href!}
+                              onClick={handleMouseLeave}
                               className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
                             >
                               {dropdownItem.label}
-                            </a>
+                            </Link>
                           )
                         ))}
                       </motion.div>
@@ -267,25 +275,27 @@ export const Navbar: React.FC = () => {
                           {activeSubmenu === dropdownItem.label && (
                             <div className="pl-5 space-y-1 pb-1">
                               {dropdownItem.subItems.map((sub, i) => (
-                                <a
+                                <Link
                                   key={i}
-                                  href={sub.href}
+                                  to={sub.href}
+                                  onClick={() => setIsOpen(false)}
                                   className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
                                 >
                                   {sub.label}
-                                </a>
+                                </Link>
                               ))}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <a
+                        <Link
                           key={index}
-                          href={dropdownItem.href}
+                          to={dropdownItem.href!}
+                          onClick={() => setIsOpen(false)}
                           className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
                         >
                           {dropdownItem.label}
-                        </a>
+                        </Link>
                       )
                     ))}
                   </div>

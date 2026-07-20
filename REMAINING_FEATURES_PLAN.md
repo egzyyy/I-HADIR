@@ -66,33 +66,36 @@ Remove `AttendanceController::manualEntry()` + its route (`POST /api/attendance/
 
 ## 3. Implementation phases & checklists
 
-### Phase A — Admin Dashboard wired for real
-- [ ] `SchoolController::dashboardSummary()` → `GET /api/school/dashboard-summary`: total active users, teachers, staff, students, classrooms (classrooms scoped to active session, matching existing patterns).
-- [ ] Register the route in `routes/web.php`.
-- [ ] `Pages/Dashboard.tsx`: replace hardcoded `StatCard` values with the new endpoint's data.
-- [ ] `Pages/Dashboard.tsx`: replace the `attendanceData` dummy object — fetch `GET /api/attendance/log?user_type=X&date=Y` per tab (student/teacher/staff), merge-and-filter client-side for the "late" tab.
-- [ ] Manual check: verify counts match reality (cross-check against `/users/list`, `/academic/class`), verify each attendance tab matches what the equivalent role-specific dashboard already shows for today.
+### Phase A — Admin Dashboard wired for real ✅ (2026-07-15)
+- [x] `SchoolController::dashboardSummary()` → `GET /api/school/dashboard-summary`: total active users, teachers, staff, students, classrooms (classrooms scoped to active session, matching existing patterns).
+- [x] Registered the route in `routes/web.php`.
+- [x] `Pages/Dashboard.tsx`: hardcoded `StatCard` values replaced with the new endpoint's data ('—' while loading).
+- [x] `Pages/Dashboard.tsx`: `attendanceData` dummy object replaced — fetches `GET /api/attendance/log?user_type=X` once per type on mount; "late" tab is a client-side merge of the three tagged by type. Also wired while in there: real banner date + active session year, working name search, working Previous/Next pagination (10/page), Copy/CSV/Excel/PDF/Print exports on the filtered rows (same helpers as `MyAttendance.tsx`), status badge column, loading/empty states. Reason column now shows `reason_manual` from the log.
+- [x] Smoke-tested via `tinker`: summary returns correct counts for the dev DB (5 users / 2 teachers / 2 staff / 1 student / 1 class); `getLog` shape confirmed against what the frontend consumes. `npm run build` passes.
+- [ ] Manual check (on-device): cross-check counts against `/users/list` and `/academic/class`; verify tabs against the role-specific dashboards.
 
-### Phase B — Event attendance tracking (new feature)
-- [ ] Migration: `event_attendees` table (`event_id`, `user_type` enum, `user_id`, `check_in_time`, timestamps, unique on `event_id`+`user_type`+`user_id`).
-- [ ] `EventAttendee` model.
-- [ ] `EventController::scanAttendance(Request $request, $id)` → `POST /api/events/{id}/scan`, resolves `{ic_number, user_type}` the same way `AttendanceController`/`FacilityController` do, creates the attendee row (idempotent — already-checked-in returns a friendly duplicate response, not an error).
-- [ ] Register the route in `routes/web.php`.
-- [ ] New frontend page for scanning — camera-based, same `QrScanner` component/pattern as `FacilityCheckIn.tsx`. Routed from `Event.tsx` (e.g. a "Scan Attendance" button per event card → `/academic/event/:id/scan`).
-- [ ] Fix `ReportController::eventReport()` — replace the stub with a real query against `event_attendees`, per the §2.2 "absent" decision.
-- [ ] Manual check: create a test event, scan a real student/teacher/staff IC into it, confirm it shows up in the event report; confirm duplicate-scan handling.
+### Phase B — Event attendance tracking (new feature) ✅ (2026-07-15)
+Confirmed §2.2 decision: **(a) present-only** — the report lists who checked in; no "absent" count.
+- [x] Migration: `event_attendees` table (`event_id`, `user_type` enum, `user_id`, `check_in_time`, timestamps, unique on `event_id`+`user_type`+`user_id`). Migrated.
+- [x] `EventAttendee` model.
+- [x] `EventController::scanAttendance(Request $request, $id)` → `POST /api/events/{id}/scan`. Resolves `{ic_number, user_type}` with the same `resolveByIc` pattern as `FacilityController`; 409 friendly-duplicate response; additionally rejects (422) scanning a type the event's `participant_types` doesn't declare.
+- [x] Route registered in `routes/web.php`.
+- [x] New `Pages/Academic/EventScan.tsx` (`/academic/event/:id/scan`, admin-only) — event summary strip, participant-type toggle limited to the event's declared types (parents excluded — no IC to resolve), `QrScanner` + result modal per `FacilityCheckIn.tsx` conventions. Entry point: new "Scan Attendance" (scan-line icon) action button on each `Event.tsx` row.
+- [x] `ReportController::eventReport()` — real query against `event_attendees` with name/class resolution (student class from active-session enrollment); returns `stats.present` + rows in the exact shape `GeneralReport.tsx` already consumes (`time_out` is '-' since event attendance is check-in only). Stale "Feature pending" empty-state copy updated.
+- [x] Smoke-tested via `tinker`: scan → recorded; duplicate → 409 with name/time; undeclared type → 422; report returns the row with correct class/date/time. Test event + attendee cleaned up. `npm run build` passes.
+- [ ] Manual check (on-device): scan a printed/on-screen QR into a real event from the new page, confirm it appears in General Report → Event tab.
 
-### Phase C — SMS API settings persistence
-- [ ] Migration: `sms_settings` table (or a single-row config approach — TBD based on whether multi-school supports different providers) — `school_id`, `provider`, `api_key`, `sender_id`, timestamps.
-- [ ] `SmsSettingController` (or extend `SchoolController`) — `GET`/`POST` for saving and loading the config.
-- [ ] Register routes in `routes/web.php`.
-- [ ] `Pages/SetSmsApi.tsx`: wire the form to fetch/save via the new endpoint, add loading/success/error states matching the rest of the app's conventions.
-- [ ] Explicitly **not** building: actual SMS dispatch logic. Note this clearly in the UI copy so it's not mistaken for a working alert system.
+### Phase C — SMS API settings persistence — ⏸ ON HOLD (Harith, 2026-07-15)
+Deferred entirely per Harith: "This we hold first, no need to do for now." Nothing built —
+`SetSmsApi.tsx` remains a static UI. Revisit when an SMS provider decision is made.
 
-### Phase D — Small fixes / cleanup
-- [ ] Remove `AttendanceController::manualEntry()` and its route (`POST /api/attendance/manual`), pending §2.5 confirmation.
-- [ ] (If confirmed in §2.4) Add rate limiting to the parent report lookup route.
-- [ ] (If confirmed) Wire `Faqs.tsx`'s "Contact Support" button, or confirm it's intentionally inert.
+### Phase D — Small fixes / cleanup ✅ (2026-07-15, all three confirmed by Harith)
+- [x] Removed the `POST /api/attendance/manual` route. (The `manualEntry()` method itself no
+  longer existed in `AttendanceController` — the route pointed at a nonexistent method and
+  would have 500'd if ever called. Repo-wide grep confirmed no frontend caller.)
+- [x] Added `throttle:10,1` to `POST /api/reports/parent-student` (confirmed via `route:list -v`).
+- [x] Wired `Faqs.tsx`'s "Contact Support" button as a `mailto:info@ihadir.edu` link with a
+  prefilled subject — same support address the landing page's Contact section publishes.
 
 ---
 

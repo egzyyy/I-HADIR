@@ -1,0 +1,82 @@
+# Run: docker compose up --build
+# App:  http://localhost:8000
+# Vite: http://localhost:5173 (HMR — the app's Blade/@vite tags load from here)
+# DB:   127.0.0.1:3307 (mapped off the default 3306 so it doesn't clash with
+#       a locally running XAMPP MySQL instance)
+#
+# First boot installs composer/npm dependencies into named volumes, generates
+# an APP_KEY if missing, and runs migrations automatically — no manual setup
+# steps beyond `docker compose up`.
+#
+# The app container gets its OWN .env (docker/.env.docker), bind-mounted
+# directly onto /var/www/html/.env, instead of sharing your local .env.
+# `php artisan serve` watches .env for changes and restarts itself, re-reading
+# the file directly when it does — if it shared your bare-metal .env, editing
+# that file for local/XAMPP use would silently repoint the container's DB
+# connection too. Keeping them as two separate files is what actually fixes
+# that, not environment-variable precedence (which only applies to Dotenv's
+# normal boot, not this restart-on-change path).
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: i_hadir
+      DB_USERNAME: i_hadir
+      DB_PASSWORD: i_hadir_secret
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+    volumes:
+      - .:/var/www/html
+      - vendor-data:/var/www/html/vendor
+      - ./docker/.env.docker:/var/www/html/.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  vite:
+    image: node:20-alpine
+    working_dir: /var/www/html
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html
+      - node-modules-data:/var/www/html/node_modules
+      - ./docker/.env.docker:/var/www/html/.env
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: i_hadir
+      MYSQL_USER: i_hadir
+      MYSQL_PASSWORD: i_hadir_secret
+      MYSQL_ROOT_PASSWORD: root_secret
+    ports:
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_secret"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  db-data:
+  vendor-data:
+  node-modules-data:

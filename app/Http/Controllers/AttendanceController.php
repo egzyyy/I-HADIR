@@ -25,7 +25,8 @@ class AttendanceController extends Controller
             'user_type' => 'required|in:student,teacher,staff',
         ]);
 
-        $schoolId = auth()->user()->school_id;
+        // Public kiosk scanning (landing page) works logged-out — same fallback as VisitorController
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class, $classroomId] = $this->resolveByIc(
@@ -110,7 +111,7 @@ class AttendanceController extends Controller
             'user_type' => 'required|in:student,teacher,staff',
         ]);
 
-        $schoolId = auth()->user()->school_id;
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class] = $this->resolveByIc(

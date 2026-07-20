@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\FacilityLog;
 use App\Models\Visitor;
 use App\Models\Event;
+use App\Models\EventAttendee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -455,17 +456,66 @@ class ReportController extends Controller
         return response()->json(['success' => true, 'data' => $events]);
     }
 
+    // Present-only semantics: events have no fixed roster, so the report lists
+    // who checked in — no "absent" count is computed.
     public function eventReport(Request $request)
     {
         $request->validate([
             'event_id' => 'required|integer',
         ]);
-        
+
+        $schoolId = auth()->user()->school_id;
+        $event    = Event::where('school_id', $schoolId)
+            ->where('event_id', $request->event_id)
+            ->first();
+
+        if (!$event) {
+            return response()->json(['success' => false, 'message' => 'Event not found.'], 404);
+        }
+
+        $eventDate = $event->event_date->format('d-m-Y');
+
+        $data = EventAttendee::where('event_id', $event->event_id)
+            ->orderBy('check_in_time')
+            ->get()
+            ->map(function ($a) use ($schoolId, $eventDate) {
+                [$name, $class] = $this->resolveAttendeeNameClass($a->user_type, $a->user_id, $schoolId);
+
+                return [
+                    'user_type' => $a->user_type,
+                    'name'      => $name,
+                    'class'     => $class,
+                    'date'      => $eventDate,
+                    'time_in'   => $a->check_in_time->format('H:i'),
+                    'time_out'  => '-', // event attendance is check-in only
+                ];
+            });
+
         return response()->json([
             'success' => true,
-            'stats'   => ['present' => 0, 'absent' => 0],
-            'data'    => []
+            'stats'   => ['present' => $data->count()],
+            'data'    => $data,
         ]);
+    }
+
+    private function resolveAttendeeNameClass(string $type, string $userId, int $schoolId): array
+    {
+        if ($type === 'student') {
+            $s = Student::where('student_id', $userId)->first();
+            $enrollment = Enrollment::where('student_id', $userId)
+                ->whereHas('schoolSession', fn($q) => $q->where('school_id', $schoolId)->where('is_active', true))
+                ->with('classroom:classroom_id,name')
+                ->first();
+            return [$s?->name ?? 'Unknown', $enrollment?->classroom?->name ?? '-'];
+        }
+
+        if ($type === 'teacher') {
+            $t = User::where('user_id', $userId)->where('user_type', 'teacher')->first();
+            return [$t?->full_name ?? 'Unknown', 'Teacher'];
+        }
+
+        $s = User::where('user_id', $userId)->whereIn('user_type', ['staff', 'security_staff'])->first();
+        return [$s?->full_name ?? 'Unknown', 'Staff'];
     }
 
     // ========================================================================

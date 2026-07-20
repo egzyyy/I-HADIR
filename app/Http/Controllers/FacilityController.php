@@ -28,7 +28,8 @@ class FacilityController extends Controller
             ], 403);
         }
 
-        $schoolId = auth()->user()->school_id;
+        // Public kiosk scanning (landing page) works logged-out — same fallback as VisitorController
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
         $today    = Carbon::today()->toDateString();
         $now      = Carbon::now();
 
@@ -87,7 +88,7 @@ class FacilityController extends Controller
             'facility_type' => 'required|in:prayer,pss,ict,rmt',
         ]);
 
-        $schoolId = auth()->user()->school_id;
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class] = $this->resolveByIc(

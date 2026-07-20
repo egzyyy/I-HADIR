@@ -160,7 +160,7 @@ export const TeacherDashboard = () => {
             <p className="text-sm text-gray-600 mt-1">Scan your own QR to check in</p>
           </button>
           <button
-            onClick={() => navigate('/attendance-log/check-out')}
+            onClick={() => navigate('/attendance-log/check-in?mode=check-out')}
             className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
           >
             <p className="font-semibold text-[#1c3068]">Check Out</p>

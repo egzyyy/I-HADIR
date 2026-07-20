@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, X, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search, ScanLine } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -370,7 +371,8 @@ function copyToClipboard(items: EventItem[]) {
 
 // ── List ──────────────────────────────────────────────────────────────────────
 const EventList = () => {
-  const [events, setEvents] = useState<EventItem[]>([]); 
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -480,6 +482,7 @@ const EventList = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center items-center gap-2">
+                          <button onClick={() => navigate(`/academic/event/${item.id}/scan`)} className="p-2 bg-blue-50 text-[#1c3068] rounded-lg hover:bg-[#1c3068] hover:text-white transition-all shadow-sm border border-blue-100" title="Scan Attendance"><ScanLine size={16} /></button>
                           <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100" title="Edit"><Edit size={16} /></button>
                           <button onClick={() => { setSelected(item); setShowDeleteModal(true); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100" title="Delete"><Trash2 size={16} /></button>
                         </div>

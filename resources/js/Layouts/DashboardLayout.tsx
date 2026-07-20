@@ -6,7 +6,7 @@ import {
   LayoutDashboard, School, MessageSquare, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
-  UserCheck
+  UserCheck, Globe
 } from 'lucide-react';
 import logo from '../assets/i_hadir_logo2.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,7 +53,8 @@ const ADMIN_MENU: MenuSection[] = [
   {
     category: "SCHOOL MANAGEMENT",
     items: [
-      { id: 'school-profile', label: 'School Session', icon: School }
+      { id: 'school-profile', label: 'School Session', icon: School },
+      { id: 'landing-content', label: 'Landing Page', icon: Globe }
     ]
   },
   {
@@ -98,11 +99,10 @@ const ADMIN_MENU: MenuSection[] = [
         icon: CheckSquare,
         subItems: [
           { id: 'attendance-log-list', label: 'Log' },
-          { id: 'check-in', label: 'Check In' },
-          { id: 'check-out', label: 'Check Out' },
+          { id: 'check-in', label: 'Check In / Check Out' },
           { id: 'manual-entry', label: 'Manual Entry' },
           { id: 'time-setting', label: 'Time setting' }
-          
+
         ]
       },
       { id: 'facility-check-in', label: 'Facility & RMT', icon: ClipboardList },
@@ -141,8 +141,7 @@ const TEACHER_MENU: MenuSection[] = [
         label: 'Teacher Attendance',
         icon: UserCheck,
         subItems: [
-          { id: 'check-in', label: 'Check In' },
-          { id: 'check-out', label: 'Check Out' },
+          { id: 'check-in', label: 'Check In / Check Out' },
           { id: 'my-attendance', label: 'Self Attendance Report' }
         ]
       }
@@ -195,8 +194,7 @@ const SECURITY_MENU: MenuSection[] = [
         label: 'My Attendance',
         icon: UserCheck,
         subItems: [
-          { id: 'check-in', label: 'Check In' },
-          { id: 'check-out', label: 'Check Out' },
+          { id: 'check-in', label: 'Check In / Check Out' },
           { id: 'my-attendance', label: 'My Attendance Record' }
         ]
       }
@@ -383,6 +381,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
     const routes: Record<string, string> = {
       'dashboard': '/dashboard',
       'school-profile': '/school-session',
+      'landing-content': '/landing-content',
       'set-sms-api': '/set-sms-api',
       'user-registration': '/users/registration',
       'import-apdm': '/users/apdm',
@@ -393,7 +392,6 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'sport': '/academic/sport',
       'event': '/academic/event',
       'check-in': '/attendance-log/check-in',
-      'check-out': '/attendance-log/check-out',
       'time-setting': '/attendance-log/time-setting',
       'attendance-log-list': '/attendance-log',
       'facility-check-in': '/facility-check-in',
