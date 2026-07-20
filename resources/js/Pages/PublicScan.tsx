@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useSearchParams, Link } from 'react-router-dom';
-import {
-  Clock, CheckCircle, XCircle, AlertTriangle, X, ArrowLeft, QrCode,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import axios from 'axios';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Navbar } from '../Components/landing/Navbar';
-import QrScanner from '../Components/common/QrScanner';
+import ScannerCard from '../Components/common/ScannerCard';
+import ScanResultModal, { ScanResultBadge } from '../Components/common/ScanResultModal';
 
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -37,65 +35,10 @@ const FACILITY_LABELS: Record<string, string> = {
   rmt: 'RMT',
 };
 
-const statusBadgeClass = (status: string) => {
-  const map: Record<string, string> = {
-    present: 'bg-green-50 text-green-700',
-    late: 'bg-yellow-50 text-yellow-700',
-    absent: 'bg-red-50 text-red-700',
-  };
-  return map[status] ?? 'bg-gray-50 text-gray-600';
-};
-
-const ResultModal = ({ result, mode, onClose }: { result: ScanResult; mode: ScanMode; onClose: () => void }) => {
-  const isDuplicate = result.duplicate;
-
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
-      >
-        <div className={`h-2 w-full ${isDuplicate ? 'bg-yellow-400' : 'bg-green-400'}`} />
-        <div className="p-6 flex flex-col items-center text-center gap-4">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            {isDuplicate
-              ? <AlertTriangle size={32} className="text-yellow-500" />
-              : <CheckCircle size={32} className="text-green-500" />
-            }
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
-              {isDuplicate ? 'Already Recorded' : mode === 'check-out' ? 'Check-Out Recorded' : 'Check-In Recorded'}
-            </p>
-            <p className="text-xl font-black text-[#1c3068]">{result.name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{result.class}</p>
-          </div>
-          <div className={`w-full rounded-xl px-4 py-3 flex items-center justify-between ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Clock size={14} />
-              <span>{result.time}</span>
-            </div>
-            {result.status && (
-              <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${statusBadgeClass(result.status)}`}>
-                {result.status}
-              </span>
-            )}
-            {result.duration && (
-              <span className="text-sm font-bold text-green-600">{result.duration}</span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all"
-          >
-            Continue Scanning
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
+const statusTone: Record<string, ScanResultBadge['tone']> = {
+  present: 'success',
+  late: 'warning',
+  absent: 'danger',
 };
 
 export default function PublicScan() {
@@ -148,7 +91,7 @@ export default function PublicScan() {
     <div className="min-h-screen bg-[#fcfafa] font-sans">
       <Navbar />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
         <Link
           to={backHref}
           className="inline-flex items-center gap-2 text-gray-500 hover:text-[#1c3068] text-sm font-medium mb-6 transition-colors"
@@ -161,50 +104,30 @@ export default function PublicScan() {
           <p className="text-gray-500">Show the QR code to the camera to record {mode === 'check-out' ? 'check-out' : 'check-in'}.</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 sm:p-8">
-          {!scanning ? (
-            <div className="bg-gray-50/50 rounded-xl h-[480px] flex flex-col items-center justify-center gap-4 text-gray-400">
-              <QrCode size={48} className="text-gray-300" />
-              <p className="text-sm">Camera is off</p>
-              <button
-                onClick={() => { setScanning(true); setError(null); }}
-                className="px-6 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all text-sm"
-              >
-                Start Scanner
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="relative min-h-[480px]">
-                {loading && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
-                    <div className="w-10 h-10 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
-                <QrScanner onScan={handleScan} active={scanning} />
-              </div>
-
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-                  <XCircle className="text-red-500 shrink-0" size={18} />
-                  <p className="text-sm text-red-600 flex-1">{error}</p>
-                  <button onClick={() => setError(null)}><X size={16} className="text-red-400" /></button>
-                </div>
-              )}
-
-              <button
-                onClick={() => { setScanning(false); setError(null); }}
-                className="w-full py-2 text-sm text-gray-400 hover:text-red-500 transition-colors"
-              >
-                Stop Scanner
-              </button>
-            </div>
-          )}
-        </div>
+        <ScannerCard
+          scanning={scanning}
+          loading={loading}
+          error={error}
+          onScan={handleScan}
+          onStart={() => { setScanning(true); setError(null); }}
+          onStop={() => { setScanning(false); setError(null); }}
+          onDismissError={() => setError(null)}
+        />
       </div>
 
       {result && (
-        <ResultModal result={result} mode={mode} onClose={() => setResult(null)} />
+        <ScanResultModal
+          tone={result.duplicate ? 'warning' : 'success'}
+          eyebrow={result.duplicate ? 'Already Recorded' : mode === 'check-out' ? 'Check-Out Recorded' : 'Check-In Recorded'}
+          name={result.name}
+          subtitle={result.class}
+          time={result.time}
+          badges={[
+            ...(result.status ? [{ label: result.status, tone: statusTone[result.status], variant: 'pill' as const }] : []),
+            ...(result.duration ? [{ label: result.duration, tone: 'success' as const }] : []),
+          ]}
+          onClose={() => setResult(null)}
+        />
       )}
     </div>
   );

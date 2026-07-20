@@ -1,10 +1,11 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { QrCode, Users, GraduationCap, Briefcase, User, MapPin, Clock, Calendar, Moon, Book, Monitor, ClipboardList, ChevronRight, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
+import { Moon, Book, Monitor, ClipboardList, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
-import QrScanner from '../../Components/common/QrScanner';
+import ScannerCard from '../../Components/common/ScannerCard';
+import ScanResultModal from '../../Components/common/ScanResultModal';
 
 // Changed 'activity' to 'rmt' to match backend expectation exactly
 type FacilityType = 'prayer' | 'pss' | 'ict' | 'rmt';
@@ -18,55 +19,6 @@ type ScanResult = {
   message: string;
   duration?: string;
   duplicate?: boolean;
-};
-
-// ─── Result Modal ─────────────────────────────────────────────────────────────
-const ResultModal = ({ result, mode, onClose }: { result: ScanResult; mode: ScanMode; onClose: () => void }) => {
-  const isDuplicate = result.duplicate;
-  const isCheckOut  = mode === 'check-out';
-
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
-      >
-        <div className={`h-2 w-full ${isDuplicate ? 'bg-yellow-400' : 'bg-green-400'}`} />
-        <div className="p-6 flex flex-col items-center text-center gap-4">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            {isDuplicate
-              ? <AlertTriangle size={32} className="text-yellow-500" />
-              : <CheckCircle size={32} className="text-green-500" />
-            }
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
-              {isDuplicate ? 'Already Checked In' : isCheckOut ? 'Check-Out Recorded' : 'Check-In Recorded'}
-            </p>
-            <p className="text-xl font-black text-[#1c3068]">{result.name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{result.class}</p>
-          </div>
-          <div className={`w-full rounded-xl px-4 py-3 flex items-center justify-between ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Clock size={14} />
-              <span>{result.time}</span>
-            </div>
-            {result.duration && (
-              <span className="text-sm font-bold text-green-600">{result.duration}</span>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all"
-          >
-            Continue Scanning
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
 };
 
 const FacilityCheckIn = () => {
@@ -117,7 +69,7 @@ const FacilityCheckIn = () => {
 
   if (!selectedType) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[500px]"
@@ -129,7 +81,7 @@ const FacilityCheckIn = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
           {/* Prayer Card */}
-          <div 
+          <div
             onClick={() => setSelectedType('prayer')}
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
@@ -140,7 +92,7 @@ const FacilityCheckIn = () => {
           </div>
 
           {/* PSS Card */}
-          <div 
+          <div
             onClick={() => setSelectedType('pss')}
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
@@ -151,7 +103,7 @@ const FacilityCheckIn = () => {
           </div>
 
           {/* ICT Card */}
-          <div 
+          <div
             onClick={() => setSelectedType('ict')}
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
@@ -194,7 +146,7 @@ const FacilityCheckIn = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-full mx-auto"
+        className="max-w-2xl mx-auto"
       >
         <div className="mb-6 flex items-center gap-4">
           <button
@@ -207,8 +159,8 @@ const FacilityCheckIn = () => {
           <h2 className="text-2xl font-bold text-[#1c3068]">{getTitle()} Scanner</h2>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px]">
-          <div className="p-8">
+        <ScannerCard
+          header={
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">QR Scanner</h3>
@@ -231,53 +183,25 @@ const FacilityCheckIn = () => {
                 ))}
               </div>
             </div>
-
-            {!scanning ? (
-              <div className="bg-gray-50/50 border-0 rounded-xl h-[600px] flex flex-col items-center justify-center gap-4 text-gray-400">
-                <QrCode size={48} className="text-gray-300" />
-                <p className="text-sm">Camera is off</p>
-                <button
-                  onClick={() => { setScanning(true); setError(null); }}
-                  className="px-6 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all text-sm"
-                >
-                  Start Scanner
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative min-h-[600px]">
-                  {loading && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
-                      <div className="w-10 h-10 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                  <QrScanner onScan={handleScan} active={scanning} qrboxSize={280} />
-                </div>
-
-                {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-                    <XCircle className="text-red-500 shrink-0" size={18} />
-                    <p className="text-sm text-red-600 flex-1">{error}</p>
-                    <button onClick={() => setError(null)}><X size={16} className="text-red-400" /></button>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => { setScanning(false); setError(null); }}
-                  className="w-full py-2 text-sm text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  Stop Scanner
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+          }
+          scanning={scanning}
+          loading={loading}
+          error={error}
+          onScan={handleScan}
+          onStart={() => { setScanning(true); setError(null); }}
+          onStop={() => { setScanning(false); setError(null); }}
+          onDismissError={() => setError(null)}
+        />
       </motion.div>
 
       {result && (
-        <ResultModal
-          result={result}
-          mode={scanMode}
+        <ScanResultModal
+          tone={result.duplicate ? 'warning' : 'success'}
+          eyebrow={result.duplicate ? 'Already Checked In' : scanMode === 'check-out' ? 'Check-Out Recorded' : 'Check-In Recorded'}
+          name={result.name}
+          subtitle={result.class}
+          time={result.time}
+          badges={result.duration ? [{ label: result.duration, tone: 'success' }] : []}
           onClose={() => setResult(null)}
         />
       )}

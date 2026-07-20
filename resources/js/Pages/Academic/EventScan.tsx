@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  QrCode, Clock, ChevronRight, CheckCircle, XCircle, AlertTriangle, X,
+  ChevronRight, XCircle,
   Calendar, MapPin, GraduationCap, Users, Briefcase
 } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
-import QrScanner from '../../Components/common/QrScanner';
+import ScannerCard from '../../Components/common/ScannerCard';
+import ScanResultModal from '../../Components/common/ScanResultModal';
 
 type ScanType = 'student' | 'teacher' | 'staff';
 
@@ -34,49 +35,6 @@ const TYPE_META: { key: ScanType; label: string; icon: any }[] = [
   { key: 'teacher', label: 'Teacher', icon: Users },
   { key: 'staff', label: 'Staff', icon: Briefcase },
 ];
-
-// ─── Result Modal (same conventions as FacilityCheckIn) ──────────────────────
-const ResultModal = ({ result, onClose }: { result: ScanResult; onClose: () => void }) => {
-  const isDuplicate = result.duplicate;
-
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
-      >
-        <div className={`h-2 w-full ${isDuplicate ? 'bg-yellow-400' : 'bg-green-400'}`} />
-        <div className="p-6 flex flex-col items-center text-center gap-4">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            {isDuplicate
-              ? <AlertTriangle size={32} className="text-yellow-500" />
-              : <CheckCircle size={32} className="text-green-500" />
-            }
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">
-              {isDuplicate ? 'Already Checked In' : 'Attendance Recorded'}
-            </p>
-            <p className="text-xl font-black text-[#1c3068]">{result.name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{result.class}</p>
-          </div>
-          <div className={`w-full rounded-xl px-4 py-3 flex items-center justify-center gap-2 text-sm text-gray-500 ${isDuplicate ? 'bg-yellow-50' : 'bg-green-50'}`}>
-            <Clock size={14} />
-            <span>{result.time}</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all"
-          >
-            Continue Scanning
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
 
 const EventScan = () => {
   const { id } = useParams<{ id: string }>();
@@ -155,7 +113,7 @@ const EventScan = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-full mx-auto"
+        className="max-w-2xl mx-auto"
       >
         <div className="mb-6 flex items-center gap-4">
           <button
@@ -182,8 +140,8 @@ const EventScan = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px]">
-          <div className="p-8">
+        <ScannerCard
+          header={
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">QR Scanner</h3>
@@ -215,53 +173,27 @@ const EventScan = () => {
                 </p>
               )}
             </div>
-
-            {scanTypes.length > 0 && (
-              !scanning ? (
-                <div className="bg-gray-50/50 border-0 rounded-xl h-[600px] flex flex-col items-center justify-center gap-4 text-gray-400">
-                  <QrCode size={48} className="text-gray-300" />
-                  <p className="text-sm">Camera is off</p>
-                  <button
-                    onClick={() => { setScanning(true); setError(null); }}
-                    className="px-6 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all text-sm"
-                  >
-                    Start Scanner
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="relative min-h-[600px]">
-                    {loading && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
-                        <div className="w-10 h-10 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                    <QrScanner onScan={handleScan} active={scanning} qrboxSize={280} />
-                  </div>
-
-                  {error && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-                      <XCircle className="text-red-500 shrink-0" size={18} />
-                      <p className="text-sm text-red-600 flex-1">{error}</p>
-                      <button onClick={() => setError(null)}><X size={16} className="text-red-400" /></button>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => { setScanning(false); setError(null); }}
-                    className="w-full py-2 text-sm text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    Stop Scanner
-                  </button>
-                </div>
-              )
-            )}
-          </div>
-        </div>
+          }
+          showScanner={scanTypes.length > 0}
+          scanning={scanning}
+          loading={loading}
+          error={error}
+          onScan={handleScan}
+          onStart={() => { setScanning(true); setError(null); }}
+          onStop={() => { setScanning(false); setError(null); }}
+          onDismissError={() => setError(null)}
+        />
       </motion.div>
 
       {result && (
-        <ResultModal result={result} onClose={() => setResult(null)} />
+        <ScanResultModal
+          tone={result.duplicate ? 'warning' : 'success'}
+          eyebrow={result.duplicate ? 'Already Checked In' : 'Attendance Recorded'}
+          name={result.name}
+          subtitle={result.class}
+          time={result.time}
+          onClose={() => setResult(null)}
+        />
       )}
     </>
   );

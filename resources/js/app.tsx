@@ -31,7 +31,6 @@ import EventScanPage from './Pages/Academic/EventScan';
 
 // Pages — Attendance Log dropdown (folder)
 import CheckIn from './Pages/AttendanceLog/CheckIn';
-import CheckOut from './Pages/AttendanceLog/CheckOut';
 import TimeSetting from './Pages/AttendanceLog/TimeSetting';
 import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 
@@ -111,7 +110,7 @@ root.render(
       {/* Attendance Log (dropdown) */}
       <Route path="/attendance-log" element={<RequireRole allow={ADMIN}><AttendanceLogList /></RequireRole>} />
       <Route path="/attendance-log/check-in" element={<RequireRole allow={ALL}><CheckIn /></RequireRole>} />
-      <Route path="/attendance-log/check-out" element={<RequireRole allow={ALL}><CheckOut /></RequireRole>} />
+      <Route path="/attendance-log/check-out" element={<Navigate to="/attendance-log/check-in?mode=check-out" replace />} />
       <Route path="/attendance-log/time-setting" element={<RequireRole allow={ADMIN}><TimeSetting /></RequireRole>} />
 
       {/* Check In */}
