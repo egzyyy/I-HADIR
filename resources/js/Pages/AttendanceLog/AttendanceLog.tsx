@@ -51,8 +51,12 @@ const AttendanceLogPage = () => {
     setLoading(true);
     try {
       const params: any = { user_type: filterType };
-      if (filterDate)   params.date   = filterDate;
-      if (filterStatus) params.status = filterStatus;
+      if (filterDate) params.date = filterDate;
+      // Status is deliberately NOT sent to the backend — the stat cards below
+      // are derived from `logs`, and need the full day's records (all
+      // statuses) to stay accurate regardless of which status the table is
+      // currently filtered to. Status filtering happens client-side instead,
+      // same as `search` already does.
 
       const res = await axios.get('/api/attendance/log', { params });
       setLogs(res.data.data ?? []);
@@ -63,11 +67,11 @@ const AttendanceLogPage = () => {
     }
   };
 
-  useEffect(() => { fetchLogs(); }, [filterDate, filterStatus, filterType]);
+  useEffect(() => { fetchLogs(); }, [filterDate, filterType]);
 
   const filtered = logs.filter(l =>
-    l.name.toLowerCase().includes(search.toLowerCase()) ||
-    l.class.toLowerCase().includes(search.toLowerCase())
+    (l.name.toLowerCase().includes(search.toLowerCase()) || l.class.toLowerCase().includes(search.toLowerCase())) &&
+    (!filterStatus || l.status === filterStatus)
   );
 
   // Apply Pagination Hook
