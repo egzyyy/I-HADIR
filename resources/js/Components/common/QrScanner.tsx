@@ -4,18 +4,32 @@ import { Html5Qrcode } from 'html5-qrcode';
 interface QrScannerProps {
   onScan: (value: string) => void;
   active: boolean;
-  qrboxSize?: number;
 }
 
 /**
  * Renders a live camera feed that decodes QR codes.
  * Calls onScan(decodedText) once per successful scan, then pauses briefly.
+ *
+ * Detection config is deliberately centralized here so every scanning page
+ * (attendance, facility, event, public kiosk) behaves identically:
+ * - qrbox is computed from the real viewfinder size at runtime — a hardcoded
+ *   pixel box is a documented html5-qrcode failure mode when it doesn't match
+ *   the video stream, and it made scan tolerance vary between pages.
+ * - 1080p is requested so distant/slanted codes keep enough pixel detail
+ *   (many webcams otherwise default to 640×480).
  */
-const QrScanner: React.FC<QrScannerProps> = ({ onScan, active, qrboxSize = 250 }) => {
+const QrScanner: React.FC<QrScannerProps> = ({ onScan, active }) => {
   const containerId = 'qr-reader-container';
   const scannerRef  = useRef<Html5Qrcode | null>(null);
   const cooldown    = useRef(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Always call the latest onScan. The scanner only (re)starts when `active`
+  // changes, so the html5-qrcode callback would otherwise keep the closure from
+  // the first render — e.g. still posting "check-out" after the page switched
+  // to check-in mode via a query-param change that doesn't remount anything.
+  const onScanRef = useRef(onScan);
+  useEffect(() => { onScanRef.current = onScan; });
 
   useEffect(() => {
     if (!active) return;
@@ -25,12 +39,24 @@ const QrScanner: React.FC<QrScannerProps> = ({ onScan, active, qrboxSize = 250 }
 
     scanner
       .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: qrboxSize, height: qrboxSize } },
+        {
+          facingMode: 'environment',
+          width:  { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        {
+          fps: 15,
+          // Scan region sized against the actual viewfinder: 75% of the
+          // smaller edge, so it always fits the stream regardless of camera.
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+            return { width: edge, height: edge };
+          },
+        },
         (decoded) => {
           if (cooldown.current) return;
           cooldown.current = true;
-          onScan(decoded);
+          onScanRef.current(decoded);
           // 3-second cooldown before next scan
           setTimeout(() => { cooldown.current = false; }, 3000);
         },

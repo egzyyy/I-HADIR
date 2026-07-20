@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { QrCode, Users, GraduationCap, Briefcase, User, MapPin, Clock, Calendar, Moon, Book, Monitor, ClipboardList, ChevronRight, CheckCircle, XCircle, AlertTriangle, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -69,8 +70,15 @@ const ResultModal = ({ result, mode, onClose }: { result: ScanResult; mode: Scan
 };
 
 const FacilityCheckIn = () => {
-  const [selectedType, setSelectedType] = useState<FacilityType | null>(null);
-  const [scanMode, setScanMode]         = useState<ScanMode>('check-in');
+  // Deep-link support (used by the landing page navbar): ?type=prayer&mode=check-out
+  const [searchParams] = useSearchParams();
+  const typeParam = searchParams.get('type');
+  const modeParam = searchParams.get('mode');
+
+  const [selectedType, setSelectedType] = useState<FacilityType | null>(
+    ['prayer', 'pss', 'ict', 'rmt'].includes(typeParam ?? '') ? (typeParam as FacilityType) : null
+  );
+  const [scanMode, setScanMode]         = useState<ScanMode>(modeParam === 'check-out' ? 'check-out' : 'check-in');
   const [scanning, setScanning]         = useState(false);
   const [loading, setLoading]           = useState(false);
   const [result, setResult]             = useState<ScanResult | null>(null);

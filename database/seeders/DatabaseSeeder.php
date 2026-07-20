@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $schoolId = DB::table('schools')->insertGetId([
             'school_code' => 'MEA0001',
             'name' => 'SK Pulau Serai',
+            'slug' => 'pulau-serai',
             'email' => 'admin@ihadir.edu.my',
             'phone_number' => '09-848 1672',
             'fax_number' => '09-848 1672',

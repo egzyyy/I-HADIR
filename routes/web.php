@@ -16,6 +16,13 @@ use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\TimeSettingController;
 use App\Http\Controllers\QrController;
+use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SchoolProfileController;
+
+// Public landing-page endpoints (no auth — consumed by logged-out visitors)
+Route::get('/api/public/schools', [PublicController::class, 'schools']);
+Route::get('/api/public/schools/{slug}', [PublicController::class, 'show']);
+Route::get('/api/public/schools/{slug}/events', [PublicController::class, 'events']);
 
 // Authentication Routes
 Route::post('/login', [LoginController::class, 'store']);
@@ -36,6 +43,13 @@ Route::get('/api/me', [UserController::class, 'me']);
 Route::get('/api/profile', [UserController::class, 'getMyProfile']);
 Route::post('/api/profile', [UserController::class, 'updateMyProfile']);
 Route::post('/api/password', [UserController::class, 'updatePassword']);
+
+// Landing Page Content (admin-managed public school profile)
+Route::get('/api/school/landing-profile', [SchoolProfileController::class, 'show']);
+Route::post('/api/school/landing-profile', [SchoolProfileController::class, 'update']);
+
+// Admin Dashboard summary (org-wide counts)
+Route::get('/api/school/dashboard-summary', [SchoolController::class, 'dashboardSummary']);
 
 // School Sessions Management
 Route::get('/api/sessions', [SchoolController::class, 'getSessions']);
@@ -74,11 +88,11 @@ Route::get('/api/events', [EventController::class, 'index']);
 Route::post('/api/events', [EventController::class, 'store']);
 Route::put('/api/events/{id}', [EventController::class, 'update']);
 Route::delete('/api/events/{id}', [EventController::class, 'destroy']);
+Route::post('/api/events/{id}/scan', [EventController::class, 'scanAttendance']);
 
 // Attendance
 Route::post('/api/attendance/check-in', [AttendanceController::class, 'checkIn']);
 Route::post('/api/attendance/check-out', [AttendanceController::class, 'checkOut']);
-Route::post('/api/attendance/manual', [AttendanceController::class, 'manualEntry']);
 Route::post('/api/attendance/manual-check-in', [AttendanceController::class, 'manualCheckIn']);
 Route::post('/api/attendance/manual-check-out/{id}', [AttendanceController::class, 'manualCheckOut']);
 Route::get('/api/attendance/log', [AttendanceController::class, 'getLog']);
@@ -119,7 +133,9 @@ Route::get('/api/visitors', [VisitorController::class, 'index']);
 Route::post('/api/visitors', [VisitorController::class, 'store']);
 Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE
 Route::put('/api/visitors/{id}/checkout', [VisitorController::class, 'checkout']);
-Route::post('/api/reports/parent-student', [ReportController::class, 'parentStudentReport']);
+// Public IC-number lookup — throttled to slow brute-force enumeration of student ICs
+Route::post('/api/reports/parent-student', [ReportController::class, 'parentStudentReport'])
+    ->middleware('throttle:10,1');
 Route::get('/api/reports/facility', [ReportController::class, 'facilityReport']);
 Route::get('/api/reports/visitors', [ReportController::class, 'visitorReport']);
 Route::get('/api/reports/events', [ReportController::class, 'getEvents']); // To populate the dropdown

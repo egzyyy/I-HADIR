@@ -6,7 +6,7 @@ import {
   LayoutDashboard, School, MessageSquare, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
-  UserCheck
+  UserCheck, Globe
 } from 'lucide-react';
 import logo from '../assets/i_hadir_logo2.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -53,7 +53,8 @@ const ADMIN_MENU: MenuSection[] = [
   {
     category: "SCHOOL MANAGEMENT",
     items: [
-      { id: 'school-profile', label: 'School Session', icon: School }
+      { id: 'school-profile', label: 'School Session', icon: School },
+      { id: 'landing-content', label: 'Landing Page', icon: Globe }
     ]
   },
   {
@@ -383,6 +384,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
     const routes: Record<string, string> = {
       'dashboard': '/dashboard',
       'school-profile': '/school-session',
+      'landing-content': '/landing-content',
       'set-sms-api': '/set-sms-api',
       'user-registration': '/users/registration',
       'import-apdm': '/users/apdm',

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link, useParams } from 'react-router-dom';
+import axios from 'axios';
 import {
   ArrowLeft, ArrowRight, MapPin, LogIn, SearchX, Clock, ScanLine, BellRing, BarChart3,
-  GraduationCap, Target, Eye, Trophy, BookOpen, Users, Heart, CalendarDays
+  GraduationCap, Target, Eye, Trophy, BookOpen, Users, Heart, CalendarDays, UserRound
 } from 'lucide-react';
 import { getSchool, School } from '../data/schools';
 import { Navbar } from '../Components/landing/Navbar';
@@ -11,6 +12,27 @@ import { Hero } from '../Components/landing/Hero';
 import { FAQ } from '../Components/landing/FAQ';
 import { Contact } from '../Components/landing/Contact';
 import { Footer } from '../Components/landing/Footer';
+
+// --- Live data from GET /api/public/schools/{slug} ---
+interface OrgMember {
+  name: string;
+  position: string;
+  level: number; // 1 = head, 2 = deputies, 3 = other staff
+}
+
+interface LiveProfile {
+  tagline: string | null;
+  established_year: string | null;
+  about: string | null;
+  vision: string | null;
+  mission: string | null;
+  organization: OrgMember[];
+}
+
+interface LiveSchool {
+  profile: LiveProfile;
+  stats: { students: number; teachers: number; co_curriculars: number };
+}
 
 // --- Subtle staggered entrance for the hero content ---
 const heroContainer = {
@@ -23,7 +45,7 @@ const heroItem = {
 };
 
 // --- Branded hero banner showing the individual school's identity ---
-const SchoolHeroBanner = ({ school }: { school: School }) => {
+const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: string | null }) => {
   const features = [
     { icon: ScanLine, label: 'QR & biometric check-in' },
     { icon: BellRing, label: 'Instant parent SMS alerts' },
@@ -108,7 +130,7 @@ const SchoolHeroBanner = ({ school }: { school: School }) => {
               variants={heroItem}
               className="text-base lg:text-lg text-white/70 max-w-lg leading-relaxed mb-9"
             >
-              {school.tagline}
+              {tagline || school.tagline}
             </motion.p>
 
             <motion.div variants={heroItem} className="flex flex-wrap items-center gap-3">
@@ -198,13 +220,24 @@ const sectionReveal = {
   transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
 };
 
-// Section 3 — About the school + key figures
-const SchoolAbout = ({ school }: { school: School }) => {
+// Section 3 — About the school + key figures (live counts + admin-managed copy)
+const SchoolAbout = ({ school, live }: { school: School; live: LiveSchool | null }) => {
+  const fmt = (n: number | undefined) => (n === undefined ? '—' : n.toLocaleString());
+
+  const established = live?.profile.established_year
+    ? `Est. ${live.profile.established_year}`
+    : 'Est. 1985';
+
+  // Admin-written about copy wins; blank lines split it into paragraphs.
+  const aboutParagraphs = live?.profile.about
+    ? live.profile.about.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+    : null;
+
   const stats = [
-    { icon: CalendarDays, value: 'Est. 1985', label: 'Serving the community' },
-    { icon: Users, value: '600+', label: 'Students enrolled' },
-    { icon: GraduationCap, value: '40+', label: 'Dedicated educators' },
-    { icon: Trophy, value: '20+', label: 'Co-curricular clubs' },
+    { icon: CalendarDays, value: established, label: 'Serving the community' },
+    { icon: Users, value: fmt(live?.stats.students), label: 'Students enrolled' },
+    { icon: GraduationCap, value: fmt(live?.stats.teachers), label: 'Dedicated educators' },
+    { icon: Trophy, value: fmt(live?.stats.co_curriculars), label: 'Co-curricular clubs' },
   ];
 
   return (
@@ -218,15 +251,28 @@ const SchoolAbout = ({ school }: { school: School }) => {
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight leading-tight mb-6" style={{ color: school.themeColor }}>
               A place where every student is seen, supported, and present.
             </h2>
-            <p className="text-gray-600 leading-relaxed mb-4">
-              {school.name} is a national school in {school.location}, dedicated to
-              nurturing well-rounded students through strong academics, character
-              building, and an active school life.
-            </p>
-            <p className="text-gray-600 leading-relaxed">
-              Our community of teachers, parents, and staff work together every day to
-              keep learning safe, disciplined, and caring — {school.tagline.toLowerCase()}
-            </p>
+            {aboutParagraphs ? (
+              aboutParagraphs.map((p, i) => (
+                <p
+                  key={i}
+                  className={`text-gray-600 leading-relaxed ${i < aboutParagraphs.length - 1 ? 'mb-4' : ''}`}
+                >
+                  {p}
+                </p>
+              ))
+            ) : (
+              <>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  {school.name} is a national school in {school.location}, dedicated to
+                  nurturing well-rounded students through strong academics, character
+                  building, and an active school life.
+                </p>
+                <p className="text-gray-600 leading-relaxed">
+                  Our community of teachers, parents, and staff work together every day to
+                  keep learning safe, disciplined, and caring — {school.tagline.toLowerCase()}
+                </p>
+              </>
+            )}
           </motion.div>
 
           <motion.div
@@ -256,11 +302,19 @@ const SchoolAbout = ({ school }: { school: School }) => {
   );
 };
 
-// Section 4 — Vision & Mission
-const SchoolVisionMission = ({ school }: { school: School }) => {
+// Section 4 — Vision & Mission (admin-managed copy with static fallback)
+const SchoolVisionMission = ({
+  school,
+  vision,
+  mission,
+}: {
+  school: School;
+  vision?: string | null;
+  mission?: string | null;
+}) => {
   const cards = [
-    { icon: Eye, title: 'Our Vision', body: 'To develop disciplined, knowledgeable, and caring individuals who are present and ready to contribute to the nation.' },
-    { icon: Target, title: 'Our Mission', body: 'To deliver quality education in a safe, supportive environment that encourages every student to attend, participate, and excel.' },
+    { icon: Eye, title: 'Our Vision', body: vision || 'To develop disciplined, knowledgeable, and caring individuals who are present and ready to contribute to the nation.' },
+    { icon: Target, title: 'Our Mission', body: mission || 'To deliver quality education in a safe, supportive environment that encourages every student to attend, participate, and excel.' },
   ];
 
   return (
@@ -296,6 +350,67 @@ const SchoolVisionMission = ({ school }: { school: School }) => {
               </motion.div>
             );
           })}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Section 4b — Organization hierarchy (admin-managed; hidden when empty)
+const SchoolOrganization = ({ school, members }: { school: School; members: OrgMember[] }) => {
+  if (members.length === 0) return null;
+
+  // Group into the three tiers; unknown levels land in tier 3.
+  const tiers: OrgMember[][] = [1, 2, 3].map((lvl) =>
+    members.filter((m) => (lvl === 3 ? m.level >= 3 || m.level < 1 : m.level === lvl))
+  );
+
+  const MemberCard = ({ member, large = false }: { member: OrgMember; large?: boolean }) => (
+    <div
+      className={`rounded-2xl bg-white border border-gray-100 shadow-sm text-center transition-shadow hover:shadow-md ${
+        large ? 'p-8 min-w-[16rem]' : 'p-6 min-w-[13rem]'
+      }`}
+    >
+      <div
+        className={`mx-auto rounded-full flex items-center justify-center mb-4 ${large ? 'w-16 h-16' : 'w-12 h-12'}`}
+        style={{ backgroundColor: `${school.themeColor}14`, color: school.themeColor }}
+      >
+        <UserRound size={large ? 28 : 22} />
+      </div>
+      <p className={`font-bold leading-snug ${large ? 'text-lg' : 'text-sm'}`} style={{ color: school.themeColor }}>
+        {member.name}
+      </p>
+      <p className={`text-gray-500 mt-1 ${large ? 'text-sm' : 'text-xs'}`}>{member.position}</p>
+    </div>
+  );
+
+  return (
+    <section className="py-20 lg:py-28" style={{ backgroundColor: `${school.themeColor}08` }}>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <motion.div {...sectionReveal} className="text-center max-w-2xl mx-auto mb-14">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] mb-4" style={{ color: school.accentColor }}>
+            Who leads us
+          </p>
+          <h2 className="text-3xl lg:text-4xl font-bold tracking-tight" style={{ color: school.themeColor }}>
+            School Organization
+          </h2>
+        </motion.div>
+
+        <div className="space-y-8">
+          {tiers.map((tier, i) =>
+            tier.length === 0 ? null : (
+              <motion.div
+                key={i}
+                {...sectionReveal}
+                transition={{ ...sectionReveal.transition, delay: i * 0.1 }}
+                className="flex flex-wrap justify-center gap-5"
+              >
+                {tier.map((member, j) => (
+                  <MemberCard key={`${member.name}-${j}`} member={member} large={i === 0} />
+                ))}
+              </motion.div>
+            )
+          )}
         </div>
       </div>
     </section>
@@ -390,6 +505,17 @@ export default function SchoolLanding() {
   const { slug } = useParams<{ slug: string }>();
   const school = getSchool(slug);
 
+  // One fetch for everything admin-managed on this page: live stats + profile copy.
+  const [live, setLive] = useState<LiveSchool | null>(null);
+
+  useEffect(() => {
+    if (!school?.hasPortal) return;
+    axios
+      .get(`/api/public/schools/${school.slug}`)
+      .then((res) => setLive(res.data.data ?? null))
+      .catch(() => setLive(null)); // static fallback copy renders when unreachable
+  }, [school?.slug, school?.hasPortal]);
+
   // Only schools with a live portal render a page; others fall back gracefully.
   if (!school || !school.hasPortal) {
     return <SchoolUnavailable slug={slug} school={school} />;
@@ -402,14 +528,19 @@ export default function SchoolLanding() {
       style={{ ['--brand' as any]: school.themeColor }}
     >
       <Navbar />
-      <SchoolHeroBanner school={school} />
+      <SchoolHeroBanner school={school} tagline={live?.profile.tagline} />
       <div id="events">
-        <Hero />
+        <Hero slug={school.slug} />
       </div>
       <div id="about">
-        <SchoolAbout school={school} />
+        <SchoolAbout school={school} live={live} />
       </div>
-      <SchoolVisionMission school={school} />
+      <SchoolVisionMission
+        school={school}
+        vision={live?.profile.vision}
+        mission={live?.profile.mission}
+      />
+      <SchoolOrganization school={school} members={live?.profile.organization ?? []} />
       <SchoolLife school={school} />
       <FAQ />
       <div id="contact">

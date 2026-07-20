@@ -5,13 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\SchoolSession;
 use App\Models\Classroom;
 use App\Models\Enrollment;
+use App\Models\Student;
 use App\Models\TeacherEmployment;
 use App\Models\StaffEmployment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SchoolController extends Controller
 {
+    // Org-wide counts for the Admin Dashboard stat cards.
+    public function dashboardSummary()
+    {
+        $schoolId = auth()->user()->school_id;
+        $session  = SchoolSession::where('school_id', $schoolId)
+            ->where('is_active', true)
+            ->first();
+
+        $teachers = User::where('school_id', $schoolId)
+            ->where('user_type', 'teacher')
+            ->where('is_active', true)
+            ->count();
+
+        $staff = User::where('school_id', $schoolId)
+            ->whereIn('user_type', ['staff', 'security_staff'])
+            ->where('is_active', true)
+            ->count();
+
+        $students = Student::where('school_id', $schoolId)
+            ->where('is_active', true)
+            ->count();
+
+        $classes = Classroom::where('school_id', $schoolId)
+            ->when($session, fn($q) => $q->where('school_session_id', $session->school_session_id))
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'total_users'    => $teachers + $staff + $students,
+                'total_teachers' => $teachers,
+                'total_staff'    => $staff,
+                'total_students' => $students,
+                'total_classes'  => $classes,
+            ],
+        ]);
+    }
+
     // Fetch all sessions
     public function getSessions()
     {

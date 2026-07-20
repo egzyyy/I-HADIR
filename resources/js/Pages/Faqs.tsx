@@ -88,9 +88,13 @@ const FaqPage = () => {
       <div className="mt-12 text-center bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
         <h3 className="text-lg font-bold text-[#1c3068] mb-2">Still have questions?</h3>
         <p className="text-gray-500 text-sm mb-6">Can't find the answer you're looking for? Please contact our support team.</p>
-        <button className="bg-[#1c3068] text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-[#152450] transition-colors shadow-lg shadow-blue-900/20">
+        {/* Same support address the landing page's Contact section publishes */}
+        <a
+          href={`mailto:info@ihadir.edu?subject=${encodeURIComponent('I-HADIR Support Request')}`}
+          className="inline-block bg-[#1c3068] text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-[#152450] transition-colors shadow-lg shadow-blue-900/20"
+        >
           Contact Support
-        </button>
+        </a>
       </div>
     </motion.div>
   );

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { ArrowUpRight, MapPin, School as SchoolIcon, Clock } from 'lucide-react';
 import { schools, School } from '../../data/schools';
 
@@ -93,9 +94,27 @@ const SchoolCard = ({ school, idx }: { school: School; idx: number }) => {
   );
 };
 
-// Directory of schools currently using I-Hadir. Only schools with a live portal
-// link through to their landing page; the rest are shown as "Coming soon".
+// Directory of schools currently using I-Hadir. A school is "live" only when
+// the backend confirms its slug exists (`/api/public/schools`); the static
+// registry keeps supplying branding (colors, taglines, monograms).
 export const SchoolDirectory = () => {
+  const [liveSlugs, setLiveSlugs] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    axios
+      .get('/api/public/schools')
+      .then((res) =>
+        setLiveSlugs(new Set((res.data.data || []).map((s: { slug: string }) => s.slug)))
+      )
+      .catch(() => setLiveSlugs(null)); // API unreachable — fall back to static flags
+  }, []);
+
+  // Backend confirmation wins; static hasPortal is only the pre-fetch/offline fallback.
+  const directory = schools.map((school) => ({
+    ...school,
+    hasPortal: liveSlugs ? liveSlugs.has(school.slug) : school.hasPortal,
+  }));
+
   return (
     <section id="schools" className="py-24 bg-[#fcfafa] relative overflow-hidden">
       <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-[#1c3068] rounded-full blur-3xl opacity-[0.06]" />
@@ -117,7 +136,7 @@ export const SchoolDirectory = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schools.map((school, idx) => (
+          {directory.map((school, idx) => (
             <SchoolCard key={school.slug} school={school} idx={idx} />
           ))}
         </div>
