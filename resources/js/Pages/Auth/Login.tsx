@@ -74,9 +74,9 @@ export default function Login() {
         setTimeout(() => setView('login'), 2500);
       }
     } catch (error: any) {
-      setResetFeedback({ 
-        type: 'error', 
-        message: error.response?.data?.message || 'Failed to reset password. Please try again.' 
+      setResetFeedback({
+        type: 'error',
+        message: error.response?.data?.message || 'Failed to reset password. Please try again.'
       });
     } finally {
       setResetProcessing(false);
@@ -110,16 +110,15 @@ export default function Login() {
 
             {/* FEEDBACK MESSAGES */}
             {resetFeedback && (
-              <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 text-sm font-medium ${
-                resetFeedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-100'
-              }`}>
+              <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 text-sm font-medium ${resetFeedback.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-100'
+                }`}>
                 {resetFeedback.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
                 <p className="mt-0.5">{resetFeedback.message}</p>
               </div>
             )}
 
             <form className="space-y-6" onSubmit={handleReset}>
-              
+
               {/* IC Number Field (Security measure) */}
               <div className="relative group">
                 <label className="block text-sm font-semibold text-[#1c3068] mb-2">
@@ -271,12 +270,12 @@ export default function Login() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 cursor-pointer">
           <div className="flex-shrink-0 flex items-center">
-             <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
+            <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
           </div>
         </Link>
 
         {/* Back Button (Mobile only mostly) */}
-        <Link 
+        <Link
           to="/"
           className="lg:hidden absolute top-8 right-8 text-[#1c3068] hover:text-[#c53336]"
         >
@@ -335,7 +334,7 @@ export default function Login() {
               </div>
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
-          
+
             {/* Login Button */}
             <button
               type="submit"
@@ -344,17 +343,30 @@ export default function Login() {
             >
               {processing ? 'Logging in...' : 'Log In'}
             </button>
-          
+
             {/* Forgot Password */}
-            <div className="flex justify-end">
-              <button 
-                type="button"
-                onClick={() => setView('forgot-password')} 
-                className="text-sm font-semibold text-[#c53336] hover:text-[#a02224] transition-colors bg-transparent border-none cursor-pointer hover:underline"
-              >
-                Forgot Your Password?
-              </button>
+            <div className="flex justify-between">
+              <div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/school/pulau-serai')}
+                  className="flex items-center gap-1 text-sm font-semibold text-[#1c3068] hover:text-[#152450] transition-colors bg-transparent border-none cursor-pointer hover:underline"
+                >
+                  <ArrowLeft size={16} /> Back
+                </button>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setView('forgot-password')}
+                  className="text-sm font-semibold text-[#c53336] hover:text-[#a02224] transition-colors bg-transparent border-none cursor-pointer hover:underline"
+                >
+                  Forgot Your Password?
+                </button>
+              </div>
             </div>
+
+
           </form>
         </div>
 
@@ -381,17 +393,20 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 mx-auto max-w-lg transform hover:scale-105 transition-transform duration-700">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1c3068]/80 to-transparent z-10"></div>
-          <img 
-            src="https://images.unsplash.com/photo-1764720573370-5008f1ccc9fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBzY2hvb2wlMjBlZHVjYXRpb24lMjBzdHVkZW50cyUyMGxlYXJuaW5nJTIwY2xhc3Nyb29tfGVufDF8fHx8MTc2OTYxNjYzOXww&ixlib=rb-4.1.0&q=80&w=1080"
-            alt="Students Learning" 
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1c3068]/50 to-transparent z-10"></div>
+          <img
+            src="/storage/school-logo/sk-pulau-serai-login.jpg"
+            alt="Students Learning"
             className="w-full h-auto object-cover"
           />
           <div className="absolute bottom-6 left-6 z-20 text-left">
             <div className="bg-[#c53336] text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-2">
-              LATEST SYSTEM
+              Welcome to
             </div>
-            <p className="text-white font-medium text-lg">Seamless Digital Classroom</p>
+            <h3 className="text-2xl xl:text-3xl font-bold text-white mb-4">
+              I-HADIR
+            </h3>
+            <p className="text-white font-medium text-lg">Sekolah Kebangsaan Pulau Serai</p>
           </div>
         </div>
       </div>

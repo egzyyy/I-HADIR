@@ -227,7 +227,7 @@ class AttendanceController extends Controller
             'class'     => $class,
             'user_type' => $request->user_type,
             'reason'    => $request->reason,
-            'check_in'  => $now->format('d-m-Y H:i'),
+            'check_in'  => $now->format('d/m/Y H:i'),
             'check_out' => null,
             'status'    => $status,
         ], 201);
@@ -250,7 +250,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'success'   => true,
-            'check_out' => $now->format('d-m-Y H:i'),
+            'check_out' => $now->format('d/m/Y H:i'),
         ]);
     }
 
@@ -309,7 +309,7 @@ class AttendanceController extends Controller
                 'user_id'      => $user['id'],
                 'name'         => $user['name'],
                 'class'        => $user['class'],
-                'date'         => Carbon::parse($date)->format('d-m-Y'),
+                'date'         => Carbon::parse($date)->format('d/m/Y'),
                 'check_in'     => $log?->check_in_time?->format('H:i:s'),
                 'check_out'    => $log?->check_out_time?->format('H:i:s'),
                 'status'       => strtolower($status),
@@ -418,7 +418,7 @@ class AttendanceController extends Controller
         $data = $logs->map(function ($log) {
             return [
                 'id'          => $log->id,
-                'date'        => $log->date->format('d-m-Y'),
+                'date'        => $log->date->format('d/m/Y'),
                 'check_in'    => $log->check_in_time?->format('H:i:s'),
                 'check_out'   => $log->check_out_time?->format('H:i:s'),
                 'status'      => $log->status,

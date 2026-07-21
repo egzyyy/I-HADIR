@@ -18,17 +18,15 @@ class UserController extends Controller
         $schoolId = $authUser ? $authUser->school_id : 1;
         $isTeacher = $authUser && $authUser->user_type === 'teacher';
         
-        $studentsQuery = Student::where('school_id', $schoolId)->withTrashed();
+        $studentsQuery = Student::where('school_id', $schoolId);
         
         // Query for teachers
         $teachersQuery = User::where('school_id', $schoolId)
-            ->where('user_type', 'teacher')
-            ->withTrashed();
+            ->where('user_type', 'teacher');
         
         // Query for ALL staff (both security_staff and staff)
         $staffsQuery = User::where('school_id', $schoolId)
-            ->whereIn('user_type', ['security_staff', 'staff'])
-            ->withTrashed();
+            ->whereIn('user_type', ['security_staff', 'staff']);
 
         $sessionId = $request->session_id;
 
@@ -38,19 +36,13 @@ class UserController extends Controller
             $session = SchoolSession::find($sessionId);
             
             if ($session) {
-                $startDate = $session->start_date;
-                $nextSession = SchoolSession::where('school_id', $schoolId)
-                    ->where('start_date', '>', $startDate)
-                    ->orderBy('start_date', 'asc')
-                    ->first();
-                $endDate = $nextSession ? $nextSession->start_date : now()->addYears(10);
 
-                // STUDENTS: Show if they were registered before the session ended
-                $studentsQuery->where('created_at', '<', $endDate)
-                    ->where(function($q) use ($startDate) {
-                        $q->whereNull('deleted_at')
-                          ->orWhere('deleted_at', '>=', $startDate);
-                    })->with(['enrollments' => function($query) use ($sessionId, $isTeacher, $authUser) {
+                // ── ACTIVE SESSION ──
+                // Show ALL non-deleted users. They persist across sessions.
+                // Deleting a user removes them from this view immediately.
+                if ($session->is_active) {
+
+                    $studentsQuery->with(['enrollments' => function($query) use ($sessionId, $isTeacher, $authUser) {
                         $query->where('school_session_id', $sessionId)
                             ->when($isTeacher, function ($q) use ($authUser) {
                                 $q->whereHas('classroom', function ($classroomQuery) use ($authUser) {
@@ -60,38 +52,85 @@ class UserController extends Controller
                             ->with('classroom');
                     }]);
 
-                if ($isTeacher) {
-                    $studentsQuery->whereHas('enrollments', function ($query) use ($sessionId, $authUser) {
-                        $query->where('school_session_id', $sessionId)
-                            ->whereHas('classroom', function ($classroomQuery) use ($authUser) {
-                                $classroomQuery->where('user_id', $authUser->user_id);
-                            });
-                    });
-                }
+                    if ($isTeacher) {
+                        $studentsQuery->whereHas('enrollments', function ($query) use ($sessionId, $authUser) {
+                            $query->where('school_session_id', $sessionId)
+                                ->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                                    $classroomQuery->where('user_id', $authUser->user_id);
+                                });
+                        });
+                    }
 
-                // USERS (Teachers & Staff): Show if they were registered before the session ended
-                $teachersQuery->where('created_at', '<', $endDate)
-                    ->where(function($q) use ($startDate) {
-                        $q->whereNull('deleted_at')
-                          ->orWhere('deleted_at', '>=', $startDate);
-                    });
-                
-                $staffsQuery->where('created_at', '<', $endDate)
-                    ->where(function($q) use ($startDate) {
-                        $q->whereNull('deleted_at')
-                          ->orWhere('deleted_at', '>=', $startDate);
-                    });
+                    // Teachers & Staff: no extra filters needed, base query already excludes deleted
+
+                // ── PAST SESSION ──
+                // Include soft-deleted users who were active during this session period.
+                } else {
+                    $startDate = $session->start_date;
+
+                    // Use the session's own end_date for the upper bound.
+                    // endOfDay() ensures users created ON the end date are included.
+                    if ($session->end_date) {
+                        $endDate = $session->end_date->endOfDay();
+                    } else {
+                        $nextSession = SchoolSession::where('school_id', $schoolId)
+                            ->where('start_date', '>', $startDate)
+                            ->orderBy('start_date', 'asc')
+                            ->first();
+                        $endDate = $nextSession ? $nextSession->start_date : now()->addYears(10);
+                    }
+
+                    // STUDENTS: Include soft-deleted for historical session view
+                    $studentsQuery->withTrashed()->where('created_at', '<=', $endDate)
+                        ->where(function($q) use ($startDate) {
+                            $q->whereNull('deleted_at')
+                              ->orWhere('deleted_at', '>=', $startDate);
+                        })->with(['enrollments' => function($query) use ($sessionId, $isTeacher, $authUser) {
+                            $query->where('school_session_id', $sessionId)
+                                ->when($isTeacher, function ($q) use ($authUser) {
+                                    $q->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                                        $classroomQuery->where('user_id', $authUser->user_id);
+                                    });
+                                })
+                                ->with('classroom');
+                        }]);
+
+                    if ($isTeacher) {
+                        $studentsQuery->whereHas('enrollments', function ($query) use ($sessionId, $authUser) {
+                            $query->where('school_session_id', $sessionId)
+                                ->whereHas('classroom', function ($classroomQuery) use ($authUser) {
+                                    $classroomQuery->where('user_id', $authUser->user_id);
+                                });
+                        });
+                    }
+
+                    // USERS (Teachers & Staff): Include soft-deleted for historical session view
+                    $teachersQuery->withTrashed()->where('created_at', '<=', $endDate)
+                        ->where(function($q) use ($startDate) {
+                            $q->whereNull('deleted_at')
+                              ->orWhere('deleted_at', '>=', $startDate);
+                        });
+                    
+                    $staffsQuery->withTrashed()->where('created_at', '<=', $endDate)
+                        ->where(function($q) use ($startDate) {
+                            $q->whereNull('deleted_at')
+                              ->orWhere('deleted_at', '>=', $startDate);
+                        });
+                }
             }
 
         } else {
-            // All Time History
-            $studentsQuery->with(['enrollments' => function($query) use ($isTeacher, $authUser) {
+            // All Time History — include soft-deleted users
+            $studentsQuery->withTrashed()->with(['enrollments' => function($query) use ($isTeacher, $authUser) {
                 $query->when($isTeacher, function ($q) use ($authUser) {
                     $q->whereHas('classroom', function ($classroomQuery) use ($authUser) {
                         $classroomQuery->where('user_id', $authUser->user_id);
                     });
                 })->latest('created_at')->with('classroom');
             }]);
+
+            $teachersQuery->withTrashed();
+            $staffsQuery->withTrashed();
 
             if ($isTeacher) {
                 $studentsQuery->whereHas('enrollments', function ($query) use ($authUser) {

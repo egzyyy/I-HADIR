@@ -35,8 +35,8 @@ interface MenuSection {
 type Role = 'Admin' | 'Teacher' | 'Security';
 
 const ROLE_META: Record<Role, { initial: string; name: string; title: string; email: string }> = {
-  Admin:    { initial: 'A', name: 'Admin',    title: 'Administrator', email: 'admin@skpulauserai.edu.my' },
-  Teacher:  { initial: 'T', name: 'Teacher',  title: 'Class Teacher', email: 'teacher@skpulauserai.edu.my' },
+  Admin: { initial: 'A', name: 'Admin', title: 'Administrator', email: 'admin@skpulauserai.edu.my' },
+  Teacher: { initial: 'T', name: 'Teacher', title: 'Class Teacher', email: 'teacher@skpulauserai.edu.my' },
   Security: { initial: 'S', name: 'Security', title: 'Security Guard', email: 'security@skpulauserai.edu.my' },
 };
 
@@ -106,7 +106,7 @@ const ADMIN_MENU: MenuSection[] = [
         ]
       },
       { id: 'facility-check-in', label: 'Facility & RMT', icon: ClipboardList },
-      
+
     ]
   },
   {
@@ -187,6 +187,12 @@ const TEACHER_MENU: MenuSection[] = [
 // View: SECURITY (manage own attendance + visitor report only)
 const SECURITY_MENU: MenuSection[] = [
   {
+    category: "DASHBOARD",
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+    ]
+  },
+  {
     category: "MY ATTENDANCE",
     items: [
       {
@@ -241,18 +247,18 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collap
 
   return (
     <div className="flex flex-col">
-      <div 
+      <div
         onClick={handleMainClick}
         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 group relative
           ${active || (isChildActive && !expanded)
-            ? 'bg-[#c53336] text-white' 
+            ? 'bg-[#c53336] text-white'
             : 'text-gray-300 hover:bg-white/10 hover:text-white'
           }
           ${collapsed ? 'justify-center px-2' : ''}
         `}
       >
         <Icon size={20} strokeWidth={1.5} className={`flex-shrink-0 ${active || (isChildActive && !expanded) ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} />
-        
+
         {!collapsed && (
           <div className="flex-1 flex justify-between items-center overflow-hidden">
             <span className="text-sm font-medium whitespace-nowrap">{label}</span>
@@ -346,7 +352,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
     const handleClickOutside = (event: MouseEvent) => {
       const adminDropdown = document.querySelector('.admin-dropdown-container');
       const notificationDropdown = document.querySelector('.notification-dropdown-container');
-      
+
       if (adminDropdown && !adminDropdown.contains(event.target as Node)) {
         setAdminDropdownOpen(false);
       }
@@ -377,7 +383,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       handleLogout();
       return;
     }
-    
+
     const routes: Record<string, string> = {
       'dashboard': '/dashboard',
       'school-profile': '/school-session',
@@ -410,18 +416,18 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
 
   return (
     <div className="min-h-screen bg-[#fcfafa] flex font-sans">
-      <aside 
+      <aside
         className={`fixed inset-y-0 left-0 z-50 bg-[#1c3068] transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#152450]">
           {isSidebarOpen ? (
-             <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
-               <img src={logo} alt="I-HADIR Logo" className="h-12 w-auto object-contain" />
-             </div>
+            <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
+              <img src={logo} alt="I-HADIR Logo" className="h-12 w-auto object-contain" />
+            </div>
           ) : (
-             <div className="flex items-center justify-center bg-white/90 p-1.5 rounded-lg">
-               <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
-             </div>
+            <div className="flex items-center justify-center bg-white/90 p-1.5 rounded-lg">
+              <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
+            </div>
           )}
         </div>
 
@@ -435,7 +441,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
               <div className="flex flex-col">
                 {section.items.map((item) => (
                   <div key={item.id}>
-                    <SidebarItem 
+                    <SidebarItem
                       icon={item.icon}
                       label={item.label}
                       badge={item.badge}
@@ -457,7 +463,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
         <header className="h-20 bg-white shadow-sm sticky top-0 z-40 px-6 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg text-[#1c3068] transition-colors"
             >
@@ -476,7 +482,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
               <p className="text-sm font-bold text-[#1c3068]">Year {activeSessionYear}</p>
             </div>
             <div className="h-8 w-[1px] bg-gray-200 hidden sm:block"></div>
-            
+
             <div className="relative notification-dropdown-container">
               <AnimatePresence>
                 {isNotificationOpen && (
@@ -547,7 +553,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
             </div>
 
             <div className="relative admin-dropdown-container">
-              <div 
+              <div
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors"
                 onClick={() => setAdminDropdownOpen(!isAdminDropdownOpen)}
               >
@@ -560,7 +566,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                 </div>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${isAdminDropdownOpen ? 'rotate-180' : ''}`} />
               </div>
-              
+
               <AnimatePresence>
                 {isAdminDropdownOpen && (
                   <motion.div
@@ -573,7 +579,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                       <p className="text-sm font-bold text-[#1c3068]">{user?.name ?? roleMeta.title}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email ?? roleMeta.email}</p>
                     </div>
-                    
+
                     <button onClick={() => { navigate('/my-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Users size={16} /> My Profile
                     </button>
@@ -581,9 +587,9 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     <button onClick={() => { navigate('/change-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
                       <Keyboard size={16} /> Change Password
                     </button>
-                    
+
                     <div className="h-px bg-gray-100 my-1"></div>
-                    
+
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-[#c53336] hover:bg-red-50 transition-colors text-left font-medium">
                       <LogOut size={16} /> Log Out
                     </button>

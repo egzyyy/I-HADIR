@@ -89,6 +89,16 @@ class EventController extends Controller
             ->firstOrFail();
 
         $bannerPath = $event->banner_path;
+
+        // 1. Check if the frontend sent the flag to remove the image
+        if ($request->has('remove_banner') && $request->remove_banner == '1') {
+            if ($bannerPath) {
+                Storage::disk('public')->delete($bannerPath);
+            }
+            $bannerPath = null;
+        }
+
+        // 2. Process new upload (if any)
         if ($request->hasFile('banner')) {
             // Delete old banner if exists
             if ($bannerPath) {
@@ -228,7 +238,7 @@ class EventController extends Controller
         return [
             'id'               => $event->event_id,
             'name'             => $event->name,
-            'date'             => $event->event_date->format('d-m-Y'),
+            'date'             => $event->event_date->format('d/m/Y'),
             'time'             => $event->event_time ? substr($event->event_time, 0, 5) : null,
             'spot'             => $event->location ?? '-',
             'description'      => $event->description,

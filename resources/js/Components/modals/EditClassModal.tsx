@@ -30,11 +30,11 @@ interface EditClassModalProps {
 }
 
 export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }: EditClassModalProps) => {
-  const [name, setName]           = useState('');
+  const [name, setName] = useState('');
   const [teacherId, setTeacherId] = useState('');
-  const [capacity, setCapacity]   = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (classData) {
@@ -54,9 +54,9 @@ export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }
     setSaving(true);
     try {
       await axios.put(`/api/classes/${classData.id}`, {
-        name:       name.trim(),
+        name: name.trim(),
         teacher_id: teacherId || null,
-        capacity:   capacity ? Number(capacity) : null,
+        capacity: capacity ? Number(capacity) : null,
       });
       onSaved();
     } catch (err: any) {

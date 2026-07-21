@@ -27,9 +27,8 @@ const CardBody = ({ school }: { school: School }) => (
 
       <div className="flex-1 min-w-0">
         <h3
-          className={`font-bold text-[#1c3068] leading-snug ${
-            school.hasPortal ? 'group-hover:text-[#c53336] transition-colors' : ''
-          }`}
+          className={`font-bold text-[#1c3068] leading-snug ${school.hasPortal ? 'group-hover:text-[#c53336] transition-colors' : ''
+            }`}
         >
           {school.name}
         </h3>

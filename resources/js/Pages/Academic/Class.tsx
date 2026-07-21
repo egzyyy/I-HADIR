@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -58,11 +58,11 @@ const AddClassModal = ({
   teachers: Teacher[];
   onSaved: (newClass: ClassItem) => void;
 }) => {
-  const [name, setName]           = useState('');
+  const [name, setName] = useState('');
   const [teacherId, setTeacherId] = useState('');
-  const [capacity, setCapacity]   = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [error, setError]         = useState('');
+  const [capacity, setCapacity] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +71,9 @@ const AddClassModal = ({
     setSaving(true);
     try {
       const res = await axios.post('/api/classes', {
-        name:       name.trim(),
+        name: name.trim(),
         teacher_id: teacherId || null,
-        capacity:   capacity ? Number(capacity) : null,
+        capacity: capacity ? Number(capacity) : null,
       });
       onSaved(res.data.data);
       onClose();
@@ -197,9 +197,9 @@ function buildTableText(classes: ClassItem[]): string {
 
 function downloadFile(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
@@ -207,7 +207,7 @@ function downloadFile(content: string, filename: string, mime: string) {
 
 function exportCSV(classes: ClassItem[]) {
   const header = ['#', 'Class Name', 'Classroom Teacher', 'Total Students', 'Capacity', 'Session', 'Registered Date'].join(',');
-  const rows   = classes.map((c, i) =>
+  const rows = classes.map((c, i) =>
     [`${i + 1}`, `"${c.name}"`, `"${c.teacher}"`, `${c.totalStudents}`, `${c.capacity ?? ''}`, `"${c.sessionName}"`, `"${c.createdAt}"`].join(',')
   );
   downloadFile([header, ...rows].join('\n'), 'classes.csv', 'text/csv');
@@ -301,14 +301,14 @@ function exportPDF(classes: ClassItem[], logoSrc: string) {
     </html>`;
 
   const win = window.open('', '_blank');
-  if (win) { 
-    win.document.write(html); 
-    win.document.close(); 
+  if (win) {
+    win.document.write(html);
+    win.document.close();
   }
 }
 
-function printTable(classes: ClassItem[], logoSrc: string) { 
-  exportPDF(classes, logoSrc); 
+function printTable(classes: ClassItem[], logoSrc: string) {
+  exportPDF(classes, logoSrc);
 }
 
 function copyToClipboard(classes: ClassItem[]) {
@@ -328,24 +328,24 @@ const ClassList = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('all');
 
-  const [classes, setClasses]                 = useState<ClassItem[]>([]);
-  const [teachers, setTeachers]               = useState<Teacher[]>([]);
-  const [loading, setLoading]                 = useState(true);
-  
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Search & Pagination States
-  const [searchTerm, setSearchTerm]           = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentSessionActive, setCurrentSessionActive] = useState(false);
 
   // Sorter State (Default: Session Descending)
   const [sortColumn, setSortColumn] = useState<SortColumn>('sessionName');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const [showAddModal, setShowAddModal]           = useState(false);
-  const [selectedClass, setSelectedClass]         = useState<ClassItem | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen]     = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingId, setDeletingId]               = useState<number | null>(null);
-  const [view, setView]                           = useState<'list' | 'add_student'>('list');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [view, setView] = useState<'list' | 'add_student'>('list');
 
   // 1. Initial Load: Fetch Sessions First
   useEffect(() => {
@@ -424,14 +424,14 @@ const ClassList = () => {
   });
 
   // ── CALL THE HOOK HERE ──────────────────────────────────────────────────
-  const { 
-    currentPage, 
-    setCurrentPage, 
-    totalPages, 
-    startIndex, 
-    endIndex, 
-    currentData, 
-    totalItems 
+  const {
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    currentData,
+    totalItems
   } = usePagination(sortedClasses, 10);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -531,40 +531,40 @@ const ClassList = () => {
               />
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                 {/* SESSION FILTER DROPDOWN */}
-                 <div className="relative w-full sm:w-48">
-                   <select 
-                     value={selectedSessionId}
-                     onChange={(e) => {
-                       setSelectedSessionId(e.target.value);
-                       setCurrentPage(1); // Reset page on filter
-                     }}
-                     className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
-                   >
-                     <option value="all">All Time History</option>
-                     {sessions.map(session => (
-                       <option key={session.id} value={session.id}>
-                         Session {session.year} {session.status === 'Active' ? '(Active)' : ''}
-                       </option>
-                     ))}
-                   </select>
-                   <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-                 </div>
+                {/* SESSION FILTER DROPDOWN */}
+                <div className="relative w-full sm:w-48">
+                  <select
+                    value={selectedSessionId}
+                    onChange={(e) => {
+                      setSelectedSessionId(e.target.value);
+                      setCurrentPage(1); // Reset page on filter
+                    }}
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
+                  >
+                    <option value="all">All Time History</option>
+                    {sessions.map(session => (
+                      <option key={session.id} value={session.id}>
+                        Session {session.year} {session.status === 'Active' ? '(Active)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
 
-                 {/* SEARCH BAR */}
-                 <div className="relative w-full sm:w-64">
-                   <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                   <input
-                     type="text"
-                     placeholder="Search classes or teachers..."
-                     value={searchTerm}
-                     onChange={(e) => {
-                       setSearchTerm(e.target.value);
-                       setCurrentPage(1); // Reset page on search
-                     }}
-                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
-                   />
-                 </div>
+                {/* SEARCH BAR */}
+                <div className="relative w-full sm:w-64">
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search classes or teachers..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1); // Reset page on search
+                    }}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
+                  />
+                </div>
               </div>
             </div>
 
@@ -574,31 +574,31 @@ const ClassList = () => {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                    <th 
-                      onClick={() => handleSort('name')} 
+                    <th
+                      onClick={() => handleSort('name')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
                     >
                       Class Name <SortIcon column="name" />
                     </th>
-                    <th 
+                    <th
                       onClick={() => handleSort('teacher')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
                     >
                       Classroom Teacher <SortIcon column="teacher" />
                     </th>
-                    <th 
+                    <th
                       onClick={() => handleSort('totalStudents')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
                     >
                       Total Number of Students <SortIcon column="totalStudents" />
                     </th>
-                    <th 
+                    <th
                       onClick={() => handleSort('capacity')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
                     >
                       Capacity <SortIcon column="capacity" />
                     </th>
-                    <th 
+                    <th
                       onClick={() => handleSort('sessionName')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center cursor-pointer hover:bg-gray-100 transition-colors group"
                     >
@@ -632,16 +632,17 @@ const ClassList = () => {
                             <button
                               onClick={() => { setSelectedClass(item); setView('add_student'); }}
                               className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-[#2563eb] hover:text-white transition-all shadow-sm border border-blue-100 hover:border-[#2563eb]"
-                              title="Add Student"
+                              title="View Class"
                             >
-                              <Plus size={16} />
+                              <Eye size={16} />
+
                             </button>
                             {canAddClass && (
                               <button
-                                onClick={async () => { 
-                                  setSelectedClass(item); 
+                                onClick={async () => {
+                                  setSelectedClass(item);
                                   await fetchTeachersForEdit(item.id);
-                                  setIsEditModalOpen(true); 
+                                  setIsEditModalOpen(true);
                                 }}
                                 className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100 hover:border-[#10b981]"
                                 title="Edit"
@@ -669,20 +670,20 @@ const ClassList = () => {
             {!loading && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
                 <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
-                
+
                 {totalPages > 1 && (
                   <Pagination className="mx-0 w-auto">
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <PaginationPrevious
                           onClick={() => setCurrentPage(currentPage - 1)}
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
-                      
+
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                         <PaginationItem key={page}>
-                          <PaginationLink 
+                          <PaginationLink
                             onClick={() => setCurrentPage(page)}
                             isActive={currentPage === page}
                             className="cursor-pointer"
@@ -691,9 +692,9 @@ const ClassList = () => {
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      
+
                       <PaginationItem>
-                        <PaginationNext 
+                        <PaginationNext
                           onClick={() => setCurrentPage(currentPage + 1)}
                           className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />

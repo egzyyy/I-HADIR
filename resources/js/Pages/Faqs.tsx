@@ -26,7 +26,7 @@ const FaqPage = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="max-w-4xl mx-auto"
@@ -38,19 +38,19 @@ const FaqPage = () => {
 
       <div className="space-y-4">
         {faqs.map((faq, index) => (
-          <motion.div 
+          <motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
             className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden
-              ${openIndex === index 
-                ? 'border-blue-200 shadow-lg shadow-blue-900/5' 
+              ${openIndex === index
+                ? 'border-blue-200 shadow-lg shadow-blue-900/5'
                 : 'border-gray-100 shadow-sm hover:shadow-md'
               }
             `}
           >
-            <button 
+            <button
               onClick={() => toggleFaq(index)}
               className="w-full px-8 py-6 flex items-center justify-between gap-4 text-left focus:outline-none"
             >
@@ -63,7 +63,7 @@ const FaqPage = () => {
                 {openIndex === index ? <Minus size={18} /> : <Plus size={18} />}
               </div>
             </button>
-            
+
             <AnimatePresence>
               {openIndex === index && (
                 <motion.div
@@ -85,17 +85,16 @@ const FaqPage = () => {
       </div>
 
       {/* Contact Support Section */}
-      <div className="mt-12 text-center bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+      {/* <div className="mt-12 text-center bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
         <h3 className="text-lg font-bold text-[#1c3068] mb-2">Still have questions?</h3>
         <p className="text-gray-500 text-sm mb-6">Can't find the answer you're looking for? Please contact our support team.</p>
-        {/* Same support address the landing page's Contact section publishes */}
         <a
           href={`mailto:info@ihadir.edu?subject=${encodeURIComponent('I-HADIR Support Request')}`}
           className="inline-block bg-[#1c3068] text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-[#152450] transition-colors shadow-lg shadow-blue-900/20"
         >
           Contact Support
         </a>
-      </div>
+      </div> */}
     </motion.div>
   );
 };

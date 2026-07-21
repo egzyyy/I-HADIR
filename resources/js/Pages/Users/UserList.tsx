@@ -27,7 +27,7 @@ const UserListUnified = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 100;
-  
+
   // Session States
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('all');
@@ -49,7 +49,7 @@ const UserListUnified = () => {
         if (sessionRes.data.success) {
           const fetchedSessions = sessionRes.data.data;
           setSessions(fetchedSessions);
-          
+
           // Find the active session and set it as default
           const activeSession = fetchedSessions.find((s: any) => s.status === 'Active');
           if (activeSession) {
@@ -77,7 +77,7 @@ const UserListUnified = () => {
         setIsLoading(false);
       }
     };
-    
+
     if (selectedSessionId) {
       fetchUsers();
     }
@@ -85,8 +85,8 @@ const UserListUnified = () => {
 
   // Filter Data based on Active Tab and Search Query
   const activeData = allUsers[activeTab] || [];
-  const filteredData = activeData.filter((user: any) => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredData = activeData.filter((user: any) =>
+    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.phone.includes(searchQuery)
   );
 
@@ -183,7 +183,7 @@ const UserListUnified = () => {
 
     try {
       const blobHtml = new Blob([tableHtml], { type: 'text/html' });
-      const textFallback = filteredData.map((item: any, i: number) => 
+      const textFallback = filteredData.map((item: any, i: number) =>
         `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
       ).join('\n');
       const blobText = new Blob([textFallback], { type: 'text/plain' });
@@ -197,7 +197,7 @@ const UserListUnified = () => {
       alert("Table copied to clipboard! You can now paste it into Word, Excel, or Google Docs.");
     } catch (error) {
       console.error("Clipboard API failed, trying fallback:", error);
-      const textFallback = filteredData.map((item: any, i: number) => 
+      const textFallback = filteredData.map((item: any, i: number) =>
         `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
       ).join('\n');
       navigator.clipboard.writeText(textFallback);
@@ -216,8 +216,8 @@ const UserListUnified = () => {
       const row = [
         index + 1,
         `"${item.name}"`,
-        `"=""${item.ic_number}"""`, 
-        `"=""${item.phone}"""`, 
+        `"=""${item.ic_number}"""`,
+        `"=""${item.phone}"""`,
         `"${formatRoleLabel(item.role, item.type)}"`,
         `"${item.gender || '-'}"`,
         `"${item.registeredDate}"`
@@ -384,163 +384,178 @@ const UserListUnified = () => {
     `;
 
     const win = window.open('', '_blank');
-    if (win) { 
-      win.document.write(html); 
-      win.document.close(); 
+    if (win) {
+      win.document.write(html);
+      win.document.close();
     }
   };
 
   return (
     <>
-    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        
-        {/* Header & Tabs */}
-        <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">
-              {isTeacherView ? 'My Class Student List' : 'User List'}
-            </h2>
-            <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
-          </div>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-          {visibleTabs.length > 1 && (
-          <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
-                className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${
-                  activeTab === tab ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          )}
-        </div>
-
-        <div className="p-6">
-          <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
-            
-            <ExportButtons 
-                onCopy={handleCopy}
-                onExportCSV={handleExportCSV} 
-                onExportExcel={handleExportExcel} 
-                onExportPDF={handleExportPDF} 
-                onPrint={handleExportPDF} // Print acts the same as PDF opening 
-            />
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-               
-               {/* SESSION FILTER DROPDOWN */}
-               <div className="relative w-full sm:w-48">
-                 <select 
-                   value={selectedSessionId}
-                   onChange={(e) => setSelectedSessionId(e.target.value)}
-                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
-                 >
-                   <option value="all">All Time History</option>
-                   {sessions.map(session => (
-                     <option key={session.id} value={session.id}>
-                       Session {session.year} {session.status === 'Active' ? '(Active)' : ''}
-                     </option>
-                   ))}
-                 </select>
-                 <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-               </div>
-
-               {/* SEARCH BAR */}
-               <div className="relative w-full sm:w-64">
-                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                 <input 
-                   type="text" 
-                   placeholder="Search names or phones..."
-                   value={searchQuery}
-                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
-                 />
-               </div>
+          {/* Header & Tabs */}
+          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">
+                {isTeacherView ? 'My Class Student List' : 'User List'}
+              </h2>
+              <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
             </div>
-          </div>
 
-          <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[600px] relative">
-            <table className="w-full text-left border-collapse relative">
-              <thead className="sticky top-0 z-10 shadow-sm">
-                <tr className="bg-gray-50 border-b border-gray-200">
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center whitespace-nowrap bg-gray-50">#</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Name</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider font-mono whitespace-nowrap bg-gray-50">IC Number</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Phone No</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Role/Class</th>
-                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center whitespace-nowrap bg-gray-50">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {isLoading ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-gray-500">Loading data...</td></tr>
-                ) : currentData.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-gray-500">
-                      {isTeacherView ? 'No students found for your assigned class in this session.' : 'No records found for this session.'}
-                    </td>
-                  </tr>
-                ) : (
-                  currentData.map((item: any, index: number) => (
-                    <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + index + 1}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-[#1c3068]">{item.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.ic_number}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.phone}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 font-medium">
-                        {formatRoleLabel(item.role, item.type)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center items-center gap-2">
-                          <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
-                            <Info size={16} />
-                          </button>
-                          {!isTeacherView && (
-                            <>
-                              <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                              </button>
-                              <button onClick={() => handleDeleteClick(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100" title="Delete User">
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {!isLoading && filteredData.length > 0 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
-              <p>Showing {startIndex + 1} to {endIndex} of {filteredData.length} entries</p>
-              <div className="flex gap-1">
-                <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded border ${currentPage === page ? 'bg-[#c53336] text-white border-[#c53336]' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>{page}</button>
+            {visibleTabs.length > 1 && (
+              <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+                {visibleTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
+                    className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                      }`}
+                  >
+                    {tab}
+                  </button>
                 ))}
-                <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6">
+            <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
+
+              <ExportButtons
+                onCopy={handleCopy}
+                onExportCSV={handleExportCSV}
+                onExportExcel={handleExportExcel}
+                onExportPDF={handleExportPDF}
+                onPrint={handleExportPDF} // Print acts the same as PDF opening 
+              />
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+
+                {/* SESSION FILTER DROPDOWN */}
+                <div className="relative w-full sm:w-48">
+                  <select
+                    value={selectedSessionId}
+                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
+                  >
+                    <option value="all">All Time History</option>
+                    {sessions.map(session => (
+                      <option key={session.id} value={session.id}>
+                        Session {session.year} {session.status === 'Active' ? '(Active)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* SEARCH BAR */}
+                <div className="relative w-full sm:w-64">
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search names or phones..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
+                  />
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
 
-    <AnimatePresence>
-      {isInfoModalOpen && <UserInfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} user={selectedUser} />}
-      {isEditModalOpen && <EditUserModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={selectedUser} onSuccess={handleEditSuccess} />}
-      {isDeleteModalOpen && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDelete} userName={selectedUser?.name} />}
-    </AnimatePresence>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[600px] relative">
+              <table className="w-full text-left border-collapse relative">
+                <thead className="sticky top-0 z-10 shadow-sm">
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center whitespace-nowrap bg-gray-50">#</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Name</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider font-mono whitespace-nowrap bg-gray-50">IC Number</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Phone No</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Role/Class</th>
+                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center whitespace-nowrap bg-gray-50">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {isLoading ? (
+                    <tr><td colSpan={6} className="text-center py-8 text-gray-500">Loading data...</td></tr>
+                  ) : currentData.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                        {isTeacherView ? 'No students found for your assigned class in this session.' : 'No records found for this session.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    currentData.map((item: any, index: number) => (
+                      <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + index + 1}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-[#1c3068]">{item.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.ic_number}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.phone}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-medium">
+                          {formatRoleLabel(item.role, item.type)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex justify-center items-center gap-2">
+                            <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
+                              <Info size={16} />
+                            </button>
+                            {!isTeacherView && (
+                              <>
+                                <button onClick={() => handleEditClick(item)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white transition-all shadow-sm border border-amber-100" title="Edit User">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
+                                </button>
+                                <button onClick={() => handleDeleteClick(item)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100" title="Delete User">
+                                  <Trash2 size={16} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {!isLoading && filteredData.length > 0 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
+                <p>Showing {startIndex + 1} to {endIndex} of {filteredData.length} entries</p>
+                <div className="flex gap-1">
+                  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded border ${currentPage === page ? 'bg-[#c53336] text-white border-[#c53336]' : 'border-gray-200 hover:bg-gray-50 text-gray-600'}`}>{page}</button>
+                  ))}
+                  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isInfoModalOpen && <UserInfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} user={selectedUser} />}
+        {isEditModalOpen && <EditUserModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={selectedUser} onSuccess={handleEditSuccess} />}
+
+        {isDeleteModalOpen && selectedUser && (
+          <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            itemName={selectedUser.name}
+            itemType={selectedUser.type} // Automatically displays 'student', 'teacher', or 'staff'
+            onConfirm={async () => {
+              // 1. Delete using the correct endpoint structure
+              await axios.delete(`/api/users/${selectedUser.type}/${selectedUser.id}`);
+
+              // 2. Fetch the updated list to refresh the table
+              const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
+              setAllUsers(response.data);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 };
