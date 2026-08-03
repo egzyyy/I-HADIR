@@ -20,7 +20,8 @@ class AttendanceLog extends Model
         'status',
         'scan_method',
         'scanned_by',
-        'reason_manual'
+        'reason_manual',
+        'shift_id',
     ];
 
     protected $casts = [
@@ -28,6 +29,11 @@ class AttendanceLog extends Model
         'check_in_time' => 'datetime',
         'check_out_time'=> 'datetime',
     ];
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
 
     /**
      * Resolve the person's name and class info based on user_type + user_id.

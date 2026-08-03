@@ -6,6 +6,7 @@ use App\Models\AttendanceLog;
 use App\Models\AttendanceSetting;
 use App\Models\AttendanceSettingOverride;
 use App\Models\SchoolSession;
+use App\Models\Shift;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Classroom;
@@ -23,6 +24,7 @@ class AttendanceController extends Controller
         $request->validate([
             'ic_number' => 'required|string',
             'user_type' => 'required|in:student,teacher,staff',
+            'shift_id'  => 'nullable|integer',
         ]);
 
         // Public kiosk scanning (landing page) works logged-out — same fallback as VisitorController
@@ -37,6 +39,31 @@ class AttendanceController extends Controller
 
         if (!$userId) {
             return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+        }
+
+        $shift = null;
+        if ($request->user_type === 'staff' && $this->isSecurityStaff($userId)) {
+            [$shift, $shiftError] = $this->resolveCheckInShift($schoolId, $request->shift_id);
+            if ($shiftError) {
+                return response()->json(['message' => $shiftError], 422);
+            }
+
+            if ($shift) {
+                $openLog = AttendanceLog::where('user_type', 'staff')
+                    ->where('user_id', $userId)
+                    ->whereNotNull('check_in_time')
+                    ->whereNull('check_out_time')
+                    ->first();
+
+                if ($openLog) {
+                    return response()->json([
+                        'message' => 'You still have an open shift — please check out first.',
+                        'name'    => $name,
+                        'class'   => $class,
+                        'duplicate' => true,
+                    ], 409);
+                }
+            }
         }
 
         // Prevent duplicate check-in
@@ -63,22 +90,25 @@ class AttendanceController extends Controller
 
         $now = Carbon::now();
 
-        // Reject check-in on school-closed / holiday days
-        $activeSetting = $this->resolveActiveSetting($schoolId, $now);
-        $override = AttendanceSettingOverride::where('school_id', $schoolId)
-            ->whereDate('date', $now->toDateString())
-            ->first();
-        if ($override && !$override->setting_id) {
-            return response()->json([
-                'message' => 'School is closed today' . ($override->note ? " ({$override->note})" : '') . '. No attendance recorded.',
-            ], 403);
+        // Reject check-in on school-closed / holiday days — security shifts run independently
+        // of the school calendar (guards are still on duty over holidays), so shift-based
+        // check-ins skip this gate entirely.
+        if (!$shift) {
+            $override = AttendanceSettingOverride::where('school_id', $schoolId)
+                ->whereDate('date', $now->toDateString())
+                ->first();
+            if ($override && !$override->setting_id) {
+                return response()->json([
+                    'message' => 'School is closed today' . ($override->note ? " ({$override->note})" : '') . '. No attendance recorded.',
+                ], 403);
+            }
         }
 
         $session = SchoolSession::where('school_id', $schoolId)
             ->where('is_active', true)
             ->first();
 
-        $status = $this->resolveStatus($schoolId, $now);
+        $status = $shift ? $this->resolveShiftStatus($shift, $now) : $this->resolveStatus($schoolId, $now);
 
         $log = AttendanceLog::updateOrCreate(
             ['user_type' => $request->user_type, 'user_id' => $userId, 'date' => $today],
@@ -86,6 +116,7 @@ class AttendanceController extends Controller
                 'school_id'         => $schoolId,
                 'school_session_id' => $session?->school_session_id,
                 'classroom_id'      => $classroomId,
+                'shift_id'          => $shift?->id,
                 'check_in_time'     => $now,
                 'status'            => $status,
                 'scan_method'       => 'qr',
@@ -97,6 +128,7 @@ class AttendanceController extends Controller
             'message' => 'Check-in recorded.',
             'name'    => $name,
             'class'   => $class,
+            'shift'   => $shift?->name,
             'status'  => $log->status,
             'time'    => $now->format('H:i:s'),
         ]);
@@ -124,10 +156,21 @@ class AttendanceController extends Controller
             return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
-        $log = AttendanceLog::where('user_type', $request->user_type)
-            ->where('user_id', $userId)
-            ->where('date', $today)
-            ->first();
+        if ($request->user_type === 'staff' && $this->isSecurityStaff($userId)) {
+            // Shifts can be overnight, so "today's log" isn't reliable — find whatever
+            // shift is currently still open for this staff member, regardless of date.
+            $log = AttendanceLog::where('user_type', 'staff')
+                ->where('user_id', $userId)
+                ->whereNotNull('check_in_time')
+                ->whereNull('check_out_time')
+                ->orderByDesc('check_in_time')
+                ->first();
+        } else {
+            $log = AttendanceLog::where('user_type', $request->user_type)
+                ->where('user_id', $userId)
+                ->where('date', $today)
+                ->first();
+        }
 
         if (!$log || !$log->check_in_time) {
             return response()->json(['message' => 'No check-in record found for today.'], 404);
@@ -167,6 +210,7 @@ class AttendanceController extends Controller
             'ic_number' => 'required|string',
             'user_type' => 'required|in:student,teacher,staff',
             'reason'    => 'required|string|max:255',
+            'shift_id'  => 'nullable|integer',
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -181,6 +225,14 @@ class AttendanceController extends Controller
 
         if (!$userId) {
             return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+        }
+
+        $shift = null;
+        if ($request->user_type === 'staff' && $this->isSecurityStaff($userId)) {
+            [$shift, $shiftError] = $this->resolveCheckInShift($schoolId, $request->shift_id);
+            if ($shiftError) {
+                return response()->json(['message' => $shiftError], 422);
+            }
         }
 
         $existing = AttendanceLog::where('user_type', $request->user_type)
@@ -202,7 +254,7 @@ class AttendanceController extends Controller
 
         $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         $now     = Carbon::now();
-        $status  = $this->resolveStatus($schoolId, $now);
+        $status  = $shift ? $this->resolveShiftStatus($shift, $now) : $this->resolveStatus($schoolId, $now);
 
         $log = AttendanceLog::updateOrCreate(
             ['user_type' => $request->user_type, 'user_id' => $userId, 'date' => $today],
@@ -210,6 +262,7 @@ class AttendanceController extends Controller
                 'school_id'         => $schoolId,
                 'school_session_id' => $session?->school_session_id,
                 'classroom_id'      => $classroomId,
+                'shift_id'          => $shift?->id,
                 'check_in_time'     => $now,
                 'status'            => $status,
                 'scan_method'       => 'manual',
@@ -226,6 +279,7 @@ class AttendanceController extends Controller
             'name'      => $name,
             'class'     => $class,
             'user_type' => $request->user_type,
+            'shift'     => $shift?->name,
             'reason'    => $request->reason,
             'check_in'  => $now->format('d/m/Y H:i'),
             'check_out' => null,
@@ -295,6 +349,7 @@ class AttendanceController extends Controller
             ->where('user_type', $type)
             ->whereIn('user_id', $userIds)
             ->whereDate('date', $date)
+            ->with('shift')
             ->get()
             ->keyBy('user_id');
 
@@ -315,6 +370,7 @@ class AttendanceController extends Controller
                 'status'       => strtolower($status),
                 'scan_method'  => $log?->scan_method ?? '-',
                 'reason'       => $log?->reason_manual,
+                'shift'        => $log?->shift?->name,
             ];
         });
 
@@ -413,7 +469,7 @@ class AttendanceController extends Controller
             $query->whereDate('date', '<=', $request->to);
         }
 
-        $logs = $query->orderByDesc('date')->orderByDesc('check_in_time')->get();
+        $logs = $query->with('shift')->orderByDesc('date')->orderByDesc('check_in_time')->get();
 
         $data = $logs->map(function ($log) {
             return [
@@ -423,6 +479,7 @@ class AttendanceController extends Controller
                 'check_out'   => $log->check_out_time?->format('H:i:s'),
                 'status'      => $log->status,
                 'scan_method' => $log->scan_method,
+                'shift'       => $log->shift?->name,
             ];
         });
 
@@ -539,6 +596,81 @@ class AttendanceController extends Controller
 
         if ($time <= $setting->late_threshold) return 'late';
         return 'absent';
+    }
+
+    private function isSecurityStaff(string $userId): bool
+    {
+        return User::where('user_id', $userId)->where('user_type', 'security_staff')->exists();
+    }
+
+    /**
+     * @return array{0: ?Shift, 1: ?string} [shift, errorMessage]. Both null means "no active
+     * shifts configured for this school" — callers should fall back to the school-wide setting.
+     */
+    private function resolveCheckInShift(int $schoolId, ?int $shiftId): array
+    {
+        $hasActiveShifts = Shift::where('school_id', $schoolId)->where('is_active', true)->exists();
+        if (!$hasActiveShifts) {
+            return [null, null];
+        }
+
+        if (!$shiftId) {
+            return [null, 'Please select a shift before checking in.'];
+        }
+
+        $shift = Shift::where('school_id', $schoolId)->where('is_active', true)->find($shiftId);
+        if (!$shift) {
+            return [null, 'Selected shift is not available.'];
+        }
+
+        return [$shift, null];
+    }
+
+    private function resolveShiftStatus(Shift $shift, Carbon $now): string
+    {
+        if (!$shift->is_overnight) {
+            $time = $now->format('H:i:s');
+
+            if ($time <= $shift->start_time) return 'present';
+            if ($shift->late_threshold) {
+                if ($time <= $shift->late_threshold) return 'late';
+                return $shift->absent_threshold
+                    ? ($time <= $shift->absent_threshold ? 'late' : 'absent')
+                    : 'absent';
+            }
+            return 'late';
+        }
+
+        $elapsed  = $this->minutesSinceShiftStart($shift->start_time, $now);
+        $lateAt   = $shift->late_threshold   ? $this->minutesBetween($shift->start_time, $shift->late_threshold)   : null;
+        $absentAt = $shift->absent_threshold ? $this->minutesBetween($shift->start_time, $shift->absent_threshold) : null;
+
+        if ($elapsed <= 0) return 'present';
+        if ($lateAt !== null && $elapsed <= $lateAt) return 'late';
+        if ($absentAt !== null) return $elapsed <= $absentAt ? 'late' : 'absent';
+        return $lateAt !== null ? 'absent' : 'late';
+    }
+
+    // Minutes elapsed since an overnight shift's start, wrapping past midnight. Arrivals up to
+    // an hour before the stated start are treated as "early for tonight's shift" rather than
+    // wrapped into "very late for last night's" — the two are otherwise indistinguishable from
+    // wall-clock time alone.
+    private function minutesSinceShiftStart(string $start, Carbon $now): int
+    {
+        $diff = ($now->hour * 60 + $now->minute) - $this->toMinutes($start);
+        return $diff >= -60 ? $diff : $diff + 1440;
+    }
+
+    private function minutesBetween(string $from, string $to): int
+    {
+        $diff = $this->toMinutes($to) - $this->toMinutes($from);
+        return $diff < 0 ? $diff + 1440 : $diff;
+    }
+
+    private function toMinutes(string $time): int
+    {
+        [$h, $m] = array_map('intval', explode(':', $time));
+        return $h * 60 + $m;
     }
 
     public function resolveActiveSetting(int $schoolId, Carbon $date): ?AttendanceSetting

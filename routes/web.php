@@ -15,6 +15,7 @@ use App\Http\Controllers\VisitorController;
 use App\Http\Controllers\FacilityController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\TimeSettingController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SchoolProfileController;
@@ -111,6 +112,13 @@ Route::get('/api/time-settings/overrides', [TimeSettingController::class, 'getOv
 Route::post('/api/time-settings/overrides', [TimeSettingController::class, 'storeOverride']);
 Route::put('/api/time-settings/overrides/{id}', [TimeSettingController::class, 'updateOverride']);
 Route::delete('/api/time-settings/overrides/{id}', [TimeSettingController::class, 'destroyOverride']);
+
+// Security Shifts
+Route::get('/api/shifts/active', [ShiftController::class, 'activeForCheckIn']);
+Route::get('/api/shifts', [ShiftController::class, 'index']);
+Route::post('/api/shifts', [ShiftController::class, 'store']);
+Route::put('/api/shifts/{id}', [ShiftController::class, 'update']);
+Route::delete('/api/shifts/{id}', [ShiftController::class, 'destroy']);
 
 // QR Code
 Route::get('/api/qr/me', [QrController::class, 'me']);
