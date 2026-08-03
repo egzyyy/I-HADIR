@@ -39,8 +39,12 @@ export default defineConfig({
         cors: {
             origin: ["http://localhost:8000"],
         },
-        // watch: {
-        //     usePolling: true,
-        // },
+        // Windows + Docker Desktop bind mounts don't reliably forward native
+        // filesystem change events (inotify) into the Linux container, so
+        // chokidar's default event-based watching silently misses edits made
+        // on the host. Polling checks file state on an interval instead.
+        watch: {
+            usePolling: true,
+        },
     },
 });

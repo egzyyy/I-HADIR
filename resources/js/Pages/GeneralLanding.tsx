@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ArrowRight, ScanLine, BarChart3, BellRing, ShieldCheck } from 'lucide-react';
-import logo from '../assets/i_hadir_logo2.png';
+import { Menu, X, ArrowRight, ScanLine, BarChart3, ShieldCheck } from 'lucide-react';
+import logo from '../assets/umpsa_fk_logo.png';
 import { AboutSystem } from '../Components/landing/AboutSystem';
 import { HowItWorks } from '../Components/landing/HowItWorks';
 import { WhoIsItFor } from '../Components/landing/WhoIsItFor';
@@ -78,7 +78,6 @@ const GeneralNavbar = () => {
 const GeneralHero = () => {
   const features = [
     { icon: ScanLine, label: 'QR & biometric check-in' },
-    { icon: BellRing, label: 'Instant parent SMS alerts' },
     { icon: BarChart3, label: 'Live attendance reports' },
     { icon: ShieldCheck, label: 'Visitor & staff management' },
   ];
