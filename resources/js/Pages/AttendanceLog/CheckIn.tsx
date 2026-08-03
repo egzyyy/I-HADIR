@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import ScannerCard from '../../Components/common/ScannerCard';
@@ -8,6 +9,14 @@ import ScanResultModal, { ScanResultTone } from '../../Components/common/ScanRes
 import { useAuth } from '../../contexts/AuthContext';
 
 type ScanMode = 'check-in' | 'check-out';
+
+type Shift = {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isOvernight: boolean;
+};
 
 type ScanResult = {
   success: boolean;
@@ -48,6 +57,22 @@ const AttendanceScan = () => {
   const [result, setResult]     = useState<ScanResult | null>(null);
   const [error, setError]       = useState<string | null>(null);
 
+  // Security staff pick a shift before scanning in — check-out auto-detects, no picker.
+  const isSecurity = role === 'Security';
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shiftsLoaded, setShiftsLoaded] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isSecurity) return;
+    axios.get('/api/shifts/active')
+      .then(res => setShifts(res.data.data))
+      .finally(() => setShiftsLoaded(true));
+  }, [isSecurity]);
+
+  const stillLoadingShifts = isSecurity && scanMode === 'check-in' && !shiftsLoaded && !selectedShiftId;
+  const needsShiftPick = isSecurity && scanMode === 'check-in' && shiftsLoaded && shifts.length > 0 && !selectedShiftId;
+
   const handleScan = async (decoded: string) => {
     setLoading(true);
     setError(null);
@@ -56,6 +81,7 @@ const AttendanceScan = () => {
       const res = await axios.post(`/api/attendance/${scanMode}`, {
         ic_number: decoded.trim(),
         user_type: userType,
+        ...(isSecurity && scanMode === 'check-in' ? { shift_id: selectedShiftId } : {}),
       });
       setResult(res.data);
     } catch (err: any) {
@@ -69,6 +95,26 @@ const AttendanceScan = () => {
       setLoading(false);
     }
   };
+
+  const modeToggle = (
+    <div className="mb-6 flex justify-end">
+      <div className="flex rounded-xl overflow-hidden border border-gray-200">
+        {(['check-in', 'check-out'] as ScanMode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => { setScanMode(m); setScanning(false); setError(null); setResult(null); }}
+            className={`px-4 py-2 text-sm font-semibold transition-colors ${
+              scanMode === m
+                ? 'bg-[#1c3068] text-white'
+                : 'bg-white text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            {m === 'check-in' ? 'Check In' : 'Check Out'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -84,35 +130,58 @@ const AttendanceScan = () => {
           </p>
         </div>
 
-        <ScannerCard
-          header={
-            <div className="mb-6 flex justify-end">
-              {/* Check-in / Check-out toggle */}
-              <div className="flex rounded-xl overflow-hidden border border-gray-200">
-                {(['check-in', 'check-out'] as ScanMode[]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => { setScanMode(m); setScanning(false); setError(null); setResult(null); }}
-                    className={`px-4 py-2 text-sm font-semibold transition-colors ${
-                      scanMode === m
-                        ? 'bg-[#1c3068] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    {m === 'check-in' ? 'Check In' : 'Check Out'}
-                  </button>
-                ))}
-              </div>
+        {stillLoadingShifts ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : needsShiftPick ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            {modeToggle}
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck size={18} className="text-[#1c3068]" />
+              <h3 className="font-bold text-[#1c3068]">Which shift are you checking in for?</h3>
             </div>
-          }
-          scanning={scanning}
-          loading={loading}
-          error={error}
-          onScan={handleScan}
-          onStart={() => { setScanning(true); setError(null); setResult(null); }}
-          onStop={() => { setScanning(false); setError(null); }}
-          onDismissError={() => setError(null)}
-        />
+            <div className="space-y-2">
+              {shifts.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedShiftId(s.id)}
+                  className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#1c3068] hover:bg-[#1c3068]/5 transition-colors flex items-center justify-between"
+                >
+                  <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                  <span className="text-xs text-gray-400">
+                    {s.startTime}–{s.endTime}{s.isOvernight ? ' (overnight)' : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ScannerCard
+            header={
+              <>
+                {modeToggle}
+                {isSecurity && scanMode === 'check-in' && selectedShiftId && (
+                  <div className="mb-4 flex items-center justify-between text-sm bg-[#1c3068]/5 border border-[#1c3068]/10 rounded-xl px-4 py-2.5">
+                    <span className="text-gray-600">
+                      Checking in for <strong className="text-[#1c3068]">{shifts.find(s => s.id === selectedShiftId)?.name}</strong>
+                    </span>
+                    <button onClick={() => setSelectedShiftId(null)} className="text-[#1c3068] font-semibold hover:underline">
+                      Change
+                    </button>
+                  </div>
+                )}
+              </>
+            }
+            scanning={scanning}
+            loading={loading}
+            error={error}
+            onScan={handleScan}
+            onStart={() => { setScanning(true); setError(null); setResult(null); }}
+            onStop={() => { setScanning(false); setError(null); }}
+            onDismissError={() => setError(null)}
+          />
+        )}
       </motion.div>
 
       {/* Result modal */}

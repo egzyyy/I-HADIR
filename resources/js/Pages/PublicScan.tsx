@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Navbar } from '../Components/landing/Navbar';
@@ -16,6 +16,14 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 //   /scan?facility=pss&mode=check-in          → facility log (students)
 
 type ScanMode = 'check-in' | 'check-out';
+
+type Shift = {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isOvernight: boolean;
+};
 
 type ScanResult = {
   success: boolean;
@@ -62,6 +70,21 @@ export default function PublicScan() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Security staff pick a shift before scanning in — check-out auto-detects, no picker.
+  const needsShift = !isFacility && userType === 'staff' && mode === 'check-in';
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shiftsLoaded, setShiftsLoaded] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!needsShift) return;
+    axios.get('/api/shifts/active')
+      .then(res => setShifts(res.data.data))
+      .finally(() => setShiftsLoaded(true));
+  }, [needsShift]);
+
+  const showShiftPicker = needsShift && shiftsLoaded && shifts.length > 0 && !selectedShiftId;
+
   const handleScan = async (decoded: string) => {
     setLoading(true);
     setError(null);
@@ -71,7 +94,7 @@ export default function PublicScan() {
         : `/api/attendance/${mode}`;
       const payload = isFacility
         ? { ic_number: decoded.trim(), user_type: 'student', facility_type: facility }
-        : { ic_number: decoded.trim(), user_type: userType };
+        : { ic_number: decoded.trim(), user_type: userType, ...(needsShift ? { shift_id: selectedShiftId } : {}) };
 
       const res = await axios.post(endpoint, payload);
       setResult(res.data);
@@ -104,15 +127,54 @@ export default function PublicScan() {
           <p className="text-gray-500">Show the QR code to the camera to record {mode === 'check-out' ? 'check-out' : 'check-in'}.</p>
         </div>
 
-        <ScannerCard
-          scanning={scanning}
-          loading={loading}
-          error={error}
-          onScan={handleScan}
-          onStart={() => { setScanning(true); setError(null); }}
-          onStop={() => { setScanning(false); setError(null); }}
-          onDismissError={() => setError(null)}
-        />
+        {needsShift && !shiftsLoaded ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : showShiftPicker ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck size={18} className="text-[#1c3068]" />
+              <h3 className="font-bold text-[#1c3068]">Which shift are you checking in for?</h3>
+            </div>
+            <div className="space-y-2">
+              {shifts.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedShiftId(s.id)}
+                  className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#1c3068] hover:bg-[#1c3068]/5 transition-colors flex items-center justify-between"
+                >
+                  <span className="text-sm font-semibold text-gray-700">{s.name}</span>
+                  <span className="text-xs text-gray-400">
+                    {s.startTime}–{s.endTime}{s.isOvernight ? ' (overnight)' : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ScannerCard
+            header={
+              needsShift && selectedShiftId ? (
+                <div className="mb-4 flex items-center justify-between text-sm bg-[#1c3068]/5 border border-[#1c3068]/10 rounded-xl px-4 py-2.5">
+                  <span className="text-gray-600">
+                    Checking in for <strong className="text-[#1c3068]">{shifts.find(s => s.id === selectedShiftId)?.name}</strong>
+                  </span>
+                  <button onClick={() => setSelectedShiftId(null)} className="text-[#1c3068] font-semibold hover:underline">
+                    Change
+                  </button>
+                </div>
+              ) : undefined
+            }
+            scanning={scanning}
+            loading={loading}
+            error={error}
+            onScan={handleScan}
+            onStart={() => { setScanning(true); setError(null); }}
+            onStop={() => { setScanning(false); setError(null); }}
+            onDismissError={() => setError(null)}
+          />
+        )}
       </div>
 
       {result && (

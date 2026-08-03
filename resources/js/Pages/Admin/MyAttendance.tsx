@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import axios from 'axios';
 import DashboardLayout from '@/Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
+import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/i_hadir_logo2.png';
 
 type LogEntry = {
@@ -13,6 +14,7 @@ type LogEntry = {
   check_out: string | null;
   status: string;
   scan_method: string;
+  shift?: string | null;
 };
 
 const statusBadgeClass = (status: string) => {
@@ -25,6 +27,8 @@ const statusBadgeClass = (status: string) => {
 };
 
 function MyAttendanceContent() {
+  const { role } = useAuth();
+  const showShiftColumn = role === 'Security';
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -140,17 +144,20 @@ function MyAttendanceContent() {
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Time In</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Time Out</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
+                  {showShiftColumn && (
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Shift</th>
+                  )}
                   <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Method</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-white">Loading your attendance record...</td>
+                    <td colSpan={showShiftColumn ? 7 : 6} className="px-6 py-16 text-center text-gray-400 bg-white">Loading your attendance record...</td>
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center text-gray-400 bg-white">
+                    <td colSpan={showShiftColumn ? 7 : 6} className="px-6 py-16 text-center text-gray-400 bg-white">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center">
                           <Calendar size={24} className="text-gray-300" />
@@ -169,6 +176,9 @@ function MyAttendanceContent() {
                       <td className="px-6 py-4 text-sm text-center capitalize">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${statusBadgeClass(l.status)}`}>{l.status}</span>
                       </td>
+                      {showShiftColumn && (
+                        <td className="px-6 py-4 text-sm text-gray-500 text-center">{l.shift ?? '—'}</td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-500 text-center capitalize">{l.scan_method}</td>
                     </tr>
                   ))

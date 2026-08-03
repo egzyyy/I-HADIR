@@ -378,6 +378,12 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
     return 'Dashboard';
   };
 
+  // Browser tab title — the blade shell only sets a static title on first load,
+  // so the SPA has to keep it in sync with whichever page is active.
+  React.useEffect(() => {
+    document.title = `${getCurrentPageLabel()} | I-HADIR`;
+  }, [activePageId, currentRole]);
+
   const handleMenuClick = (id: string, action?: string) => {
     if (action === 'logout') {
       handleLogout();

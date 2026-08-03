@@ -26,6 +26,7 @@ type LogEntry = {
   check_out: string | null;
   scan_method: string;
   reason: string | null; // Added reason to type
+  shift?: string | null;
 };
 
 const statusConfig = {
@@ -96,6 +97,10 @@ const AttendanceLogPage = () => {
     qr: 'QR',
     '-': '-',
   };
+
+  // Shift only applies to security staff — only worth a column when viewing Staff records
+  const showShiftColumn = filterType === 'staff';
+  const columnCount = showShiftColumn ? 8 : 7;
 
   return (
     <motion.div
@@ -187,13 +192,16 @@ const AttendanceLogPage = () => {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Check In</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Check Out</th>
+                {showShiftColumn && (
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Shift</th>
+                )}
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Method</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-gray-400 text-sm">
+                  <td colSpan={columnCount} className="px-6 py-16 text-center text-gray-400 text-sm">
                     <div className="flex justify-center">
                       <div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
                     </div>
@@ -201,7 +209,7 @@ const AttendanceLogPage = () => {
                 </tr>
               ) : currentData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-gray-400 text-sm">
+                  <td colSpan={columnCount} className="px-6 py-16 text-center text-gray-400 text-sm">
                     No attendance records found matching criteria.
                   </td>
                 </tr>
@@ -232,6 +240,9 @@ const AttendanceLogPage = () => {
                           : <span className="text-gray-300">—</span>
                         }
                       </td>
+                      {showShiftColumn && (
+                        <td className="px-6 py-4 text-sm text-gray-600">{log.shift ?? '—'}</td>
+                      )}
                       <td className="px-6 py-4 text-center">
                         {log.scan_method === 'manual' ? (
                           <button

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, Plus, Pencil, Trash2, X, Star, Calendar, BanIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Plus, Pencil, Trash2, X, Star, Calendar, BanIcon, ChevronLeft, ChevronRight, Moon, Shield, CheckCircle2 } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 
@@ -25,6 +25,17 @@ type Override = {
   settingTitle: string | null;
   note: string | null;
   isClosed: boolean;
+};
+
+type Shift = {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isOvernight: boolean;
+  lateThreshold: string | null;
+  absentThreshold: string | null;
+  isActive: boolean;
 };
 
 const DAY_LABELS: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
@@ -440,40 +451,19 @@ const OverrideModal = memo(({
   );
 });
 
-// ─── Mini Calendar ────────────────────────────────────────────────────────────
+// ─── Mini Calendar — its own standalone card, no shared container with anything else ──
 
-const OverrideCalendar = memo(({
-  settings, overrides, onRefresh,
+const CalendarGrid = memo(({
+  year, month, overrideMap, selectedDate, onPrev, onNext, onDayClick,
 }: {
-  settings: Setting[];
-  overrides: Override[];
-  onRefresh: () => void;
+  year: number;
+  month: number;
+  overrideMap: Record<string, Override>;
+  selectedDate: string | null;
+  onPrev: () => void;
+  onNext: () => void;
+  onDayClick: (dateStr: string) => void;
 }) => {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
-  const prevMonth = useCallback(() => {
-    setMonth(m => {
-      if (m === 1) { setYear(y => y - 1); return 12; }
-      return m - 1;
-    });
-  }, []);
-
-  const nextMonth = useCallback(() => {
-    setMonth(m => {
-      if (m === 12) { setYear(y => y + 1); return 1; }
-      return m + 1;
-    });
-  }, []);
-
-  // O(n) map built once per overrides change — not on every calendar navigation
-  const overrideMap = useMemo(
-    () => Object.fromEntries(overrides.map(o => [o.date, o])),
-    [overrides],
-  );
-
   // Cells array rebuilt only when year/month changes
   const cells = useMemo<(number | null)[]>(() => {
     const startDay = getFirstDayOfMonth(year, month);
@@ -484,127 +474,106 @@ const OverrideCalendar = memo(({
     ];
   }, [year, month]);
 
-  // Single filter pass — used for both the length check and the list render
-  const monthOverrides = useMemo(() => {
-    const prefix = `${year}-${pad(month)}`;
-    return overrides.filter(o => o.date.startsWith(prefix));
-  }, [overrides, year, month]);
-
   const monthTitle = useMemo(() => getMonthLabel(year, month), [year, month]);
 
-  const selectedOverride = selectedDate ? (overrideMap[selectedDate] ?? null) : null;
-
-  const handleDayClick = useCallback((dateStr: string) => {
-    setSelectedDate(prev => prev === dateStr ? null : dateStr);
-  }, []);
-
-  const handleModalClose = useCallback(() => setSelectedDate(null), []);
-
-  const handleModalSaved = useCallback(() => {
-    onRefresh();
-    setSelectedDate(null);
-  }, [onRefresh]);
-
   return (
-    <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} className="text-[#1c3068]" />
-            <h3 className="font-bold text-[#1c3068]">Calendar Overrides</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ChevronLeft size={16} className="text-gray-500" />
-            </button>
-            <span className="text-sm font-semibold text-gray-700 min-w-[130px] text-center">{monthTitle}</span>
-            <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ChevronRight size={16} className="text-gray-500" />
-            </button>
-          </div>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Calendar size={18} className="text-[#1c3068]" />
+          <h3 className="font-bold text-[#1c3068]">Calendar Overrides</h3>
         </div>
-
-        <div className="p-4">
-          <div className="grid grid-cols-7 mb-1">
-            {DAY_HEADERS.map(d => (
-              <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">{d}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((day, i) => {
-              if (!day) return <div key={`e-${i}`} />;
-              const dateStr = toYMD(year, month, day);
-              const ov = overrideMap[dateStr];
-              const isToday    = dateStr === TODAY_STR;
-              const isSelected = dateStr === selectedDate;
-
-              let cellStyle = 'text-gray-700 hover:bg-gray-50';
-              if (isToday)                      cellStyle = 'font-bold text-[#1c3068]';
-              if (isSelected)                   cellStyle = 'bg-[#1c3068] text-white hover:bg-[#152450]';
-              if (ov?.isClosed && !isSelected)  cellStyle = 'text-red-400 bg-red-50 hover:bg-red-100';
-              if (ov && !ov.isClosed && !isSelected) cellStyle = 'text-blue-600 bg-blue-50 hover:bg-blue-100';
-
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => handleDayClick(dateStr)}
-                  className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all ${cellStyle}`}
-                >
-                  {day}
-                  {ov && (
-                    <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${
-                      ov.isClosed
-                        ? (isSelected ? 'bg-white' : 'bg-red-400')
-                        : (isSelected ? 'bg-white' : 'bg-blue-400')
-                    }`} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="w-2 h-2 rounded-full bg-blue-400" /> Special schedule
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="w-2 h-2 rounded-full bg-red-400" /> School closed
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <button onClick={onPrev} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <ChevronLeft size={16} className="text-gray-500" />
+          </button>
+          <span className="text-sm font-semibold text-gray-700 min-w-[130px] text-center">{monthTitle}</span>
+          <button onClick={onNext} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
         </div>
       </div>
 
-      {monthOverrides.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-4 border-b border-gray-100">
-            <h4 className="text-sm font-bold text-gray-600">Overrides this month</h4>
+      <div className="p-4">
+        <div className="grid grid-cols-7 mb-1">
+          {DAY_HEADERS.map(d => (
+            <div key={d} className="text-center text-xs font-semibold text-gray-400 py-1">{d}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            if (!day) return <div key={`e-${i}`} />;
+            const dateStr = toYMD(year, month, day);
+            const ov = overrideMap[dateStr];
+            const isToday    = dateStr === TODAY_STR;
+            const isSelected = dateStr === selectedDate;
+
+            let cellStyle = 'text-gray-700 hover:bg-gray-50';
+            if (isToday)                      cellStyle = 'font-bold text-[#1c3068]';
+            if (isSelected)                   cellStyle = 'bg-[#1c3068] text-white hover:bg-[#152450]';
+            if (ov?.isClosed && !isSelected)  cellStyle = 'text-red-400 bg-red-50 hover:bg-red-100';
+            if (ov && !ov.isClosed && !isSelected) cellStyle = 'text-blue-600 bg-blue-50 hover:bg-blue-100';
+
+            return (
+              <button
+                key={dateStr}
+                onClick={() => onDayClick(dateStr)}
+                className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all ${cellStyle}`}
+              >
+                {day}
+                {ov && (
+                  <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${
+                    ov.isClosed
+                      ? (isSelected ? 'bg-white' : 'bg-red-400')
+                      : (isSelected ? 'bg-white' : 'bg-blue-400')
+                  }`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-4 mt-3 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="w-2 h-2 rounded-full bg-blue-400" /> Special schedule
           </div>
-          <div className="divide-y divide-gray-50">
-            {monthOverrides.map(o => (
-              <OverrideListItem
-                key={o.id}
-                override={o}
-                isSelected={o.date === selectedDate}
-                onSelect={handleDayClick}
-              />
-            ))}
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <span className="w-2 h-2 rounded-full bg-red-400" /> School closed
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+});
 
-      <AnimatePresence>
-        {selectedDate && (
-          <OverrideModal
-            date={selectedDate}
-            initial={selectedOverride}
-            settings={settings}
-            onClose={handleModalClose}
-            onSaved={handleModalSaved}
+// ─── Overrides-this-month list — shares the Time Profiles column, not the calendar ──
+
+const OverridesThisMonthList = memo(({
+  overrides, selectedDate, onSelect,
+}: {
+  overrides: Override[];
+  selectedDate: string | null;
+  onSelect: (date: string) => void;
+}) => {
+  if (overrides.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="p-4 border-b border-gray-100">
+        <h4 className="text-sm font-bold text-gray-600">Overrides this month</h4>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {overrides.map(o => (
+          <OverrideListItem
+            key={o.id}
+            override={o}
+            isSelected={o.date === selectedDate}
+            onSelect={onSelect}
           />
-        )}
-      </AnimatePresence>
-    </>
+        ))}
+      </div>
+    </div>
   );
 });
 
@@ -644,6 +613,333 @@ const OverrideListItem = memo(({
   );
 });
 
+// ─── Shift Card ───────────────────────────────────────────────────────────────
+
+const ShiftCard = memo(({
+  shift, deleting, onEdit, onDelete,
+}: {
+  shift: Shift;
+  deleting: boolean;
+  onEdit: (s: Shift) => void;
+  onDelete: (id: number) => void;
+}) => (
+  <div className="p-4 hover:bg-gray-50/50 transition-colors">
+    <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-semibold text-gray-800 text-sm">{shift.name}</span>
+        {shift.isOvernight && (
+          <span className="flex items-center gap-1 text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-200">
+            <Moon size={9} /> Overnight
+          </span>
+        )}
+        {shift.isActive ? (
+          <span className="flex items-center gap-1 text-[10px] font-bold bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-200">
+            <CheckCircle2 size={9} /> Active
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>
+        )}
+      </div>
+      <div className="flex gap-1 shrink-0">
+        <button
+          onClick={() => onEdit(shift)}
+          className="p-1.5 rounded-lg hover:bg-[#1c3068]/10 text-gray-400 hover:text-[#1c3068] transition-colors"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          onClick={() => onDelete(shift.id)}
+          disabled={deleting}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-40"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
+      <span>Starts: <strong className="text-gray-700">{shift.startTime}</strong></span>
+      <span>Ends: <strong className="text-gray-700">{shift.endTime}</strong></span>
+      <span>Late after: <strong className="text-gray-700">{shift.lateThreshold ?? '—'}</strong></span>
+      <span>Absent after: <strong className="text-gray-700">{shift.absentThreshold ?? '—'}</strong></span>
+    </div>
+  </div>
+));
+
+// ─── Shift Modal ──────────────────────────────────────────────────────────────
+
+const ShiftModal = memo(({
+  initial, onClose, onSaved,
+}: {
+  initial: Shift | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) => {
+  const isEdit = !!initial;
+  const [form, setForm] = useState({
+    name:            initial?.name            ?? '',
+    startTime:       initial?.startTime       ?? '07:00',
+    endTime:         initial?.endTime         ?? '15:00',
+    lateThreshold:   initial?.lateThreshold   ?? '',
+    absentThreshold: initial?.absentThreshold ?? '',
+    isActive:        initial?.isActive        ?? true,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = useCallback((key: string, value: string) => {
+    setForm(f => ({ ...f, [key]: value }));
+  }, []);
+
+  const toggleActive = useCallback(() => {
+    setForm(f => ({ ...f, isActive: !f.isActive }));
+  }, []);
+
+  const willBeOvernight = !!form.startTime && !!form.endTime && form.endTime <= form.startTime;
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        name:              form.name,
+        start_time:        form.startTime,
+        end_time:          form.endTime,
+        late_threshold:    form.lateThreshold || null,
+        absent_threshold:  form.absentThreshold || null,
+        is_active:         form.isActive,
+      };
+      if (isEdit) {
+        await axios.put(`/api/shifts/${initial!.id}`, payload);
+      } else {
+        await axios.post('/api/shifts', payload);
+      }
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Something went wrong.');
+    } finally {
+      setSaving(false);
+    }
+  }, [form, isEdit, initial, onSaved, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+      >
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-[#1c3068]">{isEdit ? 'Edit Shift' : 'New Shift'}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="p-5 space-y-4">
+            {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Shift Name</label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={e => handleChange('name', e.target.value)}
+                placeholder="e.g. Night Shift"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Start Time</label>
+                <input
+                  type="time"
+                  required
+                  value={form.startTime}
+                  onChange={e => handleChange('startTime', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">End Time</label>
+                <input
+                  type="time"
+                  required
+                  value={form.endTime}
+                  onChange={e => handleChange('endTime', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  Late After <span className="font-normal text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="time"
+                  value={form.lateThreshold}
+                  onChange={e => handleChange('lateThreshold', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  Absent After <span className="font-normal text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="time"
+                  value={form.absentThreshold}
+                  onChange={e => handleChange('absentThreshold', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none"
+                />
+              </div>
+            </div>
+
+            {willBeOvernight && (
+              <p className="text-xs text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg flex items-center gap-1.5">
+                <Moon size={12} /> End time is before start time — this will be saved as an overnight shift.
+              </p>
+            )}
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div
+                onClick={toggleActive}
+                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.isActive ? 'bg-[#1c3068]' : 'bg-gray-200'}`}
+              >
+                <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+              <span className="text-sm text-gray-600">Active (selectable at check-in)</span>
+            </label>
+          </div>
+
+          <div className="p-4 border-t border-gray-100 flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 text-sm bg-[#1c3068] text-white rounded-lg font-semibold hover:bg-[#152450] disabled:opacity-50"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+});
+
+// ─── Shifts Tab Panel ─────────────────────────────────────────────────────────
+
+const ShiftsPanel = () => {
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editTarget, setEditTarget] = useState<Shift | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchShifts = useCallback(async () => {
+    try {
+      const res = await axios.get('/api/shifts');
+      setShifts(res.data.data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchShifts(); }, [fetchShifts]);
+
+  const openNewShift = useCallback(() => {
+    setEditTarget(null);
+    setShowModal(true);
+  }, []);
+
+  const openEditShift = useCallback((s: Shift) => {
+    setEditTarget(s);
+    setShowModal(true);
+  }, []);
+
+  const closeModal = useCallback(() => setShowModal(false), []);
+
+  const handleDelete = useCallback(async (id: number) => {
+    setDeletingId(id);
+    try {
+      await axios.delete(`/api/shifts/${id}`);
+      setShifts(prev => prev.filter(s => s.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
+  }, []);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield size={18} className="text-[#1c3068]" />
+              <h3 className="font-bold text-[#1c3068]">Security Shifts</h3>
+            </div>
+            <button
+              onClick={openNewShift}
+              className="flex items-center gap-2 px-3 py-2 bg-[#1c3068] text-white rounded-xl font-semibold text-xs hover:bg-[#152450] transition-all"
+            >
+              <Plus size={14} /> New Shift
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : shifts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
+              <Shield size={32} className="opacity-30" />
+              <p className="text-sm">No shifts yet.</p>
+              <button onClick={openNewShift} className="text-[#1c3068] text-sm font-semibold hover:underline">
+                Create one
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {shifts.map(s => (
+                <ShiftCard
+                  key={s.id}
+                  shift={s}
+                  deleting={deletingId === s.id}
+                  onEdit={openEditShift}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 space-y-1">
+          <p className="font-bold text-blue-800 mb-1">How security shift check-in works:</p>
+          <p>1. Security staff pick one of the <strong>active</strong> shifts below before scanning in.</p>
+          <p>2. Check-out is automatic — no picker, the system closes whichever shift is open.</p>
+          <p>3. If no active shifts exist, security check-in falls back to the General schedule.</p>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <ShiftModal
+            initial={editTarget}
+            onClose={closeModal}
+            onSaved={fetchShifts}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 // ─── Static data (defined outside component to avoid re-creation) ─────────────
 
 const TIME_FIELDS = [
@@ -666,12 +962,53 @@ const HOW_IT_WORKS = (
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const AttendanceTimeSetting = () => {
+  const [tab, setTab] = useState<'general' | 'shifts'>('general');
   const [settings, setSettings]   = useState<Setting[]>([]);
   const [overrides, setOverrides] = useState<Override[]>([]);
   const [loading, setLoading]     = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Setting | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Calendar nav + selection — lifted here so the calendar (own card) and the
+  // "overrides this month" list (shares the Time Profiles column) can stay in
+  // sync without sharing a container.
+  const now = new Date();
+  const [calYear, setCalYear] = useState(now.getFullYear());
+  const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const prevMonth = useCallback(() => {
+    setCalMonth(m => {
+      if (m === 1) { setCalYear(y => y - 1); return 12; }
+      return m - 1;
+    });
+  }, []);
+
+  const nextMonth = useCallback(() => {
+    setCalMonth(m => {
+      if (m === 12) { setCalYear(y => y + 1); return 1; }
+      return m + 1;
+    });
+  }, []);
+
+  const overrideMap = useMemo(
+    () => Object.fromEntries(overrides.map(o => [o.date, o])),
+    [overrides],
+  );
+
+  const monthOverrides = useMemo(() => {
+    const prefix = `${calYear}-${pad(calMonth)}`;
+    return overrides.filter(o => o.date.startsWith(prefix));
+  }, [overrides, calYear, calMonth]);
+
+  const selectedOverride = selectedDate ? (overrideMap[selectedDate] ?? null) : null;
+
+  const handleDayClick = useCallback((dateStr: string) => {
+    setSelectedDate(prev => prev === dateStr ? null : dateStr);
+  }, []);
+
+  const closeOverrideModal = useCallback(() => setSelectedDate(null), []);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -687,6 +1024,11 @@ const AttendanceTimeSetting = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleOverrideSaved = useCallback(() => {
+    fetchAll();
+    setSelectedDate(null);
+  }, [fetchAll]);
 
   const openNewSetting = useCallback(() => {
     setEditTarget(null);
@@ -719,15 +1061,39 @@ const AttendanceTimeSetting = () => {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-[#1c3068]">Time Settings</h2>
+          {tab === 'general' && (
+            <button
+              onClick={openNewSetting}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold text-sm hover:bg-[#152450] transition-all"
+            >
+              <Plus size={16} /> New Setting
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
           <button
-            onClick={openNewSetting}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold text-sm hover:bg-[#152450] transition-all"
+            onClick={() => setTab('general')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              tab === 'general' ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <Plus size={16} /> New Setting
+            <Clock size={14} /> General
+          </button>
+          <button
+            onClick={() => setTab('shifts')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              tab === 'shifts' ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Shield size={14} /> Security Shifts
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {tab === 'shifts' ? (
+          <ShiftsPanel />
+        ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           <div className="space-y-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex items-center gap-2">
@@ -762,25 +1128,45 @@ const AttendanceTimeSetting = () => {
               )}
             </div>
 
+            <OverridesThisMonthList
+              overrides={monthOverrides}
+              selectedDate={selectedDate}
+              onSelect={handleDayClick}
+            />
+
             {HOW_IT_WORKS}
           </div>
 
           {!loading && (
-            <OverrideCalendar
-              settings={settings}
-              overrides={overrides}
-              onRefresh={fetchAll}
+            <CalendarGrid
+              year={calYear}
+              month={calMonth}
+              overrideMap={overrideMap}
+              selectedDate={selectedDate}
+              onPrev={prevMonth}
+              onNext={nextMonth}
+              onDayClick={handleDayClick}
             />
           )}
         </div>
+        )}
       </motion.div>
 
       <AnimatePresence>
-        {showModal && (
+        {tab === 'general' && showModal && (
           <SettingModal
             initial={editTarget}
             onClose={closeModal}
             onSaved={fetchAll}
+          />
+        )}
+        {tab === 'general' && selectedDate && (
+          <OverrideModal
+            date={selectedDate}
+            initial={selectedOverride}
+            settings={settings}
+            onClose={closeOverrideModal}
+            onSaved={handleOverrideSaved}
           />
         )}
       </AnimatePresence>
