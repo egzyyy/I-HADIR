@@ -12,6 +12,7 @@ class EventAttendee extends Model
     protected $fillable = [
         'event_id',
         'user_type',
+        'name',  
         'user_id',
         'check_in_time',
     ];

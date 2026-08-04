@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     private const TOTAL_STUDENTS_PER_CLASS = 15;
-    private const ATTENDANCE_SCHOOL_DAYS = 15; // trailing weekdays, most recent first
+    private const ATTENDANCE_SCHOOL_DAYS = 15; 
 
     public function run(): void
     {

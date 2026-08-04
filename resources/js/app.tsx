@@ -38,6 +38,7 @@ import AttendanceLogList from './Pages/AttendanceLog/AttendanceLog';
 import MyProfile from './Pages/Admin/MyProfile';
 import MyAttendance from './Pages/Admin/MyAttendance';
 import ChangePassword from './Pages/Admin/ChangePassword';
+import MyQrCode from './Pages/Admin/MyQrCode';
 import LandingContent from './Pages/Admin/LandingContent';
 
 // Pages — Check In (folder)
@@ -127,6 +128,7 @@ root.render(
       {/* Personal account — all roles */}
       <Route path="/my-profile" element={<RequireRole allow={ALL}><MyProfile /></RequireRole>} />
       <Route path="/my-attendance" element={<RequireRole allow={ALL}><MyAttendance /></RequireRole>} />
+      <Route path="/my-qr-code" element={<RequireRole allow={ALL}><MyQrCode /></RequireRole>} />
       <Route path="/change-password" element={<RequireRole allow={ALL}><ChangePassword /></RequireRole>} />
     </Routes>
     </AuthProvider>

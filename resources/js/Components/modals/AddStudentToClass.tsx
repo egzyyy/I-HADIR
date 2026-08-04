@@ -42,29 +42,29 @@ interface AddStudentToClassProps {
   classNameStr: string;
   isTeacher?: boolean;
   classSessionId?: number | null;
-  currentSessionActiveId?: number; 
+  currentSessionActiveId?: number;
 }
 
 export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, classSessionId, currentSessionActiveId }: AddStudentToClassProps) => {
-  const [classroom, setClassroom]       = useState<ClassroomInfo | null>(null);
-  const [enrolled, setEnrolled]         = useState<Student[]>([]);
-  const [available, setAvailable]       = useState<AvailableStudent[]>([]);
+  const [classroom, setClassroom] = useState<ClassroomInfo | null>(null);
+  const [enrolled, setEnrolled] = useState<Student[]>([]);
+  const [available, setAvailable] = useState<AvailableStudent[]>([]);
   const [otherClasses, setOtherClasses] = useState<OtherClass[]>([]);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [enrolling, setEnrolling]       = useState(false);
-  const [enrollError, setEnrollError]   = useState('');
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState('');
 
   // Calculate if class is full
   const isClassFull = classroom?.capacity ? enrolled.length >= classroom.capacity : false;
 
   // QR modal state
-  const [isQrModalOpen, setIsQrModalOpen]           = useState(false);
-  const [qrStudent, setQrStudent]                   = useState<Student | null>(null);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrStudent, setQrStudent] = useState<Student | null>(null);
 
   // Delete modal state
-  const [isDeleteModalOpen, setIsDeleteModalOpen]   = useState(false);
-  const [studentToRemove, setStudentToRemove]       = useState<Student | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [studentToRemove, setStudentToRemove] = useState<Student | null>(null);
 
   const handleOpenQr = (student: Student) => {
     setQrStudent(student);
@@ -115,11 +115,11 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
   };
 
   // Transfer modal state
-  const [isTransferModalOpen, setIsTransferModalOpen]               = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [selectedStudentForTransfer, setSelectedStudentForTransfer] = useState<Student | null>(null);
-  const [targetClassId, setTargetClassId]                           = useState('');
-  const [transferring, setTransferring]                             = useState(false);
-  const [transferError, setTransferError]                           = useState('');
+  const [targetClassId, setTargetClassId] = useState('');
+  const [transferring, setTransferring] = useState(false);
+  const [transferError, setTransferError] = useState('');
 
   // ── Fetch enrolled + available ─────────────────────────────────────────────
   const fetchStudents = async () => {
@@ -145,12 +145,12 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
       setOtherClasses(
         res.data.data
           .filter((c: any) => c.id !== classId)
-          .map((c: any) => ({ 
-            id: c.id, 
-            name: c.name, 
+          .map((c: any) => ({
+            id: c.id,
+            name: c.name,
             teacher: c.teacher,
             capacity: c.capacity,
-            totalStudents: c.totalStudents 
+            totalStudents: c.totalStudents
           }))
       );
     } catch {
@@ -316,7 +316,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                 <UserPlus size={18} className="text-[#0ea5e9]" /> Enroll New Student
               </h3>
             </div>
-            
+
             <div className="p-6 flex-1 flex flex-col">
               {isTeacher ? (
                 /* --- RESTRICTED VIEW FOR TEACHERS --- */
@@ -343,7 +343,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">
                         Student Name <span className="text-[#c53336]">*</span>
                       </label>
-                      
+
                       {currentSessionActiveId != classSessionId ? (
                         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
                           <AlertCircle size={18} />
@@ -369,9 +369,9 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                             <Search size={16} />
                           </div>
-                        </div>  
+                        </div>
                       )}
-                      
+
                       {available.length === 0 && !loading && !isClassFull && currentSessionActiveId == classSessionId && (
                         <p className="text-xs text-gray-400 mt-1">All available students are already enrolled in a class for this session.</p>
                       )}
@@ -438,11 +438,10 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                         <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.ic_number}</td>
                         <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.phone}</td>
                         <td className="py-4 px-6">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${
-                            student.gender?.toLowerCase() === 'male'
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${student.gender?.toLowerCase() === 'male'
                               ? 'bg-blue-50 text-blue-600 border-blue-100'
                               : 'bg-pink-50 text-pink-600 border-pink-100'
-                          }`}>
+                            }`}>
                             {student.gender?.toUpperCase() ?? '-'}
                           </span>
                         </td>

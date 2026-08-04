@@ -395,7 +395,7 @@ export default function Login() {
         <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 mx-auto max-w-lg transform hover:scale-105 transition-transform duration-700">
           <div className="absolute inset-0 bg-gradient-to-t from-[#1c3068]/50 to-transparent z-10"></div>
           <img
-            src="/storage/school-logo/sk-pulau-serai-login.jpg"
+            src="/sk-pulau-serai-login.jpg"
             alt="Students Learning"
             className="w-full h-auto object-cover"
           />

@@ -23,7 +23,7 @@ export const schools: School[] = [
     slug: 'pulau-serai',
     name: 'Sekolah Kebangsaan Pulau Serai',
     shortName: 'SK Pulau Serai',
-    logo: '/storage/school-logo/sk-pulau-serai-logo.jpg',
+    logo: 'sk-pulau-serai-logo.jpg',
     monogram: 'PS',
     themeColor: '#1c3068',
     accentColor: '#c53336',

@@ -9,10 +9,12 @@ interface StudentQrModalProps {
   studentName: string;
   icNumber: string;
   className: string;
+  UserType?: string;
 }
 
-export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, className }: StudentQrModalProps) => {
+export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, className, UserType }: StudentQrModalProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const userType = UserType ? UserType.charAt(0).toUpperCase() + UserType.slice(1) : 'Student';
 
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
@@ -46,7 +48,7 @@ export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, classNa
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-lg font-bold text-[#1c3068]">Student QR Code</h3>
+            <h3 className="text-lg font-bold text-[#1c3068]">{userType} QR Code</h3>
             <p className="text-gray-400 text-xs mt-0.5">Scan to record attendance</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">

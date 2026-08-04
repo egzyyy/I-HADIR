@@ -60,4 +60,18 @@ class Student extends Model
     {
         return $this->enrollments()->where('school_session_id', $sessionId)->first();
     }
+
+    public function coCurriculars()
+    {
+        return $this->belongsToMany(CoCurricular::class, 'co_curricular_student', 'student_id', 'co_curricular_id')
+                    ->withPivot('school_session_id')
+                    ->withTimestamps();
+    }
+
+    public function sportHouses()
+    {
+        return $this->belongsToMany(SportHouse::class, 'sport_house_student', 'student_id', 'sport_house_id')
+                    ->withPivot('school_session_id', 'school_id')
+                    ->withTimestamps();
+    }
 }

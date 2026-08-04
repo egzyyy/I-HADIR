@@ -34,4 +34,12 @@ class CoCurricular extends Model
     {
         return $this->teacher();
     }
+
+    public function students()
+    {
+        return $this->belongsToMany(Student::class, 'co_curricular_student', 'co_curricular_id', 'student_id')
+                    ->withPivot('school_session_id')
+                    ->withTimestamps();
+    }
+    
 }

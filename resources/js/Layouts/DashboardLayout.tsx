@@ -6,7 +6,7 @@ import {
   LayoutDashboard, School, MessageSquare, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
-  UserCheck, Globe
+  UserCheck, Globe, QrCodeIcon
 } from 'lucide-react';
 import logo from '../assets/i_hadir_logo2.png';
 import { useAuth } from '../contexts/AuthContext';
@@ -144,7 +144,8 @@ const TEACHER_MENU: MenuSection[] = [
           { id: 'check-in', label: 'Check In / Check Out' },
           { id: 'my-attendance', label: 'Self Attendance Report' }
         ]
-      }
+      },
+      { id: 'my-qr-code', label: 'My QR Code', icon: QrCodeIcon }
     ]
   },
   {
@@ -203,7 +204,8 @@ const SECURITY_MENU: MenuSection[] = [
           { id: 'check-in', label: 'Check In / Check Out' },
           { id: 'my-attendance', label: 'My Attendance Record' }
         ]
-      }
+      },
+      { id: 'my-qr-code', label: 'My QR Code', icon: QrCodeIcon }
     ]
   },
   {
@@ -407,6 +409,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'faqs': '/faqs',
       'my-profile': '/my-profile',
       'my-attendance': '/my-attendance',
+      'my-qr-code': '/my-qr-code',
       'change-password': '/change-password',
     };
 
@@ -460,7 +463,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
         </div>
       </aside>
 
-      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
+      <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out overflow-x-hidden ${isSidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
         <header className="h-20 bg-white shadow-sm sticky top-0 z-40 px-6 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <button
@@ -600,7 +603,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
           </div>
         </header>
 
-        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full flex-1">
+        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto w-full flex-1 overflow-hidden">
           {children}
         </div>
       </main>

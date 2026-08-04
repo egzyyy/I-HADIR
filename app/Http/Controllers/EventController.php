@@ -35,7 +35,7 @@ class EventController extends Controller
             'location'          => 'nullable|string|max:255',
             'description'       => 'nullable|string',
             'participant_types' => 'required|array|min:1',
-            'participant_types.*' => 'in:teacher,student,staff,parent',
+            'participant_types.*' => 'in:teacher,student,staff,parent,vip',
             'banner'            => 'nullable|image|max:10240',
         ]);
 
@@ -79,7 +79,7 @@ class EventController extends Controller
             'location'          => 'nullable|string|max:255',
             'description'       => 'nullable|string',
             'participant_types' => 'required|array|min:1',
-            'participant_types.*' => 'in:teacher,student,staff,parent',
+            'participant_types.*' => 'in:teacher,student,staff,parent,vip', 
             'banner'            => 'nullable|image|max:10240',
         ]);
 
@@ -245,5 +245,175 @@ class EventController extends Controller
             'participantTypes' => $event->participant_types ?? [],
             'bannerUrl'        => $event->banner_path ? Storage::url($event->banner_path) : null,
         ];
+    }
+
+    public function manualRegistration(Request $request, $id)
+    {
+        $request->validate([
+            'user_type' => 'required|string',
+            'name'      => 'required|string|max:255',
+            'ic_number' => 'nullable|string',
+        ]);
+
+        $schoolId = auth()->user()->school_id;
+        $event    = Event::where('school_id', $schoolId)
+            ->where('event_id', $id)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        // Ensure the selected type is allowed for this event
+        if (!in_array($request->user_type, $event->participant_types ?? [])) {
+            return response()->json(['message' => "This event does not allow {$request->user_type}s."], 422);
+        }
+
+        $userId = null;
+
+        // If it's a system user and an IC is provided, attempt to link their account
+        if ($request->ic_number && in_array($request->user_type, ['student', 'teacher', 'staff'])) {
+            [$resolvedUserId, $resolvedName, $resolvedClass] = $this->resolveByIc($request->ic_number, $request->user_type, $schoolId);
+            if ($resolvedUserId) {
+                $userId = $resolvedUserId;
+            }
+        }
+
+        // Prevent Duplicate Check-ins manually
+        $query = EventAttendee::where('event_id', $event->event_id)
+            ->where('user_type', $request->user_type);
+            
+        if ($userId) {
+            $query->where('user_id', $userId);
+        } else {
+            $query->where('name', $request->name);
+        }
+
+        if ($query->first()) {
+            return response()->json(['message' => 'This participant is already checked in to this event.'], 409);
+        }
+
+        EventAttendee::create([
+            'event_id'      => $event->event_id,
+            'user_type'     => $request->user_type,
+            'user_id'       => $userId,
+            'name'          => $request->name,
+            'check_in_time' => Carbon::now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Manual registration successful.',
+        ]);
+    }
+
+    // ─── Fetch Unregistered Participants for Dropdown ──────────────────────────
+    public function getUnregisteredParticipants($id, Request $request)
+    {
+        $schoolId = auth()->user()->school_id;
+        $type = $request->query('type'); // 'student', 'teacher', 'staff'
+        
+        // Get already registered user IDs for this event & type
+        $registeredUserIds = EventAttendee::where('event_id', $id)
+            ->where('user_type', $type)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->toArray();
+
+        $data = [];
+
+        if ($type === 'student') {
+            $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+            if ($session) {
+                $data = Student::where('school_id', $schoolId)
+                    ->whereHas('enrollments', function ($q) use ($session) {
+                        $q->where('school_session_id', $session->school_session_id);
+                    })
+                    ->whereNotIn('student_id', $registeredUserIds)
+                    ->orderBy('name')
+                    ->get(['student_id as id', 'name', 'ic_number']);
+            }
+        } elseif ($type === 'teacher') {
+            $data = User::where('school_id', $schoolId)
+                ->where('user_type', 'teacher')
+                ->where('is_active', true)
+                ->whereNotIn('user_id', $registeredUserIds)
+                ->get()
+                ->sortBy('first_name')
+                ->values()
+                ->map(fn($u) => ['id' => $u->user_id, 'name' => $u->full_name, 'ic_number' => $u->ic_number]);
+        } elseif ($type === 'staff') {
+            $data = User::where('school_id', $schoolId)
+                ->whereIn('user_type', ['staff', 'security_staff'])
+                ->where('is_active', true)
+                ->whereNotIn('user_id', $registeredUserIds)
+                ->get()
+                ->sortBy('first_name')
+                ->values()
+                ->map(fn($u) => ['id' => $u->user_id, 'name' => $u->full_name, 'ic_number' => $u->ic_number]);
+        }
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    // ─── Fetch Event Attendees ───────────────────────────────────────────────
+    public function getAttendees($id)
+    {
+        $schoolId = auth()->user()->school_id;
+        $event = Event::where('school_id', $schoolId)->where('event_id', $id)->firstOrFail();
+
+        $attendees = EventAttendee::where('event_id', $id)
+            ->orderBy('check_in_time', 'desc')
+            ->get();
+
+        // Collect IDs to batch query system users efficiently
+        $studentIds = $attendees->where('user_type', 'student')->whereNotNull('user_id')->pluck('user_id')->toArray();
+        $teacherIds = $attendees->where('user_type', 'teacher')->whereNotNull('user_id')->pluck('user_id')->toArray();
+        $staffIds   = $attendees->where('user_type', 'staff')->whereNotNull('user_id')->pluck('user_id')->toArray();
+
+        // Fetch user relations
+        $students = Student::whereIn('student_id', $studentIds)->get()->keyBy('student_id');
+        $teachers = User::whereIn('user_id', $teacherIds)->get()->keyBy('user_id');
+        $staffs   = User::whereIn('user_id', $staffIds)->get()->keyBy('user_id');
+
+        // Fetch student classes
+        $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+        $enrollments = collect();
+        if ($session && count($studentIds) > 0) {
+            $enrollments = \App\Models\Enrollment::whereIn('student_id', $studentIds)
+                ->where('school_session_id', $session->school_session_id)
+                ->with('classroom:classroom_id,name')
+                ->get()
+                ->keyBy('student_id');
+        }
+
+        $data = $attendees->map(function ($a) use ($students, $teachers, $staffs, $enrollments) {
+            $name = $a->name; // fallback for manual registrations (VIPs, Parents)
+            $ic = '-';
+            $className = '-';
+
+            if ($a->user_id) {
+                if ($a->user_type === 'student' && $students->has($a->user_id)) {
+                    $name = $students[$a->user_id]->name;
+                    $ic = $students[$a->user_id]->ic_number;
+                    $className = $enrollments->has($a->user_id) && $enrollments[$a->user_id]->classroom ? $enrollments[$a->user_id]->classroom->name : 'No Class';
+                } elseif ($a->user_type === 'teacher' && $teachers->has($a->user_id)) {
+                    $name = $teachers[$a->user_id]->full_name;
+                    $ic = $teachers[$a->user_id]->ic_number;
+                } elseif ($a->user_type === 'staff' && $staffs->has($a->user_id)) {
+                    $name = $staffs[$a->user_id]->full_name;
+                    $ic = $staffs[$a->user_id]->ic_number;
+                }
+            }
+
+            return [
+                'id'            => $a->id,
+                'name'          => $name ?? 'Unknown',
+                'ic_number'     => $ic,
+                'user_type'     => $a->user_type,
+                'class_name'    => $className,
+                'check_in_time' => $a->check_in_time->format('h:i A'),
+                'check_in_date' => $a->check_in_time->format('d/m/Y'),
+            ];
+        });
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 }

@@ -1,11 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Info, Trash2, ChevronDown } from 'lucide-react';
+import { Search, Info, Trash2, ChevronDown, QrCode } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { UserInfoModal } from '../../Components/modals/UserInfoModal';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditUserModal } from '../../Components/modals/EditUserModal';
+import { StudentQrModal } from '../../Components/modals/StudentQrModal';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 
@@ -40,6 +41,8 @@ const UserListUnified = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [qrUser, setQrUser] = useState<any>(null);
 
   // 1. Initial Load: Fetch Sessions First
   useEffect(() => {
@@ -497,6 +500,9 @@ const UserListUnified = () => {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center items-center gap-2">
+                            <button onClick={() => { setQrUser(item); setIsQrModalOpen(true); }} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100" title="View QR Code">
+                              <QrCode size={16} />
+                            </button>
                             <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
                               <Info size={16} />
                             </button>
@@ -538,6 +544,16 @@ const UserListUnified = () => {
       <AnimatePresence>
         {isInfoModalOpen && <UserInfoModal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} user={selectedUser} />}
         {isEditModalOpen && <EditUserModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={selectedUser} onSuccess={handleEditSuccess} />}
+        {isQrModalOpen && qrUser && (
+          <StudentQrModal
+            isOpen={isQrModalOpen}
+            onClose={() => { setIsQrModalOpen(false); setQrUser(null); }}
+            studentName={qrUser.name}
+            icNumber={qrUser.ic_number}
+            className={formatRoleLabel(qrUser.role, qrUser.type)}
+            UserType={activeTab}
+          />
+        )}
 
         {isDeleteModalOpen && selectedUser && (
           <DeleteConfirmationModal
