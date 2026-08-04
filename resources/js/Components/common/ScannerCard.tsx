@@ -24,7 +24,7 @@ interface ScannerCardProps {
  * for that to happen.
  */
 const ScannerCard: React.FC<ScannerCardProps> = ({ header, showScanner = true, ...panelProps }) => (
-  <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+  <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
     <div className="p-6">
       {header}
       {showScanner && <ScannerPanel {...panelProps} />}

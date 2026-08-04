@@ -28,7 +28,7 @@ const ScannerPanel: React.FC<ScannerPanelProps> = ({
   onDismissError,
   idleHint = 'Camera is off',
 }) => {
-  const minHeight = 480;
+  const minHeight = 400;
   if (!scanning) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -48,6 +48,13 @@ const ScannerPanel: React.FC<ScannerPanelProps> = ({
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
+          <XCircle className="text-red-500 shrink-0" size={18} />
+          <p className="text-sm text-red-600 flex-1">{error}</p>
+          <button onClick={onDismissError}><X size={16} className="text-red-400" /></button>
+        </div>
+      )}
       <div className="relative" style={{ minHeight }}>
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
@@ -57,17 +64,9 @@ const ScannerPanel: React.FC<ScannerPanelProps> = ({
         <QrScanner onScan={onScan} active={scanning} />
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
-          <XCircle className="text-red-500 shrink-0" size={18} />
-          <p className="text-sm text-red-600 flex-1">{error}</p>
-          <button onClick={onDismissError}><X size={16} className="text-red-400" /></button>
-        </div>
-      )}
-
       <button
         onClick={onStop}
-        className="w-full py-2 text-sm text-gray-400 hover:text-red-500 transition-colors"
+        className="w-full font-bold text-sm text-gray-400 hover:text-red-500 transition-colors"
       >
         Stop Scanner
       </button>

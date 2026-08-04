@@ -77,12 +77,16 @@ Route::get('/api/co-curriculars', [CoCurricularController::class, 'index']);
 Route::post('/api/co-curriculars', [CoCurricularController::class, 'store']);
 Route::put('/api/co-curriculars/{id}', [CoCurricularController::class, 'update']);
 Route::delete('/api/co-curriculars/{id}', [CoCurricularController::class, 'destroy']);
+Route::get('/api/co-curriculars/{id}/students', [CoCurricularController::class, 'getStudentsForEnrollment']);
+Route::post('/api/co-curriculars/{id}/students', [CoCurricularController::class, 'syncStudents']);
 
 // Sport House Management
 Route::get('/api/sport-houses', [SportHouseController::class, 'index']);
 Route::post('/api/sport-houses', [SportHouseController::class, 'store']);
 Route::put('/api/sport-houses/{id}', [SportHouseController::class, 'update']);
 Route::delete('/api/sport-houses/{id}', [SportHouseController::class, 'destroy']);
+Route::get('/api/sport-houses/{id}/students', [SportHouseController::class, 'getStudentsForEnrollment']);
+Route::post('/api/sport-houses/{id}/students', [SportHouseController::class, 'syncStudents']);
 
 // Event Management
 Route::get('/api/events', [EventController::class, 'index']);
@@ -90,6 +94,9 @@ Route::post('/api/events', [EventController::class, 'store']);
 Route::put('/api/events/{id}', [EventController::class, 'update']);
 Route::delete('/api/events/{id}', [EventController::class, 'destroy']);
 Route::post('/api/events/{id}/scan', [EventController::class, 'scanAttendance']);
+Route::post('/api/events/{id}/manual-registration', [EventController::class, 'manualRegistration']);
+Route::get('/api/events/{id}/unregistered', [EventController::class, 'getUnregisteredParticipants']);
+Route::get('/api/events/{id}/attendees', [EventController::class, 'getAttendees']);
 
 // Attendance
 Route::post('/api/attendance/check-in', [AttendanceController::class, 'checkIn']);

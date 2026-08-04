@@ -380,6 +380,7 @@ const ClassList = () => {
       ]);
       setClasses(classRes.data.data);
       setTeachers(teacherRes.data.data);
+
     } catch {
       // silently fail
     } finally {
@@ -403,6 +404,8 @@ const ClassList = () => {
       // silently fail
     }
   };
+
+  console.log(classes)
 
   // ── Filtered & Sorted & Paginated list ──────────────────────────────────────
   const filtered = classes.filter(

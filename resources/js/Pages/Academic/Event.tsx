@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, X, Search, ScanLine, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Users, Search, ScanLine, Image as ImageIcon, UserPlus, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { EditEventModal, EventItem } from '../../Components/modals/EditEventModal';
+import { ViewEventAttendance } from '../../Components/views/ViewEventAttendance';
 
 // IMPORT PAGINATION
 import { usePagination } from '../../utils/usePagination';
@@ -24,10 +25,13 @@ import logo from '../../assets/i_hadir_logo2.png';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent';
+type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip';
 const PARTICIPANT_LABELS: { key: ParticipantKey; label: string }[] = [
-  { key: 'teacher', label: 'Teacher' }, { key: 'student', label: 'Student' },
-  { key: 'staff', label: 'School Staff' }, { key: 'parent', label: 'Parent' },
+  { key: 'teacher', label: 'Teacher' },
+  { key: 'student', label: 'Student' },
+  { key: 'staff', label: 'School Staff' },
+  { key: 'parent', label: 'Parent' },
+  { key: 'vip', label: 'VIP' },
 ];
 
 // ── Checkbox ──────────────────────────────────────────────────────────────────
@@ -42,12 +46,22 @@ const Checkbox = ({ checked, onChange, label }: { checked: boolean; onChange: ()
 
 // ── Shared Event Form ─────────────────────────────────────────────────────────
 const EventForm = ({ name, setName, date, setDate, time, setTime, location, setLocation, description, setDescription,
-  participants, toggleParticipant, imagePreview, onImageChange, onRemoveImage, error }: {
-    name: string; setName: (v: string) => void; date: string; setDate: (v: string) => void;
-    time: string; setTime: (v: string) => void; location: string; setLocation: (v: string) => void;
-    description: string; setDescription: (v: string) => void;
-    participants: Record<ParticipantKey, boolean>; toggleParticipant: (k: ParticipantKey) => void;
-    imagePreview: string | null; onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  participants, toggleParticipant, imagePreview, onImageChange, onRemoveImage, error }:
+  {
+    name: string;
+    setName: (v: string) => void;
+    date: string;
+    setDate: (v: string) => void;
+    time: string;
+    setTime: (v: string) => void;
+    location: string;
+    setLocation: (v: string) => void;
+    description: string;
+    setDescription: (v: string) => void;
+    participants: Record<ParticipantKey, boolean>;
+    toggleParticipant: (k: ParticipantKey) => void;
+    imagePreview: string | null;
+    onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onRemoveImage: () => void; error: string;
   }) => (
   <>
@@ -108,7 +122,7 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
 const AddEventModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: (item: EventItem) => void }) => {
   const [name, setName] = useState(''); const [date, setDate] = useState(''); const [time, setTime] = useState('');
   const [location, setLocation] = useState(''); const [description, setDescription] = useState('');
-  const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false });
+  const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false, vip: false });
   const [imageFile, setImageFile] = useState<File | null>(null); const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false); const [error, setError] = useState('');
 
@@ -159,6 +173,183 @@ const AddEventModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: (it
         </div>
       </motion.div>
     </div>
+  );
+};
+
+// ── Manual Registration Modal ─────────────────────────────────────────────────
+const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boolean; onClose: () => void; item: EventItem | null; onSaved: () => void }) => {
+  const [name, setName] = useState('');
+  const [userType, setUserType] = useState<string>('');
+  const [icNumber, setIcNumber] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // New states for the Dropdown Logic
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [view, setView] = useState<'list' | 'view_event'>('list');
+
+  const isSystemUser = ['student', 'teacher', 'staff'].includes(userType);
+
+  useEffect(() => {
+    if (item && item.participantTypes.length > 0) {
+      setUserType(item.participantTypes[0]);
+    }
+    setName('');
+    setIcNumber('');
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  }, [item]);
+
+  // Fetch available users when a "System User" type is selected
+  useEffect(() => {
+    if (isSystemUser && item) {
+      setLoadingUsers(true);
+      axios.get(`/api/events/${item.id}/unregistered?type=${userType}`)
+        .then(res => {
+          setAvailableUsers(res.data.data);
+          setName('');
+          setIcNumber('');
+        })
+        .catch(() => setAvailableUsers([]))
+        .finally(() => setLoadingUsers(false));
+    } else {
+      setAvailableUsers([]);
+      setName('');
+      setIcNumber('');
+    }
+  }, [userType, item, isSystemUser]);
+
+  const handleUserSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    const selectedUser = availableUsers.find(u => String(u.id) === selectedId);
+    if (selectedUser) {
+      setName(selectedUser.name);
+      setIcNumber(selectedUser.ic_number || '');
+    } else {
+      setName('');
+      setIcNumber('');
+    }
+  };
+
+  if (!isOpen || !item) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setErrorMsg('Name is required.'); return; }
+    if (!userType) { setErrorMsg('Participant type is required.'); return; }
+
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      await axios.post(`/api/events/${item.id}/manual-registration`, {
+        name: name.trim(),
+        user_type: userType,
+        ic_number: icNumber.trim() || null,
+      });
+      setSuccessMsg('Participant manually registered successfully!');
+      setTimeout(() => {
+        onSaved();
+      }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || 'Failed to register participant.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {errorMsg && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6"><AlertCircle size={40} className="text-red-500" /></div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Error</h3>
+              <p className="text-gray-500 mb-8">{errorMsg}</p>
+              <button onClick={() => setErrorMsg(null)} className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg transition-all">Close</button>
+            </motion.div>
+          </div>
+        )}
+        {successMsg && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center">
+              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={40} className="text-green-500" /></div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Success</h3>
+              <p className="text-gray-500 mb-8">{successMsg}</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div><h3 className="text-xl font-bold text-[#1c3068]">Manual Registration</h3><p className="text-gray-500 text-sm mt-1">{item.name}</p></div>
+            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
+          </div>
+          <div className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Participant Type</label>
+                <div className="relative">
+                  <select value={userType} onChange={e => setUserType(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer uppercase text-sm font-bold text-gray-700">
+                    {item.participantTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* DYNAMIC FORM RENDER */}
+              {isSystemUser ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Select Participant</label>
+                    <div className="relative">
+                      <select
+                        onChange={handleUserSelect}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer text-sm text-gray-700"
+                        disabled={loadingUsers}
+                      >
+                        <option value="">{loadingUsers ? 'Loading available participants...' : `— Select a ${userType} —`}</option>
+                        {availableUsers.map(u => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700">IC Number</label>
+                    <input type="text" value={icNumber} readOnly placeholder="Auto-filled" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500 outline-none cursor-not-allowed font-mono" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Full Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter full name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700">IC Number <span className="text-gray-400 font-normal">(Optional)</span></label>
+                    <input type="text" value={icNumber} onChange={e => setIcNumber(e.target.value)} placeholder="e.g. 010203040506" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-mono" />
+                  </div>
+                </>
+              )}
+
+              <div className="pt-6 flex justify-end gap-3 border-t border-gray-100">
+                <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Cancel</button>
+                <button type="submit" disabled={saving || (!name && isSystemUser)} className="bg-[#0ea5e9] hover:bg-[#0284c7] disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-500/20 transition-all min-w-[120px]">{saving ? 'Registering...' : 'Register'}</button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    </>
   );
 };
 
@@ -264,7 +455,10 @@ const EventList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
   const [selected, setSelected] = useState<EventItem | null>(null);
+
+  const [view, setView] = useState<'list' | 'view_event'>('list');
 
   // Full Screen Preview Modal State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -298,6 +492,22 @@ const EventList = () => {
     setPreviewImageUrl(url);
     setIsPreviewOpen(true);
   };
+
+  if (view === 'view_event' && selected) {
+    return (
+      <ViewEventAttendance
+        onBack={() => {
+          setView('list');
+          setSelected(null);
+          fetchAll();
+        }}
+        itemId={selected.id}
+        itemName={selected.name}
+        apiBase="/api/events"
+        moduleName="Event"
+      />
+    );
+  }
 
   return (
     <>
@@ -372,13 +582,18 @@ const EventList = () => {
                           <td className="px-6 py-4 text-sm text-gray-600">
                             <div className="flex flex-wrap gap-1">
                               {(item.participantTypes ?? []).map(t => (
-                                <span key={t} className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase">{t}</span>
+                                <span key={t} className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase inline-flex items-center gap-1">
+                                  {t === 'vip' && '⭐'}
+                                  {t}
+                                </span>
                               ))}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <div className="flex justify-center items-center gap-2">
+                            <div className="flex flex-wrap justify-center items-center gap-2">
+                              <button onClick={() => { setSelected(item); setShowManualModal(true); }} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm border border-purple-100" title="Manual Registration"><UserPlus size={16} /></button>
                               <button onClick={() => navigate(`/academic/event/${item.id}/scan`)} className="p-2 bg-blue-50 text-[#1c3068] rounded-lg hover:bg-[#1c3068] hover:text-white transition-all shadow-sm border border-blue-100" title="Scan Attendance"><ScanLine size={16} /></button>
+                              <button onClick={() => { setSelected(item); setView('view_event'); }} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100" title="View Attendance List"><Users size={16} /></button>
                               <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100" title="Edit"><Edit size={16} /></button>
                               <button onClick={() => { setSelected(item); setShowDeleteModal(true); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100" title="Delete"><Trash2 size={16} /></button>
                             </div>
@@ -448,6 +663,7 @@ const EventList = () => {
         {showAddModal && <AddEventModal onClose={() => setShowAddModal(false)} onSaved={item => { setEvents(prev => [item, ...prev]); setShowAddModal(false); }} />}
         {showEditModal && <EditEventModal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setSelected(null); }} item={selected} onSaved={async () => { await fetchAll(); setShowEditModal(false); setSelected(null); }} />}
         {showDeleteModal && <DeleteConfirmationModal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setSelected(null); }} onConfirm={handleConfirmDelete} itemName={selected?.name} title="Delete Event?" message={`Are you sure you want to delete ${selected?.name}?`} />}
+        {showManualModal && <ManualRegistrationModal isOpen={showManualModal} onClose={() => { setShowManualModal(false); setSelected(null); }} item={selected} onSaved={() => { setShowManualModal(false); setSelected(null); }} />}
       </AnimatePresence>
     </>
   );

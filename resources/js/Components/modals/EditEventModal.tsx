@@ -3,10 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
-type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent';
+// ─── ADDED 'vip' TO THE TYPE ──────────────────────────────────────────────────
+type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip';
+
 const PARTICIPANT_LABELS: { key: ParticipantKey; label: string }[] = [
-    { key: 'teacher', label: 'Teacher' }, { key: 'student', label: 'Student' },
-    { key: 'staff', label: 'School Staff' }, { key: 'parent', label: 'Parent' },
+    { key: 'teacher', label: 'Teacher' },
+    { key: 'student', label: 'Student' },
+    { key: 'staff', label: 'School Staff' },
+    { key: 'parent', label: 'Parent' },
+    { key: 'vip', label: 'VIP' }, // <--- ADDED VIP LABEL
 ];
 
 export interface EventItem {
@@ -87,7 +92,10 @@ export const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boo
     const [time, setTime] = useState('');
     const [location, setLocation] = useState('');
     const [description, setDescription] = useState('');
-    const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false });
+
+    // ─── ADDED 'vip: false' HERE ────────────────────────────────────────────────
+    const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false, vip: false });
+
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [removeBanner, setRemoveBanner] = useState(false);
@@ -100,12 +108,12 @@ export const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boo
     useEffect(() => {
         if (item && isOpen) {
             setName(item.name);
-            const parts = item.date.split('/');
-            setDate(parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : item.date);
+            const [dd, mm, yyyy] = item.date.split('/');
+            setDate(`${yyyy}-${mm}-${dd}`);
             setTime(item.time ?? '');
             setLocation(item.spot === '-' ? '' : item.spot);
             setDescription(item.description ?? '');
-            setParticipants({ teacher: false, student: false, staff: false, parent: false, ...Object.fromEntries((item.participantTypes ?? []).map(t => [t, true])) } as Record<ParticipantKey, boolean>);
+            setParticipants({ teacher: false, student: false, staff: false, parent: false, vip: false, ...Object.fromEntries((item.participantTypes ?? []).map(t => [t, true])) } as Record<ParticipantKey, boolean>);
             setImagePreview(item.bannerUrl);
             setImageFile(null);
             setRemoveBanner(false);
@@ -171,7 +179,7 @@ export const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boo
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                             className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden max-h-[90vh] overflow-y-auto">
 
-                            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 z-10">
+                            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 top-0 z-10">
                                 <div>
                                     <h3 className="text-xl font-bold text-[#1c3068]">Edit Event</h3>
                                     <p className="text-gray-500 text-sm mt-1">Please enter all information required.</p>

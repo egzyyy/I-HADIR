@@ -113,7 +113,7 @@ const EventScan = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-2xl mx-auto"
+        className="max-w-3xl mx-auto"
       >
         <div className="mb-6 flex items-center gap-4">
           <button
@@ -142,7 +142,7 @@ const EventScan = () => {
 
         <ScannerCard
           header={
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">QR Scanner</h3>
                 <p className="text-gray-500 text-sm mt-1">Select the participant type, then scan their QR code.</p>
@@ -156,11 +156,10 @@ const EventScan = () => {
                       <button
                         key={t.key}
                         onClick={() => { setScanType(t.key); setError(null); }}
-                        className={`px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-2 ${
-                          scanType === t.key
-                            ? 'bg-[#1c3068] text-white'
-                            : 'bg-white text-gray-500 hover:bg-gray-50'
-                        }`}
+                        className={`px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-2 ${scanType === t.key
+                          ? 'bg-[#1c3068] text-white'
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
+                          }`}
                       >
                         <Icon size={15} /> {t.label}
                       </button>

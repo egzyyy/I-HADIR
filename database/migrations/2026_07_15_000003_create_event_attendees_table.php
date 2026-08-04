@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('event_attendees', function (Blueprint $table) {
             $table->id();
             $table->foreignId('event_id')->references('event_id')->on('events')->cascadeOnDelete();
-            $table->enum('user_type', ['student', 'teacher', 'staff']);
-            $table->string('user_id');
+            $table->string('user_type');
+            $table->string('user_id')->nullable();
+            $table->string('name')->nullable();
             $table->timestamp('check_in_time');
             $table->timestamps();
-            $table->unique(['event_id', 'user_type', 'user_id']);
         });
     }
 

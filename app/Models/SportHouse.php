@@ -35,4 +35,11 @@ class SportHouse extends Model
     {
         return $this->teacher();
     }
+
+    public function students()
+    {
+        return $this->belongsToMany(Student::class, 'sport_house_student', 'sport_house_id', 'student_id')
+                    ->withPivot('school_session_id', 'school_id')
+                    ->withTimestamps();
+    }
 }
