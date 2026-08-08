@@ -51,7 +51,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
             >
                 <div className="overflow-y-auto">
                     {/* Header Background */}
-                    <div className="h-32 bg-gradient-to-r from-[#1c3068] to-[#2a4595] w-full"></div>
+                    <div className="h-32 bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] w-full"></div>
 
                     <div className="relative z-10 px-8 pb-8 -mt-16">
                         {/* Profile Section */}
@@ -72,7 +72,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                             </div>
 
                             <h2 className="text-2xl font-bold text-gray-800 text-center px-4">{user.name}</h2>
-                            <div className="mt-2 px-4 py-1 bg-blue-50 text-[#1c3068] rounded-full text-sm font-bold uppercase tracking-wide border border-blue-100 shadow-sm">
+                            <div className="mt-2 px-4 py-1 bg-blue-50 text-[#2f4fa8] rounded-full text-sm font-bold uppercase tracking-wide border border-blue-100 shadow-sm">
                                 {roleLabel}
                             </div>
                         </div>
@@ -81,7 +81,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             {/* Personal Info */}
                             <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4 text-[#1c3068]">
+                                <div className="flex items-center gap-2 mb-4 text-[#2f4fa8]">
                                     <UserCircle2 size={20} />
                                     <h3 className="font-bold text-lg">Personal Information</h3>
                                 </div>
@@ -155,7 +155,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                             </button>
                             <button
                                 onClick={() => window.print()}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-[#1c3068] text-white rounded-xl text-sm font-bold hover:bg-[#152450] transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#2f4fa8] text-white rounded-xl text-sm font-bold hover:bg-[#264190] transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
                             >
                                 <Printer size={16} /> Print Details
                             </button>

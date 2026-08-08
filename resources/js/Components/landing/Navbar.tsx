@@ -107,7 +107,7 @@ export const Navbar: React.FC = () => {
                 {item.href?.startsWith('/') ? (
                   <Link
                     to={item.href}
-                    className="flex items-center gap-1 text-[#1c3068] hover:text-[#c53336] font-bold text-xs tracking-wide transition-colors py-8 uppercase"
+                    className="flex items-center gap-1 text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)] font-bold text-xs tracking-wide transition-colors py-8 uppercase"
                   >
                     {item.icon && <span className="mr-1">{item.icon}</span>}
                     {item.name}
@@ -115,7 +115,7 @@ export const Navbar: React.FC = () => {
                 ) : (
                   <a
                     href={item.href || '#'}
-                    className="flex items-center gap-1 text-[#1c3068] hover:text-[#c53336] font-bold text-xs tracking-wide transition-colors py-8 uppercase"
+                    className="flex items-center gap-1 text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)] font-bold text-xs tracking-wide transition-colors py-8 uppercase"
                     onClick={(e) => {
                       if (item.hasDropdown) {
                         e.preventDefault();
@@ -137,7 +137,7 @@ export const Navbar: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full left-0 w-56 bg-white shadow-xl rounded-b-lg border-t-2 border-[#c53336] py-2"
+                        className="absolute top-full left-0 w-56 bg-white shadow-xl rounded-b-lg border-t-2 border-[color:var(--accent,#c53336)] py-2"
                       >
                         {item.dropdownItems?.map((dropdownItem, index) => (
                           dropdownItem.subItems ? (
@@ -147,7 +147,7 @@ export const Navbar: React.FC = () => {
                               onMouseEnter={() => setActiveSubmenu(dropdownItem.label)}
                               onMouseLeave={() => setActiveSubmenu(null)}
                             >
-                              <div className="flex items-center justify-between px-4 py-2 text-sm font-bold uppercase tracking-wide text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336] cursor-default">
+                              <div className="flex items-center justify-between px-4 py-2 text-sm font-bold uppercase tracking-wide text-[color:var(--brand,#1c3068)] hover:bg-[#fcfafa] hover:text-[color:var(--accent,#c53336)] cursor-default">
                                 {dropdownItem.label}
                                 <ChevronDown size={12} className="-rotate-90" />
                               </div>
@@ -158,14 +158,14 @@ export const Navbar: React.FC = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="absolute top-0 left-full w-44 bg-white shadow-xl rounded-lg border-t-2 border-[#c53336] py-2"
+                                    className="absolute top-0 left-full w-44 bg-white shadow-xl rounded-lg border-t-2 border-[color:var(--accent,#c53336)] py-2"
                                   >
                                     {dropdownItem.subItems.map((sub, i) => (
                                       <Link
                                         key={i}
                                         to={sub.href}
                                         onClick={handleMouseLeave}
-                                        className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
+                                        className="block px-4 py-2 text-sm text-[color:var(--brand,#1c3068)] hover:bg-[#fcfafa] hover:text-[color:var(--accent,#c53336)]"
                                       >
                                         {sub.label}
                                       </Link>
@@ -179,7 +179,7 @@ export const Navbar: React.FC = () => {
                               key={index}
                               to={dropdownItem.href!}
                               onClick={handleMouseLeave}
-                              className="block px-4 py-2 text-sm text-[#1c3068] hover:bg-[#fcfafa] hover:text-[#c53336]"
+                              className="block px-4 py-2 text-sm text-[color:var(--brand,#1c3068)] hover:bg-[#fcfafa] hover:text-[color:var(--accent,#c53336)]"
                             >
                               {dropdownItem.label}
                             </Link>
@@ -195,7 +195,7 @@ export const Navbar: React.FC = () => {
             <div className="pl-4">
               <Link 
                 to="/login"
-                className="bg-[#c53336] hover:bg-[#a02224] text-white px-6 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase tracking-wide inline-block"
+                className="bg-[color:var(--accent,#c53336)] hover:brightness-95 text-white px-6 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase tracking-wide inline-block"
               >
                 Login
               </Link>
@@ -206,7 +206,7 @@ export const Navbar: React.FC = () => {
           <div className="lg:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-[#1c3068] hover:text-[#c53336] focus:outline-none p-2"
+              className="text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)] focus:outline-none p-2"
             >
               {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -228,7 +228,7 @@ export const Navbar: React.FC = () => {
                   <Link
                     to={item.href}
                     onClick={() => setIsOpen(false)}
-                    className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-bold text-[#1c3068] hover:text-[#c53336] hover:bg-[#fcfafa]"
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-bold text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)] hover:bg-[#fcfafa]"
                   >
                     <div className="flex items-center gap-2">
                        {item.icon}
@@ -241,7 +241,7 @@ export const Navbar: React.FC = () => {
                         if (item.hasDropdown) toggleDropdown(item.name);
                         else setIsOpen(false);
                     }}
-                    className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-bold text-[#1c3068] hover:text-[#c53336] hover:bg-[#fcfafa]"
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-bold text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)] hover:bg-[#fcfafa]"
                   >
                     <div className="flex items-center gap-2">
                       {item.icon}
@@ -264,7 +264,7 @@ export const Navbar: React.FC = () => {
                         <div key={index}>
                           <button
                             onClick={() => setActiveSubmenu(activeSubmenu === dropdownItem.label ? null : dropdownItem.label)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold uppercase tracking-wide text-[#1c3068] hover:text-[#c53336]"
+                            className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold uppercase tracking-wide text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)]"
                           >
                             {dropdownItem.label}
                             <ChevronDown
@@ -279,7 +279,7 @@ export const Navbar: React.FC = () => {
                                   key={i}
                                   to={sub.href}
                                   onClick={() => setIsOpen(false)}
-                                  className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
+                                  className="block px-3 py-2 text-sm text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)]"
                                 >
                                   {sub.label}
                                 </Link>
@@ -292,7 +292,7 @@ export const Navbar: React.FC = () => {
                           key={index}
                           to={dropdownItem.href!}
                           onClick={() => setIsOpen(false)}
-                          className="block px-3 py-2 text-sm text-[#1c3068] hover:text-[#c53336]"
+                          className="block px-3 py-2 text-sm text-[color:var(--brand,#1c3068)] hover:text-[color:var(--accent,#c53336)]"
                         >
                           {dropdownItem.label}
                         </Link>
@@ -305,7 +305,7 @@ export const Navbar: React.FC = () => {
             <div className="pt-4 px-3">
               <Link 
                 to="/login"
-                className="w-full bg-[#c53336] text-white px-5 py-3 rounded font-bold shadow-md uppercase tracking-wide inline-block text-center"
+                className="w-full bg-[color:var(--accent,#c53336)] text-white px-5 py-3 rounded font-bold shadow-md uppercase tracking-wide inline-block text-center"
               >
                 Login
               </Link>

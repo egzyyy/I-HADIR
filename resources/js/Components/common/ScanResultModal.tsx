@@ -63,7 +63,7 @@ const ScanResultModal: React.FC<ScanResultModalProps> = ({
 
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1">{eyebrow}</p>
-            <p className="text-xl font-black text-[#1c3068]">{name}</p>
+            <p className="text-xl font-black text-[#2f4fa8]">{name}</p>
             <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
           </div>
 
@@ -92,7 +92,7 @@ const ScanResultModal: React.FC<ScanResultModalProps> = ({
 
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all"
+            className="w-full py-2.5 bg-[#2f4fa8] text-white rounded-xl font-semibold hover:bg-[#264190] transition-all"
           >
             Continue Scanning
           </button>

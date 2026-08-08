@@ -99,10 +99,10 @@ export default function Login() {
           <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
             {/* Header with Icon */}
             <div className="mb-8 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#1c3068] to-[#2a4a8f] mb-6 shadow-lg">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#2f4fa8] to-[#436dc8] mb-6 shadow-lg">
                 <KeyRound className="text-white" size={36} />
               </div>
-              <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Forgot Your Password?</h2>
+              <h2 className="text-3xl font-bold text-[#2f4fa8] mb-3">Forgot Your Password?</h2>
               <p className="text-gray-500 text-sm leading-relaxed">
                 Verify your identity to create a new password and regain access to the system.
               </p>
@@ -121,7 +121,7 @@ export default function Login() {
 
               {/* IC Number Field (Security measure) */}
               <div className="relative group">
-                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+                <label className="block text-sm font-semibold text-[#2f4fa8] mb-2">
                   Admin IC Number
                 </label>
                 <div className="relative">
@@ -130,7 +130,7 @@ export default function Login() {
                     value={resetData.ic_number}
                     onChange={(e) => setResetData({ ...resetData, ic_number: e.target.value })}
                     placeholder="Enter your IC number"
-                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#2f4fa8] outline-none transition-all duration-300 text-[#2f4fa8] placeholder-gray-400"
                   />
                   <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#c53336] transition-all duration-300 group-focus-within:w-full"></div>
                 </div>
@@ -138,7 +138,7 @@ export default function Login() {
 
               {/* School Code Field */}
               <div className="relative group">
-                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+                <label className="block text-sm font-semibold text-[#2f4fa8] mb-2">
                   School Code
                 </label>
                 <div className="relative">
@@ -147,7 +147,7 @@ export default function Login() {
                     value={resetData.school_code}
                     onChange={(e) => setResetData({ ...resetData, school_code: e.target.value })}
                     placeholder="Enter your school code (e.g. MEA1023)"
-                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#2f4fa8] outline-none transition-all duration-300 text-[#2f4fa8] placeholder-gray-400"
                   />
                   <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-[#c53336] transition-all duration-300 group-focus-within:w-full"></div>
                 </div>
@@ -155,7 +155,7 @@ export default function Login() {
 
               {/* New Password Field */}
               <div className="relative group">
-                <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+                <label className="block text-sm font-semibold text-[#2f4fa8] mb-2">
                   New Password
                 </label>
                 <div className="relative">
@@ -164,12 +164,12 @@ export default function Login() {
                     value={resetData.password}
                     onChange={(e) => setResetData({ ...resetData, password: e.target.value })}
                     placeholder="Create a secure password"
-                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#1c3068] outline-none transition-all duration-300 text-[#1c3068] placeholder-gray-400 pr-10"
+                    className="w-full px-4 py-3 bg-transparent border-b-2 border-gray-300 focus:border-[#2f4fa8] outline-none transition-all duration-300 text-[#2f4fa8] placeholder-gray-400 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#1c3068] transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#2f4fa8] transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -186,7 +186,7 @@ export default function Login() {
                 <button
                   type="submit"
                   disabled={resetProcessing || resetFeedback?.type === 'success'}
-                  className="w-full bg-[#1c3068] hover:bg-[#152450] text-white px-4 py-3 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-[#2f4fa8] hover:bg-[#264190] text-white px-4 py-3 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   <KeyRound size={18} />
                   {resetProcessing ? 'Resetting Password...' : 'Reset Password'}
@@ -195,7 +195,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => { setView('login'); setResetFeedback(null); }}
-                  className="w-full bg-white border-2 border-[#1c3068] text-[#1c3068] px-4 py-3 rounded-lg font-bold hover:bg-[#1c3068] hover:text-white transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full bg-white border-2 border-[#2f4fa8] text-[#2f4fa8] px-4 py-3 rounded-lg font-bold hover:bg-[#2f4fa8] hover:text-white transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <ArrowLeft size={18} />
                   Back to Login
@@ -207,15 +207,15 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-auto pt-8 flex justify-between items-center text-xs text-gray-400">
             <p>Copyright © 2026 I-HADIR System.</p>
-            <a href="#" className="hover:text-[#1c3068] transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-[#2f4fa8] transition-colors">Privacy Policy</a>
           </div>
         </div>
 
         {/* Right Side - Visual/Branding */}
-        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#1c3068] via-[#1c3068] to-[#2a4a8f] p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
+        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-[#2f4fa8] via-[#2f4fa8] to-[#436dc8] p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
           {/* Background Patterns */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-[#c53336] rounded-full blur-[120px] opacity-20"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#4a6ab3] rounded-full blur-[120px] opacity-30"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#8399cc] rounded-full blur-[120px] opacity-30"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/10 rounded-full"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/5 rounded-full"></div>
 
@@ -277,7 +277,7 @@ export default function Login() {
         {/* Back Button (Mobile only mostly) */}
         <Link
           to="/"
-          className="lg:hidden absolute top-8 right-8 text-[#1c3068] hover:text-[#c53336]"
+          className="lg:hidden absolute top-8 right-8 text-[#2f4fa8] hover:text-[#c53336]"
         >
           <ArrowLeft />
         </Link>
@@ -285,7 +285,7 @@ export default function Login() {
         {/* Form Container */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Welcome Back</h2>
+            <h2 className="text-3xl font-bold text-[#2f4fa8] mb-3">Welcome Back</h2>
             <p className="text-gray-500 text-sm">
               Enter your identification number and password to access your account.
             </p>
@@ -299,7 +299,7 @@ export default function Login() {
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+              <label className="block text-sm font-semibold text-[#2f4fa8] mb-2">
                 Admin Identification Number
               </label>
               <input
@@ -307,13 +307,13 @@ export default function Login() {
                 value={data.ic_number}
                 onChange={(e) => setData({ ...data, ic_number: e.target.value })}
                 placeholder="Enter your admin identification number"
-                className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.ic_number ? 'border-red-500' : 'border-gray-200'} focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]`}
+                className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.ic_number ? 'border-red-500' : 'border-gray-200'} focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-[#2f4fa8]`}
               />
               {errors.ic_number && <p className="text-red-500 text-xs mt-1">{errors.ic_number}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#1c3068] mb-2">
+              <label className="block text-sm font-semibold text-[#2f4fa8] mb-2">
                 Password
               </label>
               <div className="relative">
@@ -322,12 +322,12 @@ export default function Login() {
                   value={data.password}
                   onChange={(e) => setData({ ...data, password: e.target.value })}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.password ? 'border-red-500' : 'border-gray-200'} focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068]`}
+                  className={`w-full px-4 py-3 rounded-lg bg-gray-50 border ${errors.password ? 'border-red-500' : 'border-gray-200'} focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-[#2f4fa8]`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#1c3068] transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#2f4fa8] transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -339,7 +339,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={processing}
-              className="w-full bg-[#1c3068] hover:bg-[#152450] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-[#2f4fa8] hover:bg-[#264190] text-white py-3.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {processing ? 'Logging in...' : 'Log In'}
             </button>
@@ -350,7 +350,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => navigate('/school/pulau-serai')}
-                  className="flex items-center gap-1 text-sm font-semibold text-[#1c3068] hover:text-[#152450] transition-colors bg-transparent border-none cursor-pointer hover:underline"
+                  className="flex items-center gap-1 text-sm font-semibold text-[#2f4fa8] hover:text-[#264190] transition-colors bg-transparent border-none cursor-pointer hover:underline"
                 >
                   <ArrowLeft size={16} /> Back
                 </button>
@@ -373,12 +373,12 @@ export default function Login() {
         {/* Footer */}
         <div className="mt-auto pt-8 flex justify-between items-center text-xs text-gray-400">
           <p>Copyright © 2026 I-HADIR System.</p>
-          <a href="#" className="hover:text-[#1c3068] transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-[#2f4fa8] transition-colors">Privacy Policy</a>
         </div>
       </div>
 
       {/* Right Side - Image/Visual */}
-      <div className="hidden lg:flex w-1/2 bg-[#1c3068] p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 bg-[#2f4fa8] p-12 xl:p-16 flex-col justify-center relative overflow-hidden">
         {/* Background Patterns */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#c53336] rounded-full blur-[100px] opacity-20 -mr-20 -mt-20"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#cec43a] rounded-full blur-[100px] opacity-10 -ml-20 -mb-20"></div>
@@ -393,7 +393,7 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 mx-auto max-w-lg transform hover:scale-105 transition-transform duration-700">
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1c3068]/50 to-transparent z-10"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#2f4fa8]/50 to-transparent z-10"></div>
           <img
             src="/sk-pulau-serai-login.jpg"
             alt="Students Learning"

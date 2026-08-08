@@ -265,7 +265,7 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collap
           <div className="flex-1 flex justify-between items-center overflow-hidden">
             <span className="text-sm font-medium whitespace-nowrap">{label}</span>
             {badge && (
-              <span className="bg-[#cec43a] text-[#1c3068] text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-[#cec43a] text-[#2f4fa8] text-xs font-bold px-2 py-0.5 rounded-full">
                 {badge}
               </span>
             )}
@@ -282,7 +282,7 @@ const SidebarItem = ({ icon: Icon, label, active = false, onClick, badge, collap
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-[#152450]/50 overflow-hidden"
+            className="bg-[#264190]/50 overflow-hidden"
           >
             {subItems.map((sub: any) => (
               <div
@@ -426,9 +426,9 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
   return (
     <div className="min-h-screen bg-[#fcfafa] flex font-sans">
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-[#1c3068] transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed inset-y-0 left-0 z-50 bg-[#2f4fa8] transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#152450]">
+        <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#264190]">
           {isSidebarOpen ? (
             <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
               <img src={logo} alt="I-HADIR Logo" className="h-12 w-auto object-contain" />
@@ -474,21 +474,21 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-[#1c3068] transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg text-[#2f4fa8] transition-colors"
             >
               <Menu size={24} />
             </button>
             <div className="hidden md:flex items-center text-sm text-gray-500">
-              <span className="hover:text-[#1c3068] cursor-pointer" onClick={() => navigate('/dashboard')}>Home</span>
+              <span className="hover:text-[#2f4fa8] cursor-pointer" onClick={() => navigate('/dashboard')}>Home</span>
               <span className="mx-2">/</span>
-              <span className="font-semibold text-[#1c3068]">{getCurrentPageLabel()}</span>
+              <span className="font-semibold text-[#2f4fa8]">{getCurrentPageLabel()}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-6">
             <div className="text-right hidden sm:block">
               <p className="text-xs text-gray-500">Current School Session</p>
-              <p className="text-sm font-bold text-[#1c3068]">Year {activeSessionYear}</p>
+              <p className="text-sm font-bold text-[#2f4fa8]">Year {activeSessionYear}</p>
             </div>
             <div className="h-8 w-[1px] bg-gray-200 hidden sm:block"></div>
 
@@ -502,10 +502,10 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 origin-top-right"
                   >
                     <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                      <h3 className="text-sm font-bold text-[#1c3068] flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-[#2f4fa8] flex items-center gap-2">
                         Notifications <span className="bg-[#c53336] text-white text-[10px] px-1.5 py-0.5 rounded-full">3</span>
                       </h3>
-                      <button className="text-xs text-gray-500 hover:text-[#1c3068] font-medium transition-colors">Mark all as read</button>
+                      <button className="text-xs text-gray-500 hover:text-[#2f4fa8] font-medium transition-colors">Mark all as read</button>
                     </div>
 
                     <div className="max-h-80 overflow-y-auto">
@@ -515,7 +515,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">
-                            <p className="text-sm font-bold text-[#1c3068]">System Maintenance</p>
+                            <p className="text-sm font-bold text-[#2f4fa8]">System Maintenance</p>
                             <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">2h ago</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">Scheduled system maintenance will occur on Sunday at 2:00 AM. Please save your work.</p>
@@ -529,7 +529,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">
-                            <p className="text-sm font-bold text-[#1c3068]">New Registration</p>
+                            <p className="text-sm font-bold text-[#2f4fa8]">New Registration</p>
                             <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">5h ago</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">5 new students have been registered for Class 1 Kreatif by Mrs. Rohana.</p>
@@ -543,7 +543,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">
-                            <p className="text-sm font-bold text-[#1c3068]">Attendance Alert</p>
+                            <p className="text-sm font-bold text-[#2f4fa8]">Attendance Alert</p>
                             <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">1d ago</span>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">Low attendance recorded for Form 5 classes today. Only 85% present.</p>
@@ -552,7 +552,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     </div>
 
                     <div className="px-4 py-3 border-t border-gray-100">
-                      <button className="w-full text-center text-sm font-bold text-[#1c3068] hover:text-[#c53336] transition-colors flex items-center justify-center gap-1">
+                      <button className="w-full text-center text-sm font-bold text-[#2f4fa8] hover:text-[#c53336] transition-colors flex items-center justify-center gap-1">
                         View All Notifications <span className="text-xs">›</span>
                       </button>
                     </div>
@@ -566,11 +566,11 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors"
                 onClick={() => setAdminDropdownOpen(!isAdminDropdownOpen)}
               >
-                <div className="w-10 h-10 rounded-lg bg-[#1c3068] flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20">
+                <div className="w-10 h-10 rounded-lg bg-[#2f4fa8] flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20">
                   {(user?.name?.[0] ?? roleMeta.initial).toUpperCase()}
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-bold text-[#1c3068] leading-tight">{user?.name ?? roleMeta.name}</p>
+                  <p className="text-sm font-bold text-[#2f4fa8] leading-tight">{user?.name ?? roleMeta.name}</p>
                   <p className="text-[10px] text-gray-500 font-medium tracking-wide uppercase">{roleMeta.title}</p>
                 </div>
                 <ChevronDown size={16} className={`text-gray-400 transition-transform ${isAdminDropdownOpen ? 'rotate-180' : ''}`} />
@@ -585,15 +585,15 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                     className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 origin-top-right"
                   >
                     <div className="px-4 py-3 border-b border-gray-100 mb-1">
-                      <p className="text-sm font-bold text-[#1c3068]">{user?.name ?? roleMeta.title}</p>
+                      <p className="text-sm font-bold text-[#2f4fa8]">{user?.name ?? roleMeta.title}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email ?? roleMeta.email}</p>
                     </div>
 
-                    <button onClick={() => { navigate('/my-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+                    <button onClick={() => { navigate('/my-profile'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#2f4fa8] transition-colors text-left">
                       <Users size={16} /> My Profile
                     </button>
 
-                    <button onClick={() => { navigate('/change-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#1c3068] transition-colors text-left">
+                    <button onClick={() => { navigate('/change-password'); setAdminDropdownOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-[#2f4fa8] transition-colors text-left">
                       <Keyboard size={16} /> Change Password
                     </button>
 

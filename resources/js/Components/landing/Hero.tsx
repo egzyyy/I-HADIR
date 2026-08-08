@@ -77,7 +77,7 @@ export const Hero = ({ slug }: HeroProps) => {
     return (
       <section className="relative bg-[#fcfafa] py-24 flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4 text-gray-400">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#1c3068] rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-[color:var(--brand,#1c3068)] rounded-full animate-spin" />
           <p className="text-sm font-medium">Loading events…</p>
         </div>
       </section>
@@ -87,13 +87,13 @@ export const Hero = ({ slug }: HeroProps) => {
   if (events.length === 0) {
     return (
       <section className="relative bg-[#fcfafa] py-24 overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[#1c3068] rounded-full blur-3xl opacity-10" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[color:var(--brand,#1c3068)] rounded-full blur-3xl opacity-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-xl mx-auto text-center bg-white rounded-3xl border border-gray-100 shadow-sm p-12">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-[#1c3068]/10 flex items-center justify-center mb-6">
-              <CalendarDays size={32} className="text-[#1c3068]" />
+              <CalendarDays size={32} className="text-[color:var(--brand,#1c3068)]" />
             </div>
-            <h2 className="text-2xl font-bold text-[#1c3068] mb-3">No upcoming events</h2>
+            <h2 className="text-2xl font-bold text-[color:var(--brand,#1c3068)] mb-3">No upcoming events</h2>
             <p className="text-gray-500 leading-relaxed">
               There are no school events scheduled right now. Check back soon —
               new events will appear here as they are announced.
@@ -109,8 +109,8 @@ export const Hero = ({ slug }: HeroProps) => {
   return (
     <section className="relative bg-[#fcfafa] pt-10 pb-20 overflow-hidden min-h-[800px] flex items-center">
       {/* Background decoration */}
-      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[#1c3068] rounded-full blur-3xl opacity-10"></div>
-      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[#c53336] rounded-full blur-3xl opacity-10"></div>
+      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[color:var(--brand,#1c3068)] rounded-full blur-3xl opacity-10"></div>
+      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[color:var(--accent,#c53336)] rounded-full blur-3xl opacity-10"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
         {/* Navigation Buttons (only with multiple events) */}
@@ -119,7 +119,7 @@ export const Hero = ({ slug }: HeroProps) => {
             <div className="absolute top-1/2 -translate-y-1/2 left-4 z-20 hidden lg:block">
               <button
                 onClick={() => paginate(-1)}
-                className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg text-[#1c3068] hover:bg-white hover:scale-110 transition-all"
+                className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg text-[color:var(--brand,#1c3068)] hover:bg-white hover:scale-110 transition-all"
               >
                 <ChevronLeft size={24} />
               </button>
@@ -127,7 +127,7 @@ export const Hero = ({ slug }: HeroProps) => {
             <div className="absolute top-1/2 -translate-y-1/2 right-4 z-20 hidden lg:block">
               <button
                 onClick={() => paginate(1)}
-                className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg text-[#1c3068] hover:bg-white hover:scale-110 transition-all"
+                className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg text-[color:var(--brand,#1c3068)] hover:bg-white hover:scale-110 transition-all"
               >
                 <ChevronRight size={24} />
               </button>
@@ -152,15 +152,15 @@ export const Hero = ({ slug }: HeroProps) => {
 
             {/* Text Content */}
             <div className="px-4 lg:px-0">
-              <div className="inline-block bg-[#c53336]/10 text-[#c53336] px-4 py-1.5 rounded-full text-sm font-semibold mb-6 flex items-center gap-2 w-fit">
+              <div className="inline-block bg-[#c53336]/10 text-[color:var(--accent,#c53336)] px-4 py-1.5 rounded-full text-sm font-semibold mb-6 flex items-center gap-2 w-fit">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c53336]"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[color:var(--accent,#c53336)]"></span>
                 </span>
                 Upcoming School Event
               </div>
 
-              <h1 className="text-4xl lg:text-5xl font-extrabold text-[#1c3068] leading-tight mb-6 min-h-[120px]">
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-[color:var(--brand,#1c3068)] leading-tight mb-6 min-h-[120px]">
                 <EventTitle name={currentEvent.name} />
               </h1>
 
@@ -170,35 +170,35 @@ export const Hero = ({ slug }: HeroProps) => {
 
               <div className="space-y-4 mb-10">
                 <div className="flex items-center gap-4 text-gray-700 bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-md">
-                  <div className="p-3 bg-blue-50 text-[#1c3068] rounded-lg">
+                  <div className="p-3 bg-blue-50 text-[color:var(--brand,#1c3068)] rounded-lg">
                     <Calendar size={20} />
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Date</p>
-                    <p className="font-bold text-[#1c3068]">{currentEvent.date}</p>
+                    <p className="font-bold text-[color:var(--brand,#1c3068)]">{currentEvent.date}</p>
                   </div>
                 </div>
 
                 {currentEvent.time && (
                   <div className="flex items-center gap-4 text-gray-700 bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-md">
-                    <div className="p-3 bg-blue-50 text-[#1c3068] rounded-lg">
+                    <div className="p-3 bg-blue-50 text-[color:var(--brand,#1c3068)] rounded-lg">
                       <Clock size={20} />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Time</p>
-                      <p className="font-bold text-[#1c3068]">{currentEvent.time}</p>
+                      <p className="font-bold text-[color:var(--brand,#1c3068)]">{currentEvent.time}</p>
                     </div>
                   </div>
                 )}
 
                 {currentEvent.location && (
                   <div className="flex items-center gap-4 text-gray-700 bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-md">
-                    <div className="p-3 bg-blue-50 text-[#1c3068] rounded-lg">
+                    <div className="p-3 bg-blue-50 text-[color:var(--brand,#1c3068)] rounded-lg">
                       <MapPin size={20} />
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Venue</p>
-                      <p className="font-bold text-[#1c3068]">{currentEvent.location}</p>
+                      <p className="font-bold text-[color:var(--brand,#1c3068)]">{currentEvent.location}</p>
                     </div>
                   </div>
                 )}
@@ -217,7 +217,7 @@ export const Hero = ({ slug }: HeroProps) => {
                     />
                   ) : (
                     // Neutral fallback graphic when the event has no banner uploaded.
-                    <div className="w-full h-full bg-gradient-to-br from-[#1c3068] to-[#31509e] flex flex-col items-center justify-center text-white">
+                    <div className="w-full h-full bg-gradient-to-br from-[color:var(--brand,#1c3068)] to-[#31509e] flex flex-col items-center justify-center text-white">
                       <CalendarDays size={72} className="opacity-80 mb-4" />
                       <p className="font-bold text-lg opacity-90 px-10 text-center leading-snug">
                         {currentEvent.name}
@@ -241,7 +241,7 @@ export const Hero = ({ slug }: HeroProps) => {
                   setCurrentIndex(idx);
                 }}
                 className={`w-2.5 h-2.5 rounded-full transition-all ${
-                  idx === currentIndex ? 'bg-[#1c3068] w-6' : 'bg-gray-300'
+                  idx === currentIndex ? 'bg-[color:var(--brand,#1c3068)] w-6' : 'bg-gray-300'
                 }`}
               />
             ))}

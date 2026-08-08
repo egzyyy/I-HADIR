@@ -12,7 +12,7 @@ export const StatCard = ({ icon: Icon, label, value, colorClass, delay }: { icon
     <div className="flex justify-between items-start">
       <div>
         <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">{label}</p>
-        <h3 className="text-3xl font-black text-[#1c3068]">{value}</h3>
+        <h3 className="text-3xl font-black text-[#2f4fa8]">{value}</h3>
       </div>
       <div className={`p-3 rounded-xl bg-gray-50 group-hover:bg-gray-100 transition-colors ${colorClass.replace('bg-', 'text-')}`}>
         <Icon size={24} />

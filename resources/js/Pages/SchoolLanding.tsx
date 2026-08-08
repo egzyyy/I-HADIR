@@ -10,7 +10,6 @@ import { getSchool, School } from '../data/schools';
 import { Navbar } from '../Components/landing/Navbar';
 import { Hero } from '../Components/landing/Hero';
 import { FAQ } from '../Components/landing/FAQ';
-import { Contact } from '../Components/landing/Contact';
 import { Footer } from '../Components/landing/Footer';
 
 // --- Live data from GET /api/public/schools/{slug} ---
@@ -58,10 +57,11 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
       className="relative overflow-hidden text-white"
       style={{ backgroundColor: school.themeColor }}
     >
-      {/* Depth gradient over the brand colour */}
+      {/* Depth gradient over the brand colour — kept light so the brand blue stays
+          bright; heavier values muddy the hero without adding real depth. */}
       <div
         className="absolute inset-0"
-        style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.50) 100%)' }}
+        style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.22) 100%)' }}
       />
       {/* Mesh-style accent glows */}
       <div
@@ -88,7 +88,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-20 lg:pt-16 lg:pb-28">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-white/60 hover:text-white text-xs font-medium uppercase tracking-[0.18em] mb-12 lg:mb-16 transition-colors"
+          className="inline-flex items-center gap-2 text-white/75 hover:text-white text-xs font-medium uppercase tracking-[0.18em] mb-12 lg:mb-16 transition-colors"
         >
           <ArrowLeft size={14} /> All schools
         </Link>
@@ -103,7 +103,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
           >
             <motion.div
               variants={heroItem}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white/80 mb-6"
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/20 backdrop-blur-sm px-3 py-1 text-xs font-medium text-white/90 mb-6"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -114,7 +114,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
 
             <motion.div
               variants={heroItem}
-              className="flex items-center gap-2 text-white/60 text-xs font-medium uppercase tracking-[0.18em] mb-4"
+              className="flex items-center gap-2 text-white/75 text-xs font-medium uppercase tracking-[0.18em] mb-4"
             >
               <MapPin size={13} /> {school.location}
             </motion.div>
@@ -143,7 +143,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
               </Link>
               <a
                 href="#events"
-                className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white/90 border border-white/25 hover:bg-white/10 hover:border-white/40 transition-all"
+                className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm text-white border border-white/45 bg-black/15 hover:bg-black/30 hover:border-white/70 transition-all"
               >
                 View events
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
@@ -158,7 +158,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
             transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="lg:col-span-5"
           >
-            <div className="relative rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl p-7 sm:p-8 shadow-2xl shadow-black/30 overflow-hidden">
+            <div className="relative rounded-3xl border border-white/25 bg-black/20 backdrop-blur-xl p-7 sm:p-8 shadow-2xl shadow-black/40 overflow-hidden">
               {/* inner accent glow */}
               <div
                 className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-2xl opacity-40"
@@ -178,7 +178,7 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-white leading-tight truncate">{school.shortName}</p>
-                  <p className="text-xs text-white/60 mt-0.5">Powered by I-Hadir</p>
+                  <p className="text-xs text-white/75 mt-0.5">Powered by I-Hadir</p>
                 </div>
               </div>
 
@@ -188,12 +188,12 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
                   return (
                     <div
                       key={f.label}
-                      className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 transition-colors hover:bg-white/10"
+                      className="flex items-center gap-3 rounded-xl bg-black/15 border border-white/20 px-4 py-3 transition-colors hover:bg-black/30 hover:border-white/35"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
                         <Icon size={17} className="text-white" />
                       </div>
-                      <span className="text-sm font-medium text-white/85">{f.label}</span>
+                      <span className="text-sm font-medium text-white">{f.label}</span>
                     </div>
                   );
                 })}
@@ -522,10 +522,12 @@ export default function SchoolLanding() {
   }
 
   return (
-    // `--brand` exposes the school color to any descendant that wants it.
+    // `--brand`/`--accent` expose the school colors to any descendant that wants
+    // them — Navbar, Contact and Footer all read these vars, so the shared
+    // chrome follows the school palette instead of the hardcoded fallbacks.
     <div
       className="min-h-screen bg-white font-sans text-gray-900"
-      style={{ ['--brand' as any]: school.themeColor }}
+      style={{ ['--brand' as any]: school.themeColor, ['--accent' as any]: school.accentColor }}
     >
       <Navbar />
       <SchoolHeroBanner school={school} tagline={live?.profile.tagline} />
@@ -543,9 +545,6 @@ export default function SchoolLanding() {
       <SchoolOrganization school={school} members={live?.profile.organization ?? []} />
       <SchoolLife school={school} />
       <FAQ />
-      <div id="contact">
-        <Contact />
-      </div>
       <Footer />
     </div>
   );

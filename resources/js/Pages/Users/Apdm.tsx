@@ -95,7 +95,7 @@ const ImportApdm = () => {
     >
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-8 border-b border-gray-100 bg-gray-50/50">
-          <h2 className="text-2xl font-bold text-[#1c3068]">Import APDM Data</h2>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">Import APDM Data</h2>
           <div className="mt-4 space-y-1 text-sm text-gray-500">
             <p>This section is for importing the list of student from APDM into the system.</p>
             <p>Teacher have to select the Class first before uploading the CSV list.</p>
@@ -105,7 +105,7 @@ const ImportApdm = () => {
 
         <div className="p-8 space-y-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-[#1c3068]">Format Requirement:</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">Format Requirement:</h3>
             <p className="text-sm text-gray-500">The data in the file must include the exact APDM headers. See the example below.</p>
             
             <div className="">
@@ -121,14 +121,14 @@ const ImportApdm = () => {
           </div>
 
           <div className="max-w-md space-y-2">
-            <label className="block text-sm font-bold text-[#1c3068]">
+            <label className="block text-sm font-bold text-[#2f4fa8]">
               <span className="text-[#c53336] mr-1">*</span> Class
             </label>
             <div className="relative">
               <select 
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
+                className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
               >
                 <option value="">Select a destination class..</option>
                 {classes.map((cls) => (
@@ -148,13 +148,13 @@ const ImportApdm = () => {
                 className="overflow-hidden"
               >
                 <div className="pt-8 border-t border-gray-100">
-                  <h3 className="text-lg font-bold text-[#1c3068] mb-4">Upload CSV File</h3>
+                  <h3 className="text-lg font-bold text-[#2f4fa8] mb-4">Upload CSV File</h3>
                   
                   <label className="w-full h-64 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group relative">
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                        <FileSpreadsheet size={32} className="text-green-600" />
                     </div>
-                    <div className="flex items-center gap-2 text-[#1c3068] font-semibold">
+                    <div className="flex items-center gap-2 text-[#2f4fa8] font-semibold">
                       <Upload size={18} />
                       <span>{selectedFile ? selectedFile.name : 'Click to Upload CSV File'}</span>
                     </div>
@@ -223,7 +223,7 @@ const ImportApdm = () => {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">{successMsg}</p>
               <button 
                 onClick={() => navigate('/users/list')} 

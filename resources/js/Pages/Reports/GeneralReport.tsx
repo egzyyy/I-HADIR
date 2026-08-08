@@ -47,13 +47,13 @@ function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string
       <style>
         @page { margin: 15mm; size: A4 landscape; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
-        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
         .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
-        .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
         .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
-        th { background-color: #1c3068 !important; color: white !important; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         th:nth-child(2) { text-align: left; }
         tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       </style>
@@ -136,12 +136,12 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#1c3068]">
+        <h2 className="text-2xl font-bold text-[#2f4fa8]">
           {selectedFacility ? `${selectedFacility === 'rmt' ? 'RMT' : selectedFacility} Report` : 'Facility Report'}
         </h2>
         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
            <span>Home</span><ChevronRight size={14} />
-           <span className="text-[#1c3068] font-medium capitalize">
+           <span className="text-[#2f4fa8] font-medium capitalize">
              {selectedFacility ? `${selectedFacility === 'rmt' ? 'RMT' : selectedFacility} Report` : 'Facility Report'}
            </span>
         </div>
@@ -149,17 +149,17 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
-           <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report Filter</h3>
+           <h3 className="text-lg font-bold text-[#2f4fa8] mb-6">Report Filter</h3>
            <div className="flex flex-col gap-6">
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <div className="space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Facility</label>
+                 <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Facility</label>
                  <div className="relative">
                    {fixedFacility ? (
                      <input type="text" value={fixedFacility === 'rmt' ? 'RMT' : fixedFacility} readOnly className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-200 outline-none text-gray-500 cursor-not-allowed uppercase" />
                    ) : (
                      <>
-                       <select value={selectedFacility} onChange={(e) => setSelectedFacility(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700">
+                       <select value={selectedFacility} onChange={(e) => setSelectedFacility(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700">
                          <option value="">Select Facility...</option>
                          <option value="prayer">Prayer</option>
                          <option value="pss">PSS</option>
@@ -172,14 +172,14 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
                </div>
 
                <div className="space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Date</label>
-                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                 <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Date</label>
+                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                </div>
 
                <div className="space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]">Class Filter (Optional)</label>
+                 <label className="block text-sm font-bold text-[#2f4fa8]">Class Filter (Optional)</label>
                  <div className="relative">
-                   <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700">
+                   <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700">
                      <option value="">All Scanned Users</option>
                      {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                    </select>
@@ -189,7 +189,7 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
              </div>
 
              <div className="flex justify-end pt-2">
-               <button onClick={handleSubmit} disabled={loading || !selectedFacility || !selectedDate} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
+               <button onClick={handleSubmit} disabled={loading || !selectedFacility || !selectedDate} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-50">
                  {loading ? 'Generating...' : 'Submit'}
                </button>
              </div>
@@ -201,10 +201,10 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-              <div className="bg-[#1c3068] text-white p-4 flex items-center justify-center h-24"><Users size={40} /></div>
+              <div className="bg-[#2f4fa8] text-white p-4 flex items-center justify-center h-24"><Users size={40} /></div>
               <div className="flex border-t border-gray-100 divide-x divide-gray-100 bg-white">
                  <div className="flex-1 p-4 text-center">
-                   <p className="text-xl font-bold text-[#1c3068]">{stats.present}</p>
+                   <p className="text-xl font-bold text-[#2f4fa8]">{stats.present}</p>
                    <p className="text-xs text-gray-500 uppercase tracking-wider">Present</p>
                  </div>
                  {selectedClass && (
@@ -216,7 +216,7 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
               </div>
             </div>
 
-            <div className="bg-[#1c3068] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
+            <div className="bg-[#2f4fa8] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
                <p className="text-4xl font-bold mb-1">{stats.present}</p>
                <p className="text-sm font-medium opacity-90">Total Present</p>
             </div>
@@ -246,7 +246,7 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <span className="text-sm text-gray-500">Search:</span>
-                  <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all" />
+                  <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#2f4fa8] outline-none transition-all" />
                 </div>
               </div>
 
@@ -359,17 +359,17 @@ const ActivityReport = () => {
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
-      <div className="mb-6"><h2 className="text-2xl font-bold text-[#1c3068]">Activity / Event Report</h2></div>
+      <div className="mb-6"><h2 className="text-2xl font-bold text-[#2f4fa8]">Activity / Event Report</h2></div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
-           <h3 className="text-lg font-bold text-[#1c3068] mb-6">Report Filter</h3>
+           <h3 className="text-lg font-bold text-[#2f4fa8] mb-6">Report Filter</h3>
            <div className="flex flex-col gap-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div className="space-y-2">
-                 <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Event Name</label>
+                 <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Event Name</label>
                  <div className="relative">
-                   <select value={selectedEventId} onChange={(e) => setSelectedEventId(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                   <select value={selectedEventId} onChange={(e) => setSelectedEventId(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                      <option value="">Select Event...</option>
                      {events.map(e => <option key={e.id} value={e.id}>{e.name} ({e.date})</option>)}
                    </select>
@@ -378,7 +378,7 @@ const ActivityReport = () => {
                </div>
              </div>
              <div className="flex justify-end pt-2">
-               <button onClick={handleSubmit} disabled={loading || !selectedEventId} className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-50">
+               <button onClick={handleSubmit} disabled={loading || !selectedEventId} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-50">
                  {loading ? 'Generating...' : 'Submit'}
                </button>
              </div>
@@ -389,7 +389,7 @@ const ActivityReport = () => {
       {selectedEventId && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-             <p className="text-[#1c3068] font-semibold text-lg">Attendance list for {selectedEventName}</p>
+             <p className="text-[#2f4fa8] font-semibold text-lg">Attendance list for {selectedEventName}</p>
           </div>
           
           <div className="p-6">
@@ -397,7 +397,7 @@ const ActivityReport = () => {
                <ExportButtons onCopy={handleCopy} onExportCSV={() => exportCSV(filtered, 'event')} onExportExcel={() => exportCSV(filtered, 'event')} onExportPDF={handleExportPDF} onPrint={handleExportPDF} />
                <div className="flex items-center gap-2 w-full sm:w-auto">
                  <span className="text-sm text-gray-500">Search:</span>
-                 <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none" />
+                 <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#2f4fa8] outline-none" />
                </div>
              </div>
 
@@ -512,7 +512,7 @@ const VisitorReport = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#1c3068]">Visitor List</h2>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">Visitor List</h2>
           <p className="text-gray-500 text-sm mt-1">Click the <span className="text-[#c53336] font-medium">month</span> tab below to display the list.</p>
         </div>
 
@@ -524,7 +524,7 @@ const VisitorReport = () => {
                 key={month}
                 onClick={() => { setActiveMonth(month); setCurrentPage(1); }}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all duration-200 
-                  ${activeMonth === month ? 'bg-[#c53336] text-white shadow-md shadow-red-200 scale-105' : 'text-gray-500 hover:bg-gray-100 hover:text-[#1c3068]'}`}
+                  ${activeMonth === month ? 'bg-[#c53336] text-white shadow-md shadow-red-200 scale-105' : 'text-gray-500 hover:bg-gray-100 hover:text-[#2f4fa8]'}`}
               >
                 {month}
               </button>
@@ -534,7 +534,7 @@ const VisitorReport = () => {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-             <p className="text-[#1c3068] font-semibold text-lg">
+             <p className="text-[#2f4fa8] font-semibold text-lg">
                Visitor list for {monthNames[activeMonth - 1]} {currentYear}
              </p>
           </div>
@@ -549,7 +549,7 @@ const VisitorReport = () => {
                       type="text" 
                       value={search}
                       onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#1c3068] outline-none transition-all"
+                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#2f4fa8] outline-none transition-all"
                       placeholder="Type to search..."
                     />
                   </div>
@@ -574,7 +574,7 @@ const VisitorReport = () => {
                        <td className="px-4 py-4 text-sm text-gray-500 text-center border-r border-gray-100 font-mono">{startIndex + idx + 1}</td>
                        <td className="px-6 py-4 text-sm border-r border-gray-100">
                          <div className="flex flex-col">
-                            <span className="font-bold text-[#1c3068] text-sm md:text-base">{visitor.name}</span>
+                            <span className="font-bold text-[#2f4fa8] text-sm md:text-base">{visitor.name}</span>
                             <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                                <Phone size={12} /><span>{visitor.phone}</span>
                             </div>
@@ -591,7 +591,7 @@ const VisitorReport = () => {
                        <td className="px-6 py-4 text-sm border-r border-gray-100">
                          <div className="flex flex-col text-xs text-gray-500">
                             <span className="flex items-center gap-1"><Calendar size={12} className="text-[#c53336]" /> {visitor.date}</span>
-                            <span className="flex items-center gap-1 mt-0.5"><Clock size={12} className="text-[#1c3068]" /> {visitor.time}</span>
+                            <span className="flex items-center gap-1 mt-0.5"><Clock size={12} className="text-[#2f4fa8]" /> {visitor.time}</span>
                          </div>
                        </td>
                        <td className="px-6 py-4 text-center">
@@ -680,8 +680,8 @@ const GeneralReport = () => {
               onClick={() => setActiveReport(tab.id)}
               className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
                 activeReport === tab.id
-                  ? 'bg-[#1c3068] text-white shadow-md'
-                  : 'text-gray-500 hover:text-[#1c3068] hover:bg-gray-50'
+                  ? 'bg-[#2f4fa8] text-white shadow-md'
+                  : 'text-gray-500 hover:text-[#2f4fa8] hover:bg-gray-50'
               }`}
             >
               {tab.label}

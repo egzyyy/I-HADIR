@@ -77,7 +77,7 @@ export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }
         {/* Header */}
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-xl font-bold text-[#1c3068]">Edit class</h3>
+            <h3 className="text-xl font-bold text-[#2f4fa8]">Edit class</h3>
             <p className="text-gray-500 text-sm mt-1">Please enter all information required.</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -102,7 +102,7 @@ export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all font-medium text-[#1c3068]"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all font-medium text-[#2f4fa8]"
                 />
               </div>
 
@@ -115,7 +115,7 @@ export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }
                   <select
                     value={teacherId}
                     onChange={(e) => setTeacherId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-[#1c3068] font-medium cursor-pointer uppercase"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-[#2f4fa8] font-medium cursor-pointer uppercase"
                   >
                     <option value="">— No Teacher Assigned —</option>
                     {teachers.map((t) => (
@@ -139,7 +139,7 @@ export const EditClassModal = ({ isOpen, onClose, classData, teachers, onSaved }
                   onChange={(e) => setCapacity(e.target.value)}
                   placeholder="Capacity"
                   min={1}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all font-medium text-[#1c3068]"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all font-medium text-[#2f4fa8]"
                 />
               </div>
 

@@ -16,8 +16,8 @@ const FAQItem = ({ question, answer, isOpen, onClick }: FAQItemProps) => {
         onClick={onClick}
         className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
       >
-        <span className="text-lg font-bold text-[#1c3068]">{question}</span>
-        <div className={`p-2 rounded-full transition-colors ${isOpen ? 'bg-[#c53336] text-white' : 'bg-[#fcfafa] text-gray-500'}`}>
+        <span className="text-lg font-bold text-[color:var(--brand,#1c3068)]">{question}</span>
+        <div className={`p-2 rounded-full transition-colors ${isOpen ? 'bg-[color:var(--accent,#c53336)] text-white' : 'bg-[#fcfafa] text-gray-500'}`}>
           {isOpen ? <Minus size={20} /> : <Plus size={20} />}
         </div>
       </button>
@@ -66,11 +66,11 @@ export const FAQ = () => {
     <section className="py-24 bg-[#fcfafa]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-[#1c3068]/10 text-[#1c3068] px-4 py-2 rounded-full font-bold text-sm mb-4">
+          <div className="inline-flex items-center gap-2 bg-[#1c3068]/10 text-[color:var(--brand,#1c3068)] px-4 py-2 rounded-full font-bold text-sm mb-4">
             <HelpCircle size={18} />
             <span>Common Questions</span>
           </div>
-          <h2 className="text-4xl font-bold text-[#1c3068]">Frequently Asked Questions</h2>
+          <h2 className="text-4xl font-bold text-[color:var(--brand,#1c3068)]">Frequently Asked Questions</h2>
           <p className="text-gray-600 mt-4">
             Find answers to common questions about the I-HADIR attendance system.
           </p>

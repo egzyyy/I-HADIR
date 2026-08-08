@@ -20,7 +20,7 @@ export const CircularProgressBar = ({ percentage, total, present, absent }: { pe
             cy={radius}
           />
           <circle
-            stroke="#1c3068"
+            stroke="#2f4fa8"
             fill="transparent"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference + ' ' + circumference}
@@ -32,7 +32,7 @@ export const CircularProgressBar = ({ percentage, total, present, absent }: { pe
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-5xl font-bold text-[#1c3068]">{percentage}%</p>
+          <p className="text-5xl font-bold text-[#2f4fa8]">{percentage}%</p>
           <p className="text-sm text-gray-500 mt-1">Present</p>
         </div>
       </div>
@@ -43,7 +43,7 @@ export const CircularProgressBar = ({ percentage, total, present, absent }: { pe
           <p className="text-sm text-gray-500 mt-1">Total Users</p>
         </div>
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#1c3068]">{present}</p>
+          <p className="text-3xl font-bold text-[#2f4fa8]">{present}</p>
           <p className="text-sm text-gray-500 mt-1">Present</p>
           <p className="text-sm text-gray-500">(With Late)</p>
         </div>

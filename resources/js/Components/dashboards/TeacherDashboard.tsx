@@ -51,7 +51,7 @@ export const TeacherDashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#1c3068] to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
+        className="bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
       >
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
@@ -79,7 +79,7 @@ export const TeacherDashboard = () => {
         >
           <div className="flex items-center justify-between mb-3">
             <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-              <Users className="text-[#1c3068]" size={24} />
+              <Users className="text-[#2f4fa8]" size={24} />
             </div>
           </div>
           <h4 className="text-2xl font-bold text-gray-800 mb-1">{loading ? '—' : data?.total_students ?? 0}</h4>
@@ -119,7 +119,7 @@ export const TeacherDashboard = () => {
 
       {/* My Class — Recent Attendance */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-        <h3 className="text-xl font-bold text-[#1c3068] mb-4">My Class — Recent Attendance</h3>
+        <h3 className="text-xl font-bold text-[#2f4fa8] mb-4">My Class — Recent Attendance</h3>
         <div className="space-y-3">
           {loading && (
             <p className="text-sm text-gray-400 text-center py-6">Loading...</p>
@@ -150,20 +150,20 @@ export const TeacherDashboard = () => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-xl font-bold text-[#1c3068] mb-4">Quick Actions</h3>
+        <h3 className="text-xl font-bold text-[#2f4fa8] mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => navigate('/attendance-log/check-in')}
             className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
           >
-            <p className="font-semibold text-[#1c3068]">Check In</p>
+            <p className="font-semibold text-[#2f4fa8]">Check In</p>
             <p className="text-sm text-gray-600 mt-1">Scan your own QR to check in</p>
           </button>
           <button
             onClick={() => navigate('/attendance-log/check-in?mode=check-out')}
             className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
           >
-            <p className="font-semibold text-[#1c3068]">Check Out</p>
+            <p className="font-semibold text-[#2f4fa8]">Check Out</p>
             <p className="text-sm text-gray-600 mt-1">Scan your own QR to check out</p>
           </button>
           <button

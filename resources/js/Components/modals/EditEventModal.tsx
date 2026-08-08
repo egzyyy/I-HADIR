@@ -22,7 +22,7 @@ export interface EventItem {
 // ── Checkbox Component ────────────────────────────────────────────────────────
 const Checkbox = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
     <label className="flex items-center gap-3 cursor-pointer group" onClick={onChange}>
-        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'border-[#1c3068] bg-[#1c3068]' : 'border-gray-300 group-hover:border-[#1c3068]'}`}>
+        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'border-[#2f4fa8] bg-[#2f4fa8]' : 'border-gray-300 group-hover:border-[#2f4fa8]'}`}>
             {checked && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
         </div>
         <span className="text-gray-600">{label}</span>
@@ -37,15 +37,15 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
             <div className="space-y-2 md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Event Name e.g. "Sukaneka"</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Event Name"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all placeholder:text-gray-400" />
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
             </div>
             <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Date</label>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
             </div>
             <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Time</label>
-                <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
             </div>
             <div className="space-y-3">
                 <label className="block text-sm font-bold text-gray-700">Participant</label>
@@ -56,12 +56,12 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
             <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Event Spot e.g. "Padang Besar"</label>
                 <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Event Spot"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all placeholder:text-gray-400" />
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
             </div>
             <div className="space-y-2 md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700">Event Details</label>
                 <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Little explanation about this event."
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all placeholder:text-gray-400 resize-none" />
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400 resize-none" />
             </div>
             <div className="space-y-2 md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700">Event Image / Banner / Poster</label>
@@ -181,7 +181,7 @@ export const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boo
 
                             <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 top-0 z-10">
                                 <div>
-                                    <h3 className="text-xl font-bold text-[#1c3068]">Edit Event</h3>
+                                    <h3 className="text-xl font-bold text-[#2f4fa8]">Edit Event</h3>
                                     <p className="text-gray-500 text-sm mt-1">Please enter all information required.</p>
                                 </div>
                                 <button onClick={onClose} disabled={saving} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500 disabled:opacity-50">
@@ -261,7 +261,7 @@ export const EditEventModal = ({ isOpen, onClose, item, onSaved }: { isOpen: boo
                             <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle size={40} className="text-green-600" />
                             </div>
-                            <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+                            <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
                             <p className="text-gray-500 mb-8">
                                 The event <span className="font-bold text-gray-700">{item.name}</span> has been successfully updated.
                             </p>

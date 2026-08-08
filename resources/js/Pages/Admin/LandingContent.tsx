@@ -41,7 +41,7 @@ const LEVEL_LABELS: Record<number, string> = {
 };
 
 const inputClass =
-  'w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700';
+  'w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700';
 
 // Section wrapper to keep the form visually grouped like the rest of the app.
 const Section = ({
@@ -57,10 +57,10 @@ const Section = ({
 }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
     <div className="flex items-center gap-3 mb-1">
-      <div className="w-10 h-10 rounded-xl bg-[#1c3068]/10 flex items-center justify-center text-[#1c3068]">
+      <div className="w-10 h-10 rounded-xl bg-[#2f4fa8]/10 flex items-center justify-center text-[#2f4fa8]">
         <Icon size={20} />
       </div>
-      <h3 className="text-xl font-bold text-[#1c3068]">{title}</h3>
+      <h3 className="text-xl font-bold text-[#2f4fa8]">{title}</h3>
     </div>
     <p className="text-gray-500 text-sm mb-6 ml-13">{subtitle}</p>
     {children}
@@ -150,7 +150,7 @@ export default function LandingContent() {
     return (
       <DashboardLayout activePageId="landing-content">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-[#1c3068] font-bold animate-pulse">Loading landing page content...</div>
+          <div className="text-[#2f4fa8] font-bold animate-pulse">Loading landing page content...</div>
         </div>
       </DashboardLayout>
     );
@@ -166,7 +166,7 @@ export default function LandingContent() {
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-black text-[#1c3068] tracking-tight">Landing Page Content</h2>
+            <h2 className="text-3xl font-black text-[#2f4fa8] tracking-tight">Landing Page Content</h2>
             <p className="text-gray-500 text-sm mt-1">
               Control what visitors see on your school's public landing page. Fields left
               empty fall back to the default copy.
@@ -189,7 +189,7 @@ export default function LandingContent() {
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2 md:col-span-2">
-                <label className="block text-sm font-bold text-[#1c3068]">Tagline</label>
+                <label className="block text-sm font-bold text-[#2f4fa8]">Tagline</label>
                 <input
                   type="text"
                   name="tagline"
@@ -200,7 +200,7 @@ export default function LandingContent() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-[#1c3068]">Established Year</label>
+                <label className="block text-sm font-bold text-[#2f4fa8]">Established Year</label>
                 <input
                   type="text"
                   name="established_year"
@@ -237,7 +237,7 @@ export default function LandingContent() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-bold text-[#1c3068]">
+                <label className="flex items-center gap-2 text-sm font-bold text-[#2f4fa8]">
                   <Eye size={16} className="text-[#c53336]" /> Vision
                 </label>
                 <textarea
@@ -250,7 +250,7 @@ export default function LandingContent() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-bold text-[#1c3068]">
+                <label className="flex items-center gap-2 text-sm font-bold text-[#2f4fa8]">
                   <Target size={16} className="text-[#c53336]" /> Mission
                 </label>
                 <textarea
@@ -321,7 +321,7 @@ export default function LandingContent() {
               <button
                 type="button"
                 onClick={addMember}
-                className="flex items-center gap-2 text-sm font-bold text-[#1c3068] hover:text-[#c53336] transition-colors px-2 py-2"
+                className="flex items-center gap-2 text-sm font-bold text-[#2f4fa8] hover:text-[#c53336] transition-colors px-2 py-2"
               >
                 <Plus size={16} /> Add member
               </button>
@@ -334,7 +334,7 @@ export default function LandingContent() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
+              className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
             >
               <Save size={18} /> {isSaving ? 'Saving...' : 'Save & Publish'}
             </button>
@@ -380,7 +380,7 @@ export default function LandingContent() {
                 <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle size={40} className="text-green-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Published!</h3>
+                <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Published!</h3>
                 <p className="text-gray-500 mb-8">
                   Your landing page content has been saved and is now live on the public page.
                 </p>

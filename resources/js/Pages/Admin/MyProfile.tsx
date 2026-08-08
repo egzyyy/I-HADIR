@@ -135,7 +135,7 @@ export default function MyProfile() {
       onClick={() => setActiveTab(id)}
       className={`relative flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all duration-300 ${
         activeTab === id 
-          ? 'text-[#1c3068]' 
+          ? 'text-[#2f4fa8]' 
           : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
       }`}
     >
@@ -154,7 +154,7 @@ export default function MyProfile() {
     return (
       <DashboardLayout activePageId="my-profile">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-[#1c3068] font-bold animate-pulse">Loading profile...</div>
+          <div className="text-[#2f4fa8] font-bold animate-pulse">Loading profile...</div>
         </div>
       </DashboardLayout>
     );
@@ -182,7 +182,7 @@ export default function MyProfile() {
       {/* Header Section with Breadcrumbs */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#1c3068] tracking-tight">My Profile</h2>
+          <h2 className="text-3xl font-black text-[#2f4fa8] tracking-tight">My Profile</h2>
           <p className="text-gray-500 text-sm mt-1">Manage your personal information and account settings.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
@@ -199,7 +199,7 @@ export default function MyProfile() {
         <div className="xl:col-span-4 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative group">
              {/* Decorative Background */}
-             <div className="h-32 bg-gradient-to-r from-[#1c3068] to-[#2a4595] relative overflow-hidden">
+             <div className="h-32 bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 pattern-dots"></div>
                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
              </div>
@@ -211,7 +211,7 @@ export default function MyProfile() {
                       {previewUrl ? (
                         <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-4xl font-black text-[#1c3068]">{initial}</span>
+                        <span className="text-4xl font-black text-[#2f4fa8]">{initial}</span>
                       )}
                     </div>
                   </div>
@@ -224,14 +224,14 @@ export default function MyProfile() {
                   </button>
                 </div>
                 
-                <h3 className="text-2xl font-bold text-[#1c3068]">{fullName}</h3>
-                <span className="bg-blue-50 text-[#1c3068] px-3 py-1 rounded-full text-xs font-bold mt-2 uppercase tracking-wide border border-blue-100">
+                <h3 className="text-2xl font-bold text-[#2f4fa8]">{fullName}</h3>
+                <span className="bg-blue-50 text-[#2f4fa8] px-3 py-1 rounded-full text-xs font-bold mt-2 uppercase tracking-wide border border-blue-100">
                   {adminData?.position || 'Administrator'}
                 </span>
 
                 <div className="w-full mt-8 space-y-4">
                   <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100">
-                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1c3068] shadow-sm">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#2f4fa8] shadow-sm">
                       <Mail size={18} />
                     </div>
                     <div className="overflow-hidden">
@@ -241,7 +241,7 @@ export default function MyProfile() {
                   </div>
 
                   <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100">
-                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1c3068] shadow-sm">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#2f4fa8] shadow-sm">
                       <Phone size={18} />
                     </div>
                     <div>
@@ -251,7 +251,7 @@ export default function MyProfile() {
                   </div>
 
                   <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100">
-                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1c3068] shadow-sm">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#2f4fa8] shadow-sm">
                       <MapPin size={18} />
                     </div>
                     <div>
@@ -266,11 +266,11 @@ export default function MyProfile() {
                 {/* <div className="mt-8 pt-6 w-full border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-4 text-center">
                      <div>
-                       <p className="text-2xl font-black text-[#1c3068]">245</p>
+                       <p className="text-2xl font-black text-[#2f4fa8]">245</p>
                        <p className="text-xs text-gray-400 font-bold uppercase">Days Present</p>
                      </div>
                      <div>
-                       <p className="text-2xl font-black text-[#1c3068]">100%</p>
+                       <p className="text-2xl font-black text-[#2f4fa8]">100%</p>
                        <p className="text-xs text-gray-400 font-bold uppercase">Attendance</p>
                      </div>
                   </div>
@@ -298,7 +298,7 @@ export default function MyProfile() {
               {activeTab === 'profile' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-[#1c3068]">Personal Information</h3>
+                    <h3 className="text-xl font-bold text-[#2f4fa8]">Personal Information</h3>
                     <button className="text-sm text-[#c53336] font-bold hover:underline" onClick={() => setActiveTab('settings')}>
                       Edit Info
                     </button>
@@ -310,7 +310,7 @@ export default function MyProfile() {
                         <User className="text-[#c53336]" size={20} />
                         <span className="text-sm font-bold text-gray-500 uppercase">Full Name</span>
                       </div>
-                      <p className="text-lg font-bold text-[#1c3068] pl-8">{fullName}</p>
+                      <p className="text-lg font-bold text-[#2f4fa8] pl-8">{fullName}</p>
                     </div>
 
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
@@ -318,7 +318,7 @@ export default function MyProfile() {
                         <Briefcase className="text-[#c53336]" size={20} />
                         <span className="text-sm font-bold text-gray-500 uppercase">Role / Position</span>
                       </div>
-                      <p className="text-lg font-bold text-[#1c3068] pl-8">{adminData?.position || 'Administrator'}</p>
+                      <p className="text-lg font-bold text-[#2f4fa8] pl-8">{adminData?.position || 'Administrator'}</p>
                     </div>
 
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
@@ -326,7 +326,7 @@ export default function MyProfile() {
                         <Calendar className="text-[#c53336]" size={20} />
                         <span className="text-sm font-bold text-gray-500 uppercase">Join Date</span>
                       </div>
-                      <p className="text-lg font-bold text-[#1c3068] pl-8">{joinDate}</p>
+                      <p className="text-lg font-bold text-[#2f4fa8] pl-8">{joinDate}</p>
                     </div>
 
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
@@ -334,12 +334,12 @@ export default function MyProfile() {
                         <Globe className="text-[#c53336]" size={20} />
                         <span className="text-sm font-bold text-gray-500 uppercase">Language</span>
                       </div>
-                      <p className="text-lg font-bold text-[#1c3068] pl-8">English (US)</p>
+                      <p className="text-lg font-bold text-[#2f4fa8] pl-8">English (US)</p>
                     </div>
                   </div>
 
                   <div className="mt-8">
-                    <h3 className="text-xl font-bold text-[#1c3068] mb-6">Bio</h3>
+                    <h3 className="text-xl font-bold text-[#2f4fa8] mb-6">Bio</h3>
                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 text-gray-600 leading-relaxed italic">
                       "{adminData?.bio_desc || 'No bio provided. Go to Settings to add one!'}"
                     </div>
@@ -351,20 +351,20 @@ export default function MyProfile() {
               {activeTab === 'e-contact' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-[#1c3068]">Emergency Contact</h3>
+                    <h3 className="text-xl font-bold text-[#2f4fa8]">Emergency Contact</h3>
                     <p className="text-gray-500 text-sm mt-1">Who should we contact in case of emergency?</p>
                   </div>
 
                   <form className="max-w-2xl space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2 col-span-2">
-                         <label className="block text-sm font-bold text-[#1c3068]">Contact Name</label>
-                         <input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 font-medium" placeholder="e.g. Spouse, Parent" />
+                         <label className="block text-sm font-bold text-[#2f4fa8]">Contact Name</label>
+                         <input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-medium" placeholder="e.g. Spouse, Parent" />
                       </div>
                       
                       <div className="space-y-2">
-                         <label className="block text-sm font-bold text-[#1c3068]">Relationship</label>
-                         <select name="emergency_relationship" value={formData.emergency_relationship} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700">
+                         <label className="block text-sm font-bold text-[#2f4fa8]">Relationship</label>
+                         <select name="emergency_relationship" value={formData.emergency_relationship} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700">
                            <option value="Parent">Parent</option>
                            <option value="Spouse">Spouse</option>
                            <option value="Sibling">Sibling</option>
@@ -374,13 +374,13 @@ export default function MyProfile() {
                       </div>
 
                       <div className="space-y-2">
-                         <label className="block text-sm font-bold text-[#1c3068]">Phone Number</label>
-                         <input type="tel" name="emergency_phone_num" value={formData.emergency_phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 font-medium" placeholder="01X-XXXXXXX" />
+                         <label className="block text-sm font-bold text-[#2f4fa8]">Phone Number</label>
+                         <input type="tel" name="emergency_phone_num" value={formData.emergency_phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-medium" placeholder="01X-XXXXXXX" />
                       </div>
                     </div>
                     
                     <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
                         <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
                       </button>
                     </div>
@@ -392,25 +392,25 @@ export default function MyProfile() {
               {activeTab === 'address' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-[#1c3068]">Residential Address</h3>
+                    <h3 className="text-xl font-bold text-[#2f4fa8]">Residential Address</h3>
                     <p className="text-gray-500 text-sm mt-1">Your permanent residential address.</p>
                   </div>
 
                   <form className="space-y-6">
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-[#1c3068]">Street Address</label>
-                      <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="House number and street" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                      <label className="block text-sm font-bold text-[#2f4fa8]">Street Address</label>
+                      <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="House number and street" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">City</label>
-                        <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                        <label className="block text-sm font-bold text-[#2f4fa8]">City</label>
+                        <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">State</label>
+                        <label className="block text-sm font-bold text-[#2f4fa8]">State</label>
                         <div className="relative">
-                          <select name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 appearance-none">
+                          <select name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 appearance-none">
                             <option value="Terengganu">Terengganu</option>
                             <option value="Selangor">Selangor</option>
                             <option value="W.P Kuala Lumpur">W.P Kuala Lumpur</option>
@@ -436,17 +436,17 @@ export default function MyProfile() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">Postcode</label>
-                        <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 font-mono" />
+                        <label className="block text-sm font-bold text-[#2f4fa8]">Postcode</label>
+                        <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-mono" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">Country</label>
+                        <label className="block text-sm font-bold text-[#2f4fa8]">Country</label>
                         <input type="text" value="Malaysia" disabled className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed" />
                       </div>
                     </div>
 
                     <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
                         <Save size={18} /> {isSaving ? 'Saving...' : 'Update Address'}
                       </button>
                     </div>
@@ -458,7 +458,7 @@ export default function MyProfile() {
               {activeTab === 'picture' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="h-full flex flex-col items-center justify-center py-8">
                    <div className="text-center mb-8">
-                      <h3 className="text-xl font-bold text-[#1c3068]">Profile Picture</h3>
+                      <h3 className="text-xl font-bold text-[#2f4fa8]">Profile Picture</h3>
                       <p className="text-gray-500 text-sm mt-1">Upload a new photo to update your profile.</p>
                    </div>
 
@@ -503,52 +503,52 @@ export default function MyProfile() {
               {activeTab === 'settings' && (
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-[#1c3068]">Account Settings</h3>
+                    <h3 className="text-xl font-bold text-[#2f4fa8]">Account Settings</h3>
                     <p className="text-gray-500 text-sm mt-1">Update your basic account details.</p>
                   </div>
 
                   <form className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">First Name</label>
-                        <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                        <label className="block text-sm font-bold text-[#2f4fa8]">First Name</label>
+                        <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#1c3068]">Last Name</label>
-                        <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                        <label className="block text-sm font-bold text-[#2f4fa8]">Last Name</label>
+                        <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-[#1c3068]">Identification No.</label>
+                      <label className="block text-sm font-bold text-[#2f4fa8]">Identification No.</label>
                       <input type="text" value={adminData?.ic_number || '-'} className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed font-mono" disabled />
                       <p className="text-xs text-gray-400 flex items-center gap-1"><Shield size={10} /> Identification number cannot be changed</p>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-[#1c3068]">Email Address</label>
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                      <label className="block text-sm font-bold text-[#2f4fa8]">Email Address</label>
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-[#1c3068]">Phone Number</label>
-                      <input type="tel" name="phone_num" value={formData.phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                      <label className="block text-sm font-bold text-[#2f4fa8]">Phone Number</label>
+                      <input type="tel" name="phone_num" value={formData.phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-sm font-bold text-[#1c3068]">Bio</label>
+                      <label className="block text-sm font-bold text-[#2f4fa8]">Bio</label>
                       <textarea 
                         rows={4} 
                         name="bio_desc"
                         value={formData.bio_desc}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700 leading-relaxed resize-none"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 leading-relaxed resize-none"
                         placeholder="Tell us a little about yourself..."
                       ></textarea>
                     </div>
 
                     <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
                         <Save size={18} /> {isSaving ? 'Saving...' : 'Update Profile'}
                       </button>
                     </div>
@@ -599,7 +599,7 @@ export default function MyProfile() {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">Your profile has been successfully updated.</p>
               <button 
                 onClick={() => setShowSuccessModal(false)}

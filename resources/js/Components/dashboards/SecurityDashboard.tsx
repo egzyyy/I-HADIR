@@ -72,7 +72,7 @@ export const SecurityDashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#1c3068] to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
+        className="bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
       >
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
@@ -155,7 +155,7 @@ export const SecurityDashboard = () => {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-        <h3 className="text-xl font-bold text-[#1c3068] mb-4">Recent Activity</h3>
+        <h3 className="text-xl font-bold text-[#2f4fa8] mb-4">Recent Activity</h3>
         <div className="space-y-3">
           {loading && (
             <p className="text-sm text-gray-400 text-center py-6">Loading...</p>
@@ -185,13 +185,13 @@ export const SecurityDashboard = () => {
 
       {/* Quick Actions */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-xl font-bold text-[#1c3068] mb-4">Quick Actions</h3>
+        <h3 className="text-xl font-bold text-[#2f4fa8] mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
             onClick={() => navigate('/visitor')}
             className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-left transition-colors"
           >
-            <p className="font-semibold text-[#1c3068]">Check In Visitor</p>
+            <p className="font-semibold text-[#2f4fa8]">Check In Visitor</p>
             <p className="text-sm text-gray-600 mt-1">Register new visitor</p>
           </button>
           <button

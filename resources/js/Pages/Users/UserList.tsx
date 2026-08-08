@@ -248,7 +248,7 @@ const UserListUnified = () => {
       <body>
         <table border="1">
           <thead>
-            <tr style="background-color: #1c3068; color: white;">
+            <tr style="background-color: #2f4fa8; color: white;">
               <th>No</th>
               <th>Name</th>
               <th>IC Number</th>
@@ -326,9 +326,9 @@ const UserListUnified = () => {
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
           
           /* Standard Header Styling */
-          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
           .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
-          .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+          .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
           .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
           
           /* Table Styling */
@@ -337,7 +337,7 @@ const UserListUnified = () => {
           
           /* Enforce colors in print */
           th { 
-            background-color: #1c3068 !important; 
+            background-color: #2f4fa8 !important; 
             color: white !important; 
             font-weight: bold; 
             text-align: center; 
@@ -401,7 +401,7 @@ const UserListUnified = () => {
           {/* Header & Tabs */}
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h2 className="text-xl font-bold text-[#1c3068] flex items-center gap-2">
+              <h2 className="text-xl font-bold text-[#2f4fa8] flex items-center gap-2">
                 {isTeacherView ? 'My Class Student List' : 'User List'}
               </h2>
               <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
@@ -413,7 +413,7 @@ const UserListUnified = () => {
                   <button
                     key={tab}
                     onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
-                    className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-[#1c3068] shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                       }`}
                   >
                     {tab}
@@ -441,7 +441,7 @@ const UserListUnified = () => {
                   <select
                     value={selectedSessionId}
                     onChange={(e) => setSelectedSessionId(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#1c3068] font-semibold"
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
                   >
                     <option value="all">All Time History</option>
                     {sessions.map(session => (
@@ -492,7 +492,7 @@ const UserListUnified = () => {
                     currentData.map((item: any, index: number) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + index + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-[#1c3068]">{item.name}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-[#2f4fa8]">{item.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.ic_number}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.phone}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-medium">

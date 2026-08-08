@@ -76,7 +76,7 @@ const AddSportModal = ({ onClose, teachers, onSaved }: { onClose: () => void; te
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <div><h3 className="text-xl font-bold text-[#1c3068]">Add new sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+          <div><h3 className="text-xl font-bold text-[#2f4fa8]">Add new sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
         </div>
         <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -145,7 +145,7 @@ const EditSportModal = ({ isOpen, onClose, item, teachers, onSaved }: { isOpen: 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <div><h3 className="text-xl font-bold text-[#1c3068]">Edit sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+            <div><h3 className="text-xl font-bold text-[#2f4fa8]">Edit sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
           <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -219,13 +219,13 @@ const SportList = () => {
         <style>
           @page { margin: 15mm; size: A4 portrait; }
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
-          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1c3068; }
+          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
           .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
-          .report-title { color: #1c3068; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+          .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
           .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
           th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-          th { background-color: #1c3068 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           th[style*="text-align:center"] { text-align: center; }
           tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         </style>
@@ -283,8 +283,8 @@ const SportList = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#1c3068]">Sport List</h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#1c3068] text-white rounded-lg text-sm font-bold hover:bg-[#152450] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Sport</button>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">Sport List</h2>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Sport</button>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6">

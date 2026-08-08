@@ -32,13 +32,13 @@ const ScannerPanel: React.FC<ScannerPanelProps> = ({
   if (!scanning) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-24 h-24 rounded-2xl bg-[#1c3068]/5 flex items-center justify-center">
-          <QrCode size={48} className="text-[#1c3068]" />
+        <div className="w-24 h-24 rounded-2xl bg-[#2f4fa8]/5 flex items-center justify-center">
+          <QrCode size={48} className="text-[#2f4fa8]" />
         </div>
         <p className="text-gray-500 text-sm">{idleHint}</p>
         <button
           onClick={onStart}
-          className="px-8 py-3 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all"
+          className="px-8 py-3 bg-[#2f4fa8] text-white rounded-xl font-semibold hover:bg-[#264190] transition-all"
         >
           Start Scanner
         </button>
@@ -58,7 +58,7 @@ const ScannerPanel: React.FC<ScannerPanelProps> = ({
       <div className="relative" style={{ minHeight }}>
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl">
-            <div className="w-10 h-10 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
         <QrScanner onScan={onScan} active={scanning} />

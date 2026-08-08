@@ -192,9 +192,9 @@ const ManualEntry = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#1c3068] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#1c3068] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
     );
   };
 
@@ -216,7 +216,7 @@ const ManualEntry = () => {
 
   const handleExportExcel = () => {
     if (sortedData.length === 0) return;
-    const table = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr style="background-color:#1c3068;color:white;"><th>No</th><th>Name</th><th>Class</th><th>Type</th><th>Status</th><th>Reason</th><th>Time In</th><th>Time Out</th></tr></thead><tbody>${sortedData.map((e, i) => `<tr><td>${i + 1}</td><td>${e.name}</td><td>${e.class}</td><td>${e.type}</td><td>${e.status}</td><td>${e.reason}</td><td>${e.check_in}</td><td>${e.check_out || '-'}</td></tr>`).join('')}</tbody></table></body></html>`;
+    const table = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr style="background-color:#2f4fa8;color:white;"><th>No</th><th>Name</th><th>Class</th><th>Type</th><th>Status</th><th>Reason</th><th>Time In</th><th>Time Out</th></tr></thead><tbody>${sortedData.map((e, i) => `<tr><td>${i + 1}</td><td>${e.name}</td><td>${e.class}</td><td>${e.type}</td><td>${e.status}</td><td>${e.reason}</td><td>${e.check_in}</td><td>${e.check_out || '-'}</td></tr>`).join('')}</tbody></table></body></html>`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([table], { type: 'application/vnd.ms-excel' }));
     a.download = `manual_entry_${selectedDate}.xls`;
@@ -226,7 +226,7 @@ const ManualEntry = () => {
   const handleExportPDF = () => {
     if (sortedData.length === 0) return;
     const rows = sortedData.map((e, i) => `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${e.name}</td><td style="text-align:center">${e.class}</td><td style="text-align:center">${e.type}</td><td style="text-align:center;text-transform:capitalize">${e.status}</td><td style="text-align:center">${e.reason}</td><td style="text-align:center">${e.check_in}</td><td style="text-align:center">${e.check_out || '-'}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>Manual Entry Report</title><style>@page{margin:15mm;size:A4 landscape;}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:11px;color:#333;margin:0;padding:0;}.header-container{text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #1c3068;}.logo{max-height:80px;margin-bottom:15px;width:auto;}.report-title{color:#1c3068;font-size:24px;font-weight:900;margin:0;text-transform:uppercase;letter-spacing:1.5px;}.report-meta{color:#6b7280;font-size:11px;margin-top:8px;font-weight:bold;text-transform:uppercase;}table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;}th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;}th{background-color:#1c3068!important;color:white!important;font-weight:bold;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}th:nth-child(2){text-align:left;}tr:nth-child(even){background-color:#f9fafb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}</style></head><body><div class="header-container"><img src="${logo}" class="logo" alt="School Logo" /><h1 class="report-title">Manual Entry Report</h1><p class="report-meta">Date: ${selectedDate} &nbsp;&bull;&nbsp; I-HADIR System</p></div><table><thead><tr><th style="width:5%">No</th><th style="width:25%">Name</th><th style="width:15%">Class</th><th style="width:10%">Type</th><th style="width:10%">Status</th><th style="width:15%">Reason</th><th style="width:10%">Time In</th><th style="width:10%">Time Out</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300);}</script></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>Manual Entry Report</title><style>@page{margin:15mm;size:A4 landscape;}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:11px;color:#333;margin:0;padding:0;}.header-container{text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #2f4fa8;}.logo{max-height:80px;margin-bottom:15px;width:auto;}.report-title{color:#2f4fa8;font-size:24px;font-weight:900;margin:0;text-transform:uppercase;letter-spacing:1.5px;}.report-meta{color:#6b7280;font-size:11px;margin-top:8px;font-weight:bold;text-transform:uppercase;}table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;}th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;}th{background-color:#2f4fa8!important;color:white!important;font-weight:bold;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}th:nth-child(2){text-align:left;}tr:nth-child(even){background-color:#f9fafb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}</style></head><body><div class="header-container"><img src="${logo}" class="logo" alt="School Logo" /><h1 class="report-title">Manual Entry Report</h1><p class="report-meta">Date: ${selectedDate} &nbsp;&bull;&nbsp; I-HADIR System</p></div><table><thead><tr><th style="width:5%">No</th><th style="width:25%">Name</th><th style="width:15%">Class</th><th style="width:10%">Type</th><th style="width:10%">Status</th><th style="width:15%">Reason</th><th style="width:10%">Time In</th><th style="width:10%">Time Out</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300);}</script></body></html>`;
     const win = window.open('', '_blank');
     if (win) { win.document.write(html); win.document.close(); }
   };
@@ -234,8 +234,8 @@ const ManualEntry = () => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#1c3068]">Manual Entry</h2>
-        <button onClick={() => { setShowModal(true); setError(null); }} className="bg-[#1c3068] hover:bg-[#152450] text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-[#2f4fa8]">Manual Entry</h2>
+        <button onClick={() => { setShowModal(true); setError(null); }} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
           <Plus size={18} /> Manual Check In
         </button>
       </div>
@@ -245,11 +245,11 @@ const ManualEntry = () => {
           <p className="text-gray-500 text-sm font-semibold">Manual Attendance Logs</p>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
              <div className="relative w-full sm:w-auto">
-               <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none transition-all text-gray-600" />
+               <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all text-gray-600" />
              </div>
              <div className="relative w-full sm:w-56">
                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-               <input type="text" placeholder="Search name..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all" />
+               <input type="text" placeholder="Search name..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all" />
              </div>
           </div>
         </div>
@@ -280,7 +280,7 @@ const ManualEntry = () => {
                     <td className="px-4 py-4 text-sm text-gray-500 text-center">{startIndex + idx + 1}</td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-800">{entry.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{entry.class}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-[#1c3068]">{entry.type}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-[#2f4fa8]">{entry.type}</td>
                     <td className="px-6 py-4 text-sm capitalize">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                          entry.status === 'present' ? 'bg-green-50 text-green-600 border-green-100' :
@@ -298,7 +298,7 @@ const ManualEntry = () => {
                         <button
                           onClick={() => handleCheckOut(entry.id)}
                           disabled={checkingOut === entry.id}
-                          className="bg-[#1c3068] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#152450] transition-colors disabled:opacity-50"
+                          className="bg-[#2f4fa8] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#264190] transition-colors disabled:opacity-50"
                         >
                           {checkingOut === entry.id ? '...' : 'Check Out'}
                         </button>
@@ -346,7 +346,7 @@ const ManualEntry = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white rounded-2xl shadow-xl w-full max-w-2xl relative z-10 overflow-hidden">
               <div className="bg-[#fcfafa] px-8 py-6 border-b border-gray-100 flex justify-between items-center">
-                <div><h3 className="text-xl font-bold text-[#1c3068]">Manual Check In</h3><p className="text-gray-500 text-sm">Please select a student and provide a reason</p></div>
+                <div><h3 className="text-xl font-bold text-[#2f4fa8]">Manual Check In</h3><p className="text-gray-500 text-sm">Please select a student and provide a reason</p></div>
                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
               </div>
 
@@ -361,9 +361,9 @@ const ManualEntry = () => {
                   
                   {/* Class Selection */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Class</label>
+                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Class</label>
                     <div className="relative">
-                      <select value={formData.classId} onChange={(e) => setFormData({ ...formData, classId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                      <select value={formData.classId} onChange={(e) => setFormData({ ...formData, classId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                         <option value="">Select a class...</option>
                         {classes.map(c => (<option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>))}
                       </select>
@@ -373,9 +373,9 @@ const ManualEntry = () => {
 
                   {/* Student Selection */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Student Name</label>
+                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Student Name</label>
                     <div className="relative">
-                      <select value={formData.ic} onChange={(e) => setFormData({ ...formData, ic: e.target.value })} disabled={!formData.classId || loadingStudents || students.length === 0} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                      <select value={formData.ic} onChange={(e) => setFormData({ ...formData, ic: e.target.value })} disabled={!formData.classId || loadingStudents || students.length === 0} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                         <option value="">{loadingStudents ? 'Loading students...' : (formData.classId && students.length === 0 ? 'All students have checked in' : 'Select a student...')}</option>
                         {students.map(s => (<option key={s.student_id} value={s.ic_number}>{s.name}</option>))}
                       </select>
@@ -385,7 +385,7 @@ const ManualEntry = () => {
 
                   {/* User Type (Locked) */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> User Type</label>
+                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> User Type</label>
                     <div className="relative">
                       <input type="text" value="Student" readOnly className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 outline-none text-gray-500 cursor-not-allowed" />
                     </div>
@@ -393,8 +393,8 @@ const ManualEntry = () => {
 
                   {/* Reason */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c53336] mr-1">*</span> Reason</label>
-                    <input type="text" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} placeholder="e.g. Forgot ID Card, System Error, etc." className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-gray-700" />
+                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Reason</label>
+                    <input type="text" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} placeholder="e.g. Forgot ID Card, System Error, etc." className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
                   </div>
                 </div>
 

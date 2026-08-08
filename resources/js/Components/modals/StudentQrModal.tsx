@@ -22,7 +22,7 @@ export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, classNa
       width: 280,
       margin: 3,
       errorCorrectionLevel: 'H',
-      color: { dark: '#1c3068', light: '#ffffff' },
+      color: { dark: '#2f4fa8', light: '#ffffff' },
     });
   }, [isOpen, icNumber]);
 
@@ -48,7 +48,7 @@ export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, classNa
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-lg font-bold text-[#1c3068]">{userType} QR Code</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">{userType} QR Code</h3>
             <p className="text-gray-400 text-xs mt-0.5">Scan to record attendance</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -58,19 +58,19 @@ export const StudentQrModal = ({ isOpen, onClose, studentName, icNumber, classNa
 
         {/* QR Content */}
         <div className="p-8 flex flex-col items-center gap-4">
-          <div className="border-2 border-[#1c3068]/10 rounded-xl p-4 bg-white shadow-inner">
+          <div className="border-2 border-[#2f4fa8]/10 rounded-xl p-4 bg-white shadow-inner">
             <canvas ref={canvasRef} />
           </div>
 
           <div className="text-center">
-            <p className="text-sm font-black text-[#1c3068]">{studentName}</p>
+            <p className="text-sm font-black text-[#2f4fa8]">{studentName}</p>
             <p className="text-xs text-gray-400 mt-0.5">IC: {icNumber}</p>
             <p className="text-xs font-bold text-[#c53336] mt-0.5">{className}</p>
           </div>
 
           <button
             onClick={handleDownload}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1c3068] text-white rounded-lg font-bold hover:bg-[#152450] transition-all text-sm shadow-lg shadow-blue-900/20"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2f4fa8] text-white rounded-lg font-bold hover:bg-[#264190] transition-all text-sm shadow-lg shadow-blue-900/20"
           >
             <Download size={16} /> Download PNG
           </button>

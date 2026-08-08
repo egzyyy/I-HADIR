@@ -263,32 +263,32 @@ const UserRegistration = () => {
         className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[500px]"
       >
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-[#1c3068] mb-3">User Registration</h2>
+          <h2 className="text-3xl font-bold text-[#2f4fa8] mb-3">User Registration</h2>
           <p className="text-gray-500">Please select the type of user you want to register</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
           <div onClick={() => setSelectedType('staff')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <Users size={40} className="text-[#1c3068]" />
+              <Users size={40} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-xl font-bold text-[#1c3068] mb-2">Staff</h3>
+            <h3 className="text-xl font-bold text-[#2f4fa8] mb-2">Staff</h3>
             <p className="text-sm text-gray-500">Register new support staff members</p>
           </div>
 
           <div onClick={() => setSelectedType('teacher')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <GraduationCap size={40} className="text-[#1c3068]" />
+              <GraduationCap size={40} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-xl font-bold text-[#1c3068] mb-2">Teacher</h3>
+            <h3 className="text-xl font-bold text-[#2f4fa8] mb-2">Teacher</h3>
             <p className="text-sm text-gray-500">Register new academic teachers</p>
           </div>
 
           <div onClick={() => setSelectedType('student')} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <Book size={40} className="text-[#1c3068]" />
+              <Book size={40} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-xl font-bold text-[#1c3068] mb-2">Student</h3>
+            <h3 className="text-xl font-bold text-[#2f4fa8] mb-2">Student</h3>
             <p className="text-sm text-gray-500">Register new students to classes</p>
           </div>
         </div>
@@ -343,18 +343,18 @@ const UserRegistration = () => {
             setSelectedType(null);
             setCurrentStep(1);
           }}
-          className="text-gray-500 hover:text-[#1c3068] transition-colors flex items-center gap-2 text-sm font-medium"
+          className="text-gray-500 hover:text-[#2f4fa8] transition-colors flex items-center gap-2 text-sm font-medium"
         >
           <ChevronRight size={16} className="rotate-180" /> Back to Selection
         </button>
         <div className="h-4 w-px bg-gray-300"></div>
-        <h2 className="text-2xl font-bold text-[#1c3068]">{title}</h2>
+        <h2 className="text-2xl font-bold text-[#2f4fa8]">{title}</h2>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px] flex flex-col">
         <div className="p-8">
           <div className="mb-8">
-            <h3 className="text-xl font-bold text-[#1c3068]">Registration Form</h3>
+            <h3 className="text-xl font-bold text-[#2f4fa8]">Registration Form</h3>
             <p className="text-gray-400 text-sm mt-1">Please fill in all the form</p>
           </div>
 
@@ -639,7 +639,7 @@ const UserRegistration = () => {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">
                 New <span className="font-bold text-gray-700 capitalize">{selectedType}</span> has been successfully registered.
               </p>

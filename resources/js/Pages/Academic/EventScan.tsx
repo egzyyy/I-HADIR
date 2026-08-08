@@ -88,7 +88,7 @@ const EventScan = () => {
   if (loadingEvent) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-[#1c3068] font-bold animate-pulse">Loading event...</div>
+        <div className="text-[#2f4fa8] font-bold animate-pulse">Loading event...</div>
       </div>
     );
   }
@@ -100,7 +100,7 @@ const EventScan = () => {
         <p className="text-gray-500">Event not found.</p>
         <button
           onClick={() => navigate('/academic/event')}
-          className="px-6 py-2.5 bg-[#1c3068] text-white rounded-xl font-semibold hover:bg-[#152450] transition-all text-sm"
+          className="px-6 py-2.5 bg-[#2f4fa8] text-white rounded-xl font-semibold hover:bg-[#264190] transition-all text-sm"
         >
           Back to Event List
         </button>
@@ -118,12 +118,12 @@ const EventScan = () => {
         <div className="mb-6 flex items-center gap-4">
           <button
             onClick={() => navigate('/academic/event')}
-            className="text-gray-500 hover:text-[#1c3068] transition-colors flex items-center gap-2 text-sm font-medium"
+            className="text-gray-500 hover:text-[#2f4fa8] transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <ChevronRight size={16} className="rotate-180" /> Back to Event List
           </button>
           <div className="h-4 w-px bg-gray-300"></div>
-          <h2 className="text-2xl font-bold text-[#1c3068]">Event Attendance Scanner</h2>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">Event Attendance Scanner</h2>
         </div>
 
         {/* Event summary strip */}
@@ -133,10 +133,10 @@ const EventScan = () => {
             <p className="text-xl font-black text-[#c53336]">{event.name}</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar size={16} className="text-[#1c3068]" /> {event.date}{event.time ? `, ${event.time}` : ''}
+            <Calendar size={16} className="text-[#2f4fa8]" /> {event.date}{event.time ? `, ${event.time}` : ''}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <MapPin size={16} className="text-[#1c3068]" /> {event.spot}
+            <MapPin size={16} className="text-[#2f4fa8]" /> {event.spot}
           </div>
         </div>
 
@@ -157,7 +157,7 @@ const EventScan = () => {
                         key={t.key}
                         onClick={() => { setScanType(t.key); setError(null); }}
                         className={`px-4 py-2 text-sm font-semibold transition-colors flex items-center gap-2 ${scanType === t.key
-                          ? 'bg-[#1c3068] text-white'
+                          ? 'bg-[#2f4fa8] text-white'
                           : 'bg-white text-gray-500 hover:bg-gray-50'
                           }`}
                       >

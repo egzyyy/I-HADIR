@@ -109,7 +109,7 @@ const AttendanceLogPage = () => {
       className="max-w-full mx-auto space-y-6 relative"
     >
       <div>
-        <h2 className="text-2xl font-bold text-[#1c3068]">Attendance Log</h2>
+        <h2 className="text-2xl font-bold text-[#2f4fa8]">Attendance Log</h2>
         <p className="text-gray-500 text-sm mt-1">View and filter all check-in / check-out records.</p>
       </div>
 
@@ -124,7 +124,7 @@ const AttendanceLogPage = () => {
                 <Icon size={20} className={cfg.color} />
               </div>
               <div>
-                <p className="text-2xl font-black text-[#1c3068]">{counts[s]}</p>
+                <p className="text-2xl font-black text-[#2f4fa8]">{counts[s]}</p>
                 <p className="text-xs text-gray-400 font-medium">{cfg.label}</p>
               </div>
             </div>
@@ -139,14 +139,14 @@ const AttendanceLogPage = () => {
           type="date"
           value={filterDate}
           onChange={e => { setFilterDate(e.target.value); setCurrentPage(1); }}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
         />
 
         {/* User type */}
         <select
           value={filterType}
           onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
-          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
         >
           <option value="student">Students</option>
           <option value="teacher">Teachers</option>
@@ -157,7 +157,7 @@ const AttendanceLogPage = () => {
         <select
           value={filterStatus}
           onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
         >
           <option value="">All Status</option>
           <option value="present">Present</option>
@@ -173,7 +173,7 @@ const AttendanceLogPage = () => {
             placeholder="Search name or class..."
             value={search}
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#1c3068]"
+            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
           />
         </div>
 
@@ -203,7 +203,7 @@ const AttendanceLogPage = () => {
                 <tr>
                   <td colSpan={columnCount} className="px-6 py-16 text-center text-gray-400 text-sm">
                     <div className="flex justify-center">
-                      <div className="w-6 h-6 border-2 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-6 h-6 border-2 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
                     </div>
                   </td>
                 </tr>
@@ -321,7 +321,7 @@ const AttendanceLogPage = () => {
               className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-6 relative"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-[#1c3068]">Manual Entry Detail</h3>
+                <h3 className="text-lg font-bold text-[#2f4fa8]">Manual Entry Detail</h3>
                 <button onClick={() => setSelectedReason(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={20} />
                 </button>
@@ -343,7 +343,7 @@ const AttendanceLogPage = () => {
               <div className="mt-8 flex justify-end">
                 <button 
                   onClick={() => setSelectedReason(null)} 
-                  className="bg-[#1c3068] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#152450] transition-colors w-full"
+                  className="bg-[#2f4fa8] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#264190] transition-colors w-full"
                 >
                   Close
                 </button>

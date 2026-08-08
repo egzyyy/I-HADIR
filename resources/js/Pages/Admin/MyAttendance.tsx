@@ -65,7 +65,7 @@ function MyAttendanceContent() {
 
   const handleExportExcel = () => {
     if (logs.length === 0) return;
-    const table = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr style="background-color:#1c3068;color:white;"><th>No</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th></tr></thead><tbody>${logs.map((l, i) => `<tr><td>${i + 1}</td><td>${l.date}</td><td>${l.check_in ?? '-'}</td><td>${l.check_out ?? '-'}</td><td>${l.status}</td></tr>`).join('')}</tbody></table></body></html>`;
+    const table = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr style="background-color:#2f4fa8;color:white;"><th>No</th><th>Date</th><th>Time In</th><th>Time Out</th><th>Status</th></tr></thead><tbody>${logs.map((l, i) => `<tr><td>${i + 1}</td><td>${l.date}</td><td>${l.check_in ?? '-'}</td><td>${l.check_out ?? '-'}</td><td>${l.status}</td></tr>`).join('')}</tbody></table></body></html>`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([table], { type: 'application/vnd.ms-excel' }));
     a.download = `my_attendance_${new Date().toISOString().split('T')[0]}.xls`;
@@ -75,7 +75,7 @@ function MyAttendanceContent() {
   const handleExportPDF = () => {
     if (logs.length === 0) return;
     const rows = logs.map((l, i) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${l.date}</td><td style="text-align:center">${l.check_in ?? '-'}</td><td style="text-align:center">${l.check_out ?? '-'}</td><td style="text-align:center;text-transform:capitalize">${l.status}</td></tr>`).join('');
-    const html = `<!DOCTYPE html><html><head><title>My Attendance Report</title><style>@page{margin:15mm;size:A4 landscape;}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:11px;color:#333;margin:0;padding:0;}.header-container{text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #1c3068;}.logo{max-height:80px;margin-bottom:15px;width:auto;}.report-title{color:#1c3068;font-size:24px;font-weight:900;margin:0;text-transform:uppercase;letter-spacing:1.5px;}.report-meta{color:#6b7280;font-size:11px;margin-top:8px;font-weight:bold;text-transform:uppercase;}table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;}th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;}th{background-color:#1c3068!important;color:white!important;font-weight:bold;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tr:nth-child(even){background-color:#f9fafb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}</style></head><body><div class="header-container"><img src="${logo}" class="logo" alt="School Logo" /><h1 class="report-title">My Attendance Report</h1><p class="report-meta">${from || to ? `${from || '...'} to ${to || '...'}` : 'All Records'} &nbsp;&bull;&nbsp; I-HADIR System</p></div><table><thead><tr><th style="width:8%">No</th><th style="width:25%">Date</th><th style="width:22%">Time In</th><th style="width:22%">Time Out</th><th style="width:23%">Status</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300);}</script></body></html>`;
+    const html = `<!DOCTYPE html><html><head><title>My Attendance Report</title><style>@page{margin:15mm;size:A4 landscape;}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:11px;color:#333;margin:0;padding:0;}.header-container{text-align:center;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid #2f4fa8;}.logo{max-height:80px;margin-bottom:15px;width:auto;}.report-title{color:#2f4fa8;font-size:24px;font-weight:900;margin:0;text-transform:uppercase;letter-spacing:1.5px;}.report-meta{color:#6b7280;font-size:11px;margin-top:8px;font-weight:bold;text-transform:uppercase;}table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;}th,td{padding:10px 8px;border-bottom:1px solid #e5e7eb;}th{background-color:#2f4fa8!important;color:white!important;font-weight:bold;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tr:nth-child(even){background-color:#f9fafb!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}</style></head><body><div class="header-container"><img src="${logo}" class="logo" alt="School Logo" /><h1 class="report-title">My Attendance Report</h1><p class="report-meta">${from || to ? `${from || '...'} to ${to || '...'}` : 'All Records'} &nbsp;&bull;&nbsp; I-HADIR System</p></div><table><thead><tr><th style="width:8%">No</th><th style="width:25%">Date</th><th style="width:22%">Time In</th><th style="width:22%">Time Out</th><th style="width:23%">Status</th></tr></thead><tbody>${rows}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300);}</script></body></html>`;
     const win = window.open('', '_blank');
     if (win) { win.document.write(html); win.document.close(); }
   };
@@ -85,7 +85,7 @@ function MyAttendanceContent() {
       {/* Header Section */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#1c3068] tracking-tight">My Attendance</h2>
+          <h2 className="text-3xl font-black text-[#2f4fa8] tracking-tight">My Attendance</h2>
           <p className="text-gray-500 text-sm mt-1">View your personal attendance history and logs.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
@@ -102,7 +102,7 @@ function MyAttendanceContent() {
         {/* Helper Text */}
         <div className="p-6 border-b border-gray-100 bg-[#f8f9fa]">
           <div className="flex items-center gap-3 text-sm text-gray-600 bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <div className="w-5 h-5 rounded-full bg-[#1c3068] text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">i</div>
+            <div className="w-5 h-5 rounded-full bg-[#2f4fa8] text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">i</div>
             <p>Click the buttons below to export your attendance data to Copy, CSV, Excel, PDF, or Print format.</p>
           </div>
         </div>
@@ -115,12 +115,12 @@ function MyAttendanceContent() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] outline-none transition-all text-sm font-medium text-gray-600" />
+                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-sm font-medium text-gray-600" />
               </div>
               <span className="text-gray-400 text-sm">to</span>
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] outline-none transition-all text-sm font-medium text-gray-600" />
+                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-sm font-medium text-gray-600" />
               </div>
               {(from || to) && (
                 <button onClick={clearFilters} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Clear filters">

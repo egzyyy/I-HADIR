@@ -182,7 +182,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 sticky top-0 z-20">
             <div>
-              <h2 className="text-xl font-bold text-[#1c3068]">Edit {user.type.charAt(0).toUpperCase() + user.type.slice(1)}</h2>
+              <h2 className="text-xl font-bold text-[#2f4fa8]">Edit {user.type.charAt(0).toUpperCase() + user.type.slice(1)}</h2>
               <p className="text-sm text-gray-500 font-medium">{user.name} ({user.ic_number})</p>
             </div>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
@@ -224,7 +224,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
 
               {/* General Info (Applies to all) */}
               <div>
-                <h3 className="text-sm font-bold text-[#1c3068] uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">General Information</h3>
+                <h3 className="text-sm font-bold text-[#2f4fa8] uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">General Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-gray-600">Gender</label>
@@ -338,7 +338,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
               {/* Parent Info (Only for Students) */}
               {user.type === 'student' && (
                 <div>
-                  <h3 className="text-sm font-bold text-[#1c3068] uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">Parent Contact Information</h3>
+                  <h3 className="text-sm font-bold text-[#2f4fa8] uppercase tracking-wider mb-4 pb-2 border-b border-gray-100">Parent Contact Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-gray-600">Father's Phone No</label>
@@ -387,7 +387,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
               type="submit"
               form="editUserForm"
               disabled={isSubmitting}
-              className="flex items-center gap-2 bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all disabled:opacity-70 text-sm"
+              className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-70 text-sm"
             >
               <Save size={16} /> {isSubmitting ? 'Saving...' : 'Save Changes'}
             </button>
@@ -435,7 +435,7 @@ export const EditUserModal = ({ isOpen, onClose, user, onSuccess }: EditUserModa
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#1c3068] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">
                 <span className="font-bold text-gray-700 capitalize">{user.type}</span> details have been successfully updated.
               </p>

@@ -75,7 +75,7 @@ const FacilityCheckIn = () => {
         className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[500px]"
       >
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-[#1c3068] mb-3">Facility Check In</h2>
+          <h2 className="text-3xl font-bold text-[#2f4fa8] mb-3">Facility Check In</h2>
           <p className="text-gray-500">Please select the facility you want to check in to</p>
         </div>
 
@@ -86,9 +86,9 @@ const FacilityCheckIn = () => {
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Moon size={32} className="text-[#1c3068]" />
+              <Moon size={32} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1c3068]">Prayer</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">Prayer</h3>
           </div>
 
           {/* PSS Card */}
@@ -97,9 +97,9 @@ const FacilityCheckIn = () => {
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Book size={32} className="text-[#1c3068]" />
+              <Book size={32} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1c3068]">PSS</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">PSS</h3>
           </div>
 
           {/* ICT Card */}
@@ -108,9 +108,9 @@ const FacilityCheckIn = () => {
             className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-blue-200 transition-all cursor-pointer group flex flex-col items-center text-center"
           >
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-              <Monitor size={32} className="text-[#1c3068]" />
+              <Monitor size={32} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1c3068]">ICT</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">ICT</h3>
           </div>
 
           {/* RMT Card */}
@@ -122,9 +122,9 @@ const FacilityCheckIn = () => {
               Students Only
             </div>
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 mt-2">
-              <ClipboardList size={32} className="text-[#1c3068]" />
+              <ClipboardList size={32} className="text-[#2f4fa8]" />
             </div>
-            <h3 className="text-lg font-bold text-[#1c3068]">RMT</h3>
+            <h3 className="text-lg font-bold text-[#2f4fa8]">RMT</h3>
           </div>
         </div>
       </motion.div>
@@ -151,12 +151,12 @@ const FacilityCheckIn = () => {
         <div className="mb-6 flex items-center gap-4">
           <button
             onClick={handleBack}
-            className="text-gray-500 hover:text-[#1c3068] transition-colors flex items-center gap-2 text-sm font-medium"
+            className="text-gray-500 hover:text-[#2f4fa8] transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <ChevronRight size={16} className="rotate-180" /> Back to Selection
           </button>
           <div className="h-4 w-px bg-gray-300"></div>
-          <h2 className="text-2xl font-bold text-[#1c3068]">{getTitle()} Scanner</h2>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">{getTitle()} Scanner</h2>
         </div>
 
         <ScannerCard
@@ -174,7 +174,7 @@ const FacilityCheckIn = () => {
                     onClick={() => { setScanMode(m); setScanning(false); setError(null); }}
                     className={`px-4 py-2 text-sm font-semibold transition-colors ${
                       scanMode === m
-                        ? 'bg-[#1c3068] text-white'
+                        ? 'bg-[#2f4fa8] text-white'
                         : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
