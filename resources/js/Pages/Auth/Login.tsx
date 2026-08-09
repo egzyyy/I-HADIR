@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye, CheckCircle, AlertCircle } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogos from '../../Components/common/BrandLogos';
 import { useBranding } from '../../hooks/useBranding';
 import { useAuth, homeForRole } from '../../contexts/AuthContext';
@@ -13,8 +13,11 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 export default function Login() {
   const navigate = useNavigate();
   const { refresh } = useAuth();
-  // No school context before login, so the system logo leads here.
-  const { systemLogo } = useBranding();
+  // The login screen is school-branded: show the school's crest, not the
+  // I-HADIR system logo. ?school= carries the slug when arriving from a school
+  // landing page; otherwise the API resolves the single hosted school.
+  const [searchParams] = useSearchParams();
+  const { schoolLogo, schoolName } = useBranding(searchParams.get('school') ?? undefined);
   const [showPassword, setShowPassword] = useState(false);
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
 
@@ -94,7 +97,7 @@ export default function Login() {
           {/* Logo - Clickable to go back */}
           <div className="flex items-center gap-2 cursor-pointer mb-8" onClick={() => { setView('login'); setResetFeedback(null); }}>
             <div className="flex-shrink-0 flex items-center">
-              <BrandLogos src={systemLogo} size="h-24" alt="I-HADIR" />
+              <BrandLogos src={schoolLogo} fallback="school" size="h-24" alt={schoolName ?? 'School Logo'} />
             </div>
           </div>
 
@@ -273,7 +276,7 @@ export default function Login() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 cursor-pointer">
           <div className="flex-shrink-0 flex items-center">
-            <BrandLogos src={systemLogo} size="h-24" alt="I-HADIR" />
+            <BrandLogos src={schoolLogo} fallback="school" size="h-24" alt={schoolName ?? 'School Logo'} />
           </div>
         </Link>
 

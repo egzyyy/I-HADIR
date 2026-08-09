@@ -79,9 +79,6 @@ export default function LandingContent() {
   // Logos save immediately on upload, so they sit outside the form's save flow.
   const { refresh } = useAuth();
   const [schoolLogo, setSchoolLogoState] = useState<string | null>(null);
-  const [systemLogo, setSystemLogo] = useState<string | null>(null);
-  // System logo is shared by every school — System Administrator only.
-  const [canManageSystemLogo, setCanManageSystemLogo] = useState(false);
   // Server-reported ceiling: min(app limit, PHP post_max_size/upload_max_filesize).
   const [maxUploadMb, setMaxUploadMb] = useState<number | undefined>(undefined);
 
@@ -97,8 +94,6 @@ export default function LandingContent() {
       .then((res) => {
         if (!res.data?.success) return;
         setSchoolLogoState(res.data.data.school_logo ?? null);
-        setSystemLogo(res.data.data.system_logo ?? null);
-        setCanManageSystemLogo(Boolean(res.data.data.can_manage_system_logo));
         setMaxUploadMb(res.data.data.max_upload_mb ?? undefined);
       })
       .catch((err) => console.error('Failed to fetch branding', err));
@@ -217,7 +212,7 @@ export default function LandingContent() {
             title="Logos"
             subtitle="The school logo appears beside the Fakulti Komputeran logo everywhere in the system — dashboard, login, landing page and every PDF export."
           >
-            <div className="space-y-10">
+            <div>
               <LogoUploader
                 title="School Logo"
                 description="Replaces your school's crest across the whole system."
@@ -228,19 +223,6 @@ export default function LandingContent() {
                 onChange={setSchoolLogo}
               />
 
-              {canManageSystemLogo && (
-                <div className="border-t border-gray-100 pt-8">
-                  <LogoUploader
-                    title="I-HADIR System Logo"
-                    description="Shown on the general landing page and the login screen, where no school is in scope. This is system-wide — it affects every school, not just yours."
-                    value={systemLogo}
-                    fallback="none"
-                    endpoint="/api/branding/system-logo"
-                    maxMb={maxUploadMb}
-                    onChange={setSystemLogo}
-                  />
-                </div>
-              )}
             </div>
           </Section>
 

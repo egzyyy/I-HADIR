@@ -117,7 +117,7 @@ export const SchoolDirectory = () => {
   return (
     <section id="schools" className="py-24 bg-[#fcfafa] relative overflow-hidden">
       <div className="absolute top-0 right-0 -mr-24 -mt-24 w-96 h-96 bg-[#1c3068] rounded-full blur-3xl opacity-[0.06]" />
-      <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-96 h-96 bg-[#c53336] rounded-full blur-3xl opacity-[0.06]" />
+      <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-96 h-96 bg-[#2f4fa8] rounded-full blur-3xl opacity-[0.06]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">

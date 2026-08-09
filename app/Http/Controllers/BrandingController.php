@@ -45,6 +45,13 @@ class BrandingController extends Controller
             $school = School::where('slug', $request->slug)->first();
         } elseif (auth()->check()) {
             $school = School::find(auth()->user()->school_id);
+        } else {
+            // Logged-out pages with no school in the URL — the login screen in
+            // particular — still need a crest. Resolve it only when the system
+            // hosts a single school; with several, guessing would brand the
+            // page as the wrong one, so the frontend default is used instead.
+            $active = School::where('is_active', true)->limit(2)->get();
+            $school = $active->count() === 1 ? $active->first() : null;
         }
 
         return response()->json([

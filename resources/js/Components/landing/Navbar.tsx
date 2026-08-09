@@ -197,7 +197,7 @@ export const Navbar: React.FC = () => {
             
             <div className="pl-4">
               <Link 
-                to="/login"
+                to={school ? `/login?school=${school}` : "/login"}
                 className="bg-[color:var(--accent,#c53336)] hover:brightness-95 text-white px-6 py-2.5 rounded shadow-sm font-bold text-sm transition-colors uppercase tracking-wide inline-block"
               >
                 Login
@@ -307,7 +307,7 @@ export const Navbar: React.FC = () => {
             ))}
             <div className="pt-4 px-3">
               <Link 
-                to="/login"
+                to={school ? `/login?school=${school}` : "/login"}
                 className="w-full bg-[color:var(--accent,#c53336)] text-white px-5 py-3 rounded font-bold shadow-md uppercase tracking-wide inline-block text-center"
               >
                 Login

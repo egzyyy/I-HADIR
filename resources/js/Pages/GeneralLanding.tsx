@@ -8,7 +8,6 @@ import { glassNav, glassPanel } from '../lib/glass';
 import { AboutSystem } from '../Components/landing/AboutSystem';
 import { HowItWorks } from '../Components/landing/HowItWorks';
 import { WhoIsItFor } from '../Components/landing/WhoIsItFor';
-import { FAQ } from '../Components/landing/FAQ';
 import { Footer } from '../Components/landing/Footer';
 import { SchoolDirectory } from '../Components/landing/SchoolDirectory';
 
@@ -22,7 +21,6 @@ const GeneralNavbar = () => {
     { label: 'About', href: '#about' },
     { label: 'How It Works', href: '#how-it-works' },
     { label: 'Schools', href: '#schools' },
-    { label: 'FAQ', href: '#faq' },
   ];
 
   return (
@@ -89,7 +87,7 @@ const GeneralHero = () => {
   return (
     <section className="relative bg-[#fcfafa] pt-16 pb-24 overflow-hidden">
       <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-[#1c3068] rounded-full blur-3xl opacity-10" />
-      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[#c53336] rounded-full blur-3xl opacity-10" />
+      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[#2f4fa8] rounded-full blur-3xl opacity-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -173,9 +171,6 @@ export default function GeneralLanding() {
         <HowItWorks />
       </div>
       <WhoIsItFor />
-      <div id="faq">
-        <FAQ />
-      </div>
       <Footer />
     </div>
   );

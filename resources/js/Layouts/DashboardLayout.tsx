@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, School, MessageSquare, Users, GraduationCap,
+  LayoutDashboard, School, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
   UserCheck, Globe, QrCodeIcon
@@ -56,12 +56,6 @@ const ADMIN_MENU: MenuSection[] = [
     items: [
       { id: 'school-profile', label: 'School Session', icon: School },
       { id: 'landing-content', label: 'Landing Page', icon: Globe }
-    ]
-  },
-  {
-    category: "SMS API",
-    items: [
-      { id: 'set-sms-api', label: 'Set SMS API', icon: MessageSquare }
     ]
   },
   {
@@ -397,7 +391,6 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'dashboard': '/dashboard',
       'school-profile': '/school-session',
       'landing-content': '/landing-content',
-      'set-sms-api': '/set-sms-api',
       'user-registration': '/users/registration',
       'import-apdm': '/users/apdm',
       'user-list': '/users/list',
@@ -429,7 +422,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       <aside
         className={`fixed inset-y-0 left-0 z-50 bg-[#2f4fa8] transition-all duration-300 ease-in-out flex flex-col ${isSidebarOpen ? 'w-72' : 'w-20'} lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#264190]">
+        <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#2f4fa8]">
           {isSidebarOpen ? (
             <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
               <BrandLogos src={user?.schoolLogo} size="h-12" alt={user?.schoolName ?? 'School Logo'} />

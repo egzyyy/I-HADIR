@@ -11,7 +11,6 @@ import SchoolLanding from './Pages/SchoolLanding';
 import Login from './Pages/Auth/Login';
 import Dashboard from './Pages/Dashboard';
 import SchoolSession from './Pages/SchoolSession';
-import SetSmsApi from './Pages/SetSmsApi';
 import AttendanceReports from './Pages/Reports/AttendanceReports';
 import GeneralReport from './Pages/Reports/GeneralReport';
 import Faqs from './Pages/Faqs';
@@ -91,9 +90,6 @@ root.render(
       {/* School Management — admin only */}
       <Route path="/school-session" element={<RequireRole allow={ADMIN}><SchoolSession /></RequireRole>} />
       <Route path="/landing-content" element={<RequireRole allow={ADMIN}><LandingContent /></RequireRole>} />
-
-      {/* SMS API — admin only */}
-      <Route path="/set-sms-api" element={<RequireRole allow={ADMIN}><SetSmsApi /></RequireRole>} />
 
       {/* Users (dropdown) */}
       <Route path="/users/registration" element={<RequireRole allow={ADMIN}><UserRegistration /></RequireRole>} />

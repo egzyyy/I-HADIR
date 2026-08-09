@@ -9,7 +9,6 @@ import {
 import { getSchool, School } from '../data/schools';
 import { Navbar } from '../Components/landing/Navbar';
 import { Hero } from '../Components/landing/Hero';
-import { FAQ } from '../Components/landing/FAQ';
 import { Footer } from '../Components/landing/Footer';
 
 // --- Live data from GET /api/public/schools/{slug} ---
@@ -63,15 +62,6 @@ const SchoolHeroBanner = ({ school, tagline, logo }: { school: School; tagline?:
       <div
         className="absolute inset-0"
         style={{ background: 'linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.22) 100%)' }}
-      />
-      {/* Mesh-style accent glows */}
-      <div
-        className="absolute -top-40 -right-32 w-[40rem] h-[40rem] rounded-full blur-[120px] opacity-30"
-        style={{ backgroundColor: school.accentColor }}
-      />
-      <div
-        className="absolute -bottom-48 -left-40 w-[36rem] h-[36rem] rounded-full blur-[120px] opacity-20"
-        style={{ backgroundColor: school.accentColor }}
       />
       {/* Faded fine grid for a modern technical texture */}
       <div
@@ -136,7 +126,7 @@ const SchoolHeroBanner = ({ school, tagline, logo }: { school: School; tagline?:
 
             <motion.div variants={heroItem} className="flex flex-wrap items-center gap-3">
               <Link
-                to="/login"
+                to={`/login?school=${school.slug}`}
                 className="inline-flex items-center gap-2 bg-white px-6 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5 hover:shadow-xl"
                 style={{ color: school.themeColor }}
               >
@@ -160,12 +150,6 @@ const SchoolHeroBanner = ({ school, tagline, logo }: { school: School; tagline?:
             className="lg:col-span-5"
           >
             <div className="relative rounded-3xl border border-white/25 bg-black/20 backdrop-blur-xl p-7 sm:p-8 shadow-2xl shadow-black/40 overflow-hidden">
-              {/* inner accent glow */}
-              <div
-                className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-2xl opacity-40"
-                style={{ backgroundColor: school.accentColor }}
-              />
-
               <div className="relative flex items-center gap-4 mb-7">
                 <div
                   className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center font-black text-2xl shadow-lg ring-1 ring-white/40 flex-shrink-0"
@@ -545,7 +529,6 @@ export default function SchoolLanding() {
       />
       <SchoolOrganization school={school} members={live?.profile.organization ?? []} />
       <SchoolLife school={school} />
-      <FAQ />
       <Footer />
     </div>
   );
