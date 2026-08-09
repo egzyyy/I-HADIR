@@ -91,8 +91,6 @@ class AttendanceController extends Controller
         $now = Carbon::now();
 
         // Reject check-in on school-closed / holiday days — security shifts run independently
-        // of the school calendar (guards are still on duty over holidays), so shift-based
-        // check-ins skip this gate entirely.
         if (!$shift) {
             $override = AttendanceSettingOverride::where('school_id', $schoolId)
                 ->whereDate('date', $now->toDateString())
@@ -157,8 +155,6 @@ class AttendanceController extends Controller
         }
 
         if ($request->user_type === 'staff' && $this->isSecurityStaff($userId)) {
-            // Shifts can be overnight, so "today's log" isn't reliable — find whatever
-            // shift is currently still open for this staff member, regardless of date.
             $log = AttendanceLog::where('user_type', 'staff')
                 ->where('user_id', $userId)
                 ->whereNotNull('check_in_time')
@@ -327,18 +323,19 @@ class AttendanceController extends Controller
 
             $expectedUsers = $enrollmentQuery->get()->map(function($e) {
                 return [
-                    'id'    => $e->student_id,
-                    'name'  => $e->student?->name ?? '-',
-                    'class' => $e->classroom?->name ?? '-'
+                    'id'        => $e->student_id,
+                    'name'      => $e->student?->name ?? '-',
+                    'class'     => $e->classroom?->name ?? '-',
+                    'ic_number' => $e->student?->ic_number ?? '-'
                 ];
             });
         } elseif ($type === 'teacher') {
             $expectedUsers = User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('is_active', true)->get()->map(function($u) {
-                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Teacher'];
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Teacher', 'ic_number' => $u->ic_number];
             });
         } elseif ($type === 'staff') {
             $expectedUsers = User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('is_active', true)->get()->map(function($u) {
-                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Staff'];
+                return ['id' => $u->user_id, 'name' => $u->full_name, 'class' => $u->position ?? 'Staff', 'ic_number' => $u->ic_number];
             });
         }
 
@@ -364,6 +361,7 @@ class AttendanceController extends Controller
                 'user_id'      => $user['id'],
                 'name'         => $user['name'],
                 'class'        => $user['class'],
+                'ic_number'    => $user['ic_number'],
                 'date'         => Carbon::parse($date)->format('d/m/Y'),
                 'check_in'     => $log?->check_in_time?->format('H:i:s'),
                 'check_out'    => $log?->check_out_time?->format('H:i:s'),

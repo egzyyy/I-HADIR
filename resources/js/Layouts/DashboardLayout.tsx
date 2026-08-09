@@ -152,7 +152,8 @@ const TEACHER_MENU: MenuSection[] = [
         icon: GraduationCap,
         subItems: [
           { id: 'class', label: 'Class' },
-          { id: 'user-list', label: 'Student List' }
+          { id: 'user-list', label: 'Student List' },
+          { id: 'my-cocu-sport', label: 'My Co-Curricular / Sport' }
         ]
       }
     ]
@@ -399,6 +400,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'co-curricular': '/academic/co-curricular',
       'sport': '/academic/sport',
       'event': '/academic/event',
+      'my-cocu-sport': '/my-cocu-sport',
       'check-in': '/attendance-log/check-in',
       'time-setting': '/attendance-log/time-setting',
       'attendance-log-list': '/attendance-log',

@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
-    public function getClasses()
+    public function getClasses(Request $request)
     {
         $user = auth()->user();
         $schoolId = $user->school_id;
@@ -27,7 +27,8 @@ class ReportController extends Controller
         $query = Classroom::where('school_id', $schoolId)
             ->where('school_session_id', $session?->school_session_id);
 
-        if ($user->user_type === 'teacher') {
+        // Allow bypassing the restriction if 'all_classes' is true
+        if ($user->user_type === 'teacher' && !$request->boolean('all_classes')) {
             $query->where('user_id', $user->user_id);
         }
 
