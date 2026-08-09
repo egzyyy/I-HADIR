@@ -21,7 +21,7 @@ import {
 } from '../../Components/ui/pagination';
 
 // IMPORT LOGO
-import logo from '../../assets/i_hadir_logo2.png';
+import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -385,7 +385,7 @@ function exportExcel(items: EventItem[]) {
 }
 
 // ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
-function exportPDF(items: EventItem[], logoSrc: string) {
+function exportPDF(items: EventItem[], logoSrc: string | null) {
   const rows = items.map((e, i) => `
     <tr>
       <td style="text-align:center">${i + 1}</td>
@@ -405,7 +405,7 @@ function exportPDF(items: EventItem[], logoSrc: string) {
         @page { margin: 15mm; size: A4 landscape; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
         .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        ${printLogoCss}
         .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
         .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
@@ -417,7 +417,7 @@ function exportPDF(items: EventItem[], logoSrc: string) {
     </head>
     <body>
       <div class="header-container">
-        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        ${printLogoHeader(logoSrc)}
         <h1 class="report-title">Event List Report</h1>
         <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
       </div>
@@ -442,7 +442,7 @@ function exportPDF(items: EventItem[], logoSrc: string) {
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-function printTable(items: EventItem[], logoSrc: string) { exportPDF(items, logoSrc); }
+function printTable(items: EventItem[], logoSrc: string | null) { exportPDF(items, logoSrc); }
 function copyToClipboard(items: EventItem[]) { navigator.clipboard.writeText(buildTableText(items)).then(() => alert('Table data copied to clipboard!')); }
 
 // ── List ──────────────────────────────────────────────────────────────────────
@@ -524,8 +524,8 @@ const EventList = () => {
                 onCopy={() => copyToClipboard(filtered)}
                 onExportCSV={() => exportCSV(filtered)}
                 onExportExcel={() => exportExcel(filtered)}
-                onExportPDF={() => exportPDF(filtered, logo)}
-                onPrint={() => printTable(filtered, logo)}
+                onExportPDF={() => exportPDF(filtered, null)}
+                onPrint={() => printTable(filtered, null)}
               />
               <div className="flex items-center gap-2 w-full sm:w-auto relative">
                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />

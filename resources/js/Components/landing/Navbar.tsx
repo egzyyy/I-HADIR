@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import logo from '../../assets/i_hadir_logo2.png';
+import BrandLogos from '../common/BrandLogos';
+import { useBranding } from '../../hooks/useBranding';
+import { glassNav, glassPanel, glassDropdown } from '../../lib/glass';
 
 // --- Nav data types (supports one optional level of nested submenus) ---
 interface SubLink { label: string; href: string; }
@@ -28,6 +30,7 @@ export const Navbar: React.FC = () => {
   const school = slug ?? searchParams.get('school');
   const schoolSuffix = school ? `&school=${school}` : '';
   const homeHref = school ? `/school/${school}` : '/';
+  const { schoolLogo, systemLogo } = useBranding(school ?? undefined);
 
   const navItems: NavItem[] = [
     { name: 'HOME', icon: <Home size={16} />, href: homeHref },
@@ -86,13 +89,13 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#fcfafa] shadow-sm border-b border-gray-100 font-sans">
+    <nav className={`sticky top-0 z-50 font-sans ${glassNav}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-24">
           
           {/* Logo Section */}
           <div className="flex-shrink-0 flex items-center cursor-pointer py-2">
-             <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
+             <BrandLogos src={school ? schoolLogo : systemLogo} fallback={school ? 'school' : 'none'} size="h-24" />
           </div>
 
           {/* Desktop Menu */}
@@ -137,7 +140,7 @@ export const Navbar: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full left-0 w-56 bg-white shadow-xl rounded-b-lg border-t-2 border-[color:var(--accent,#c53336)] py-2"
+                        className={`absolute top-full left-0 w-56 shadow-xl rounded-b-lg border-t-2 border-[color:var(--accent,#c53336)] py-2 ${glassDropdown}`}
                       >
                         {item.dropdownItems?.map((dropdownItem, index) => (
                           dropdownItem.subItems ? (
@@ -158,7 +161,7 @@ export const Navbar: React.FC = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="absolute top-0 left-full w-44 bg-white shadow-xl rounded-lg border-t-2 border-[color:var(--accent,#c53336)] py-2"
+                                    className={`absolute top-0 left-full w-44 shadow-xl rounded-lg border-t-2 border-[color:var(--accent,#c53336)] py-2 ${glassDropdown}`}
                                   >
                                     {dropdownItem.subItems.map((sub, i) => (
                                       <Link
@@ -219,7 +222,7 @@ export const Navbar: React.FC = () => {
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="lg:hidden bg-white border-t border-gray-100 overflow-hidden"
+          className={`lg:hidden overflow-hidden ${glassPanel}`}
         >
           <div className="px-4 pt-2 pb-6 space-y-1">
             {navItems.map((item) => (

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Save, Home, Globe, Landmark, Eye, Target, Users, Plus, Trash2,
-  CheckCircle, AlertCircle, GripVertical
+  CheckCircle, AlertCircle, GripVertical, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../../Layouts/DashboardLayout';
+import LogoUploader from '../../Components/admin/LogoUploader';
+import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 
 // Ensure Axios acts as an XHR request for Laravel
@@ -73,6 +75,34 @@ export default function LandingContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
+
+  // Logos save immediately on upload, so they sit outside the form's save flow.
+  const { refresh } = useAuth();
+  const [schoolLogo, setSchoolLogoState] = useState<string | null>(null);
+  const [systemLogo, setSystemLogo] = useState<string | null>(null);
+  // System logo is shared by every school — System Administrator only.
+  const [canManageSystemLogo, setCanManageSystemLogo] = useState(false);
+  // Server-reported ceiling: min(app limit, PHP post_max_size/upload_max_filesize).
+  const [maxUploadMb, setMaxUploadMb] = useState<number | undefined>(undefined);
+
+  // Re-pull /api/me so the sidebar and PDF headers pick the new logo up at once.
+  const setSchoolLogo = (url: string | null) => {
+    setSchoolLogoState(url);
+    refresh();
+  };
+
+  useEffect(() => {
+    axios
+      .get('/api/branding')
+      .then((res) => {
+        if (!res.data?.success) return;
+        setSchoolLogoState(res.data.data.school_logo ?? null);
+        setSystemLogo(res.data.data.system_logo ?? null);
+        setCanManageSystemLogo(Boolean(res.data.data.can_manage_system_logo));
+        setMaxUploadMb(res.data.data.max_upload_mb ?? undefined);
+      })
+      .catch((err) => console.error('Failed to fetch branding', err));
+  }, []);
 
   useEffect(() => {
     axios
@@ -181,6 +211,39 @@ export default function LandingContent() {
         </div>
 
         <div className="space-y-6">
+          {/* Logos */}
+          <Section
+            icon={ImageIcon}
+            title="Logos"
+            subtitle="The school logo appears beside the Fakulti Komputeran logo everywhere in the system — dashboard, login, landing page and every PDF export."
+          >
+            <div className="space-y-10">
+              <LogoUploader
+                title="School Logo"
+                description="Replaces your school's crest across the whole system."
+                value={schoolLogo}
+                fallback="school"
+                endpoint="/api/branding/school-logo"
+                maxMb={maxUploadMb}
+                onChange={setSchoolLogo}
+              />
+
+              {canManageSystemLogo && (
+                <div className="border-t border-gray-100 pt-8">
+                  <LogoUploader
+                    title="I-HADIR System Logo"
+                    description="Shown on the general landing page and the login screen, where no school is in scope. This is system-wide — it affects every school, not just yours."
+                    value={systemLogo}
+                    fallback="none"
+                    endpoint="/api/branding/system-logo"
+                    maxMb={maxUploadMb}
+                    onChange={setSystemLogo}
+                  />
+                </div>
+              )}
+            </div>
+          </Section>
+
           {/* Identity */}
           <Section
             icon={Landmark}

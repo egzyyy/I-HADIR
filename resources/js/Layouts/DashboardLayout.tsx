@@ -8,7 +8,8 @@ import {
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
   UserCheck, Globe, QrCodeIcon
 } from 'lucide-react';
-import logo from '../assets/i_hadir_logo2.png';
+import BrandLogos from '../Components/common/BrandLogos';
+import { defaultSchoolLogo } from '../lib/branding';
 import { useAuth } from '../contexts/AuthContext';
 
 // Ensure Axios acts as an XHR request for Laravel
@@ -431,11 +432,16 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
         <div className="h-20 flex items-center justify-center border-b border-white/10 px-4 bg-[#264190]">
           {isSidebarOpen ? (
             <div className="flex items-center justify-center bg-white/90 px-3 py-2 rounded-lg m-2">
-              <img src={logo} alt="I-HADIR Logo" className="h-12 w-auto object-contain" />
+              <BrandLogos src={user?.schoolLogo} size="h-12" alt={user?.schoolName ?? 'School Logo'} />
             </div>
           ) : (
+            // Collapsed rail is too narrow for both marks — the school's own logo wins.
             <div className="flex items-center justify-center bg-white/90 p-1.5 rounded-lg">
-              <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
+              <img
+                src={user?.schoolLogo || defaultSchoolLogo}
+                alt={user?.schoolName ?? 'School Logo'}
+                className="h-10 w-auto object-contain"
+              />
             </div>
           )}
         </div>

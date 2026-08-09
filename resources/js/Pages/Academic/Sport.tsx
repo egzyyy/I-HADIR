@@ -20,7 +20,7 @@ import {
 } from '../../Components/ui/pagination';
 
 // IMPORT LOGO
-import logo from '../../assets/i_hadir_logo2.png';
+import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -220,7 +220,7 @@ const SportList = () => {
           @page { margin: 15mm; size: A4 portrait; }
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
           .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-          .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+          ${printLogoCss}
           .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
           .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
@@ -232,7 +232,7 @@ const SportList = () => {
       </head>
       <body>
         <div class="header-container">
-          <img src="${logo}" class="logo" alt="School Logo" />
+          ${printLogoHeader()}
           <h1 class="report-title">Sport House List Report</h1>
           <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
         </div>

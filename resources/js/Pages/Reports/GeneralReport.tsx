@@ -19,7 +19,7 @@ import {
 } from '../../Components/ui/pagination';
 
 // IMPORT LOGO
-import logo from '../../assets/i_hadir_logo2.png';
+import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -38,7 +38,7 @@ function exportCopy(text: string) {
   navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => {});
 }
 
-function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string, logoSrc: string) {
+function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string, logoSrc: string | null) {
   const html = `
     <!DOCTYPE html>
     <html>
@@ -48,7 +48,7 @@ function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string
         @page { margin: 15mm; size: A4 landscape; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
         .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        ${printLogoCss}
         .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
         .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
@@ -60,7 +60,7 @@ function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string
     </head>
     <body>
       <div class="header-container">
-        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        ${printLogoHeader(logoSrc)}
         <h1 class="report-title">${title}</h1>
         <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
       </div>
@@ -130,7 +130,7 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
     const title = `${selectedFacility === 'rmt' ? 'RMT' : selectedFacility} Report (${selectedDate})`;
     const thead = `<tr><th style="width:5%">No</th><th style="width:30%">Name</th><th style="width:20%">Class</th><th style="width:15%">Date</th><th style="width:10%">Time In</th><th style="width:10%">Time Out</th><th style="width:10%">Status</th></tr>`;
     const tbody = filtered.map((r, i) => `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${r.name}</td><td style="text-align:center">${r.class}</td><td style="text-align:center">${r.date}</td><td style="text-align:center">${r.time_in}</td><td style="text-align:center">${r.time_out}</td><td style="text-align:center; text-transform:capitalize">${r.status}</td></tr>`).join('');
-    generateStandardPDF(title, thead, tbody, logo);
+    generateStandardPDF(title, thead, tbody, null);
   };
 
   return (
@@ -354,7 +354,7 @@ const ActivityReport = () => {
     const title = `Event Report (${selectedEventName})`;
     const thead = `<tr><th style="width:5%">No</th><th style="width:30%">Name</th><th style="width:20%">Class</th><th style="width:15%">Date</th><th style="width:15%">Time In</th><th style="width:15%">Time Out</th></tr>`;
     const tbody = filtered.map((r, i) => `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${r.name}</td><td style="text-align:center">${r.class}</td><td style="text-align:center">${r.date}</td><td style="text-align:center">${r.time_in}</td><td style="text-align:center">${r.time_out}</td></tr>`).join('');
-    generateStandardPDF(title, thead, tbody, logo);
+    generateStandardPDF(title, thead, tbody, null);
   };
 
   return (
@@ -505,7 +505,7 @@ const VisitorReport = () => {
     const title = `Visitor Report (${monthNames[activeMonth - 1]} ${currentYear})`;
     const thead = `<tr><th style="width:5%">No</th><th style="width:25%">Name</th><th style="width:15%">Phone</th><th style="width:15%">Department</th><th style="width:20%">Note</th><th style="width:10%">Date</th><th style="width:10%">Time</th></tr>`;
     const tbody = filtered.map((r, i) => `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${r.name}</td><td style="text-align:center">${r.phone}</td><td style="text-align:center">${r.dept}</td><td>${r.note}</td><td style="text-align:center">${r.date}</td><td style="text-align:center">${r.time}</td></tr>`).join('');
-    generateStandardPDF(title, thead, tbody, logo);
+    generateStandardPDF(title, thead, tbody, null);
   };
 
   return (

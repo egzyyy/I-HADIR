@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
+import { setCurrentSchoolLogo } from '../lib/branding';
 
 // Ensure the session cookie is sent with every request (needed for /api/me)
 axios.defaults.withCredentials = true;
@@ -12,6 +13,9 @@ export interface AuthUser {
   email: string;
   position: string;
   role: Role;
+  /** Admin-uploaded logo for this user's school; null means use the bundled default. */
+  schoolLogo: string | null;
+  schoolName: string | null;
 }
 
 interface AuthContextValue {
@@ -40,7 +44,11 @@ export const homeForRole = (_role: Role | null): string => '/dashboard';
 function readCache(): AuthUser | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
+    const cached = raw ? (JSON.parse(raw) as AuthUser) : null;
+    // Seed the print helpers too, so an export fired before /api/me resolves
+    // still carries the right logo.
+    setCurrentSchoolLogo(cached?.schoolLogo ?? null);
+    return cached;
   } catch {
     return null;
   }
@@ -56,8 +64,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await axios.get('/api/me');
       if (res.data?.success) {
         const d = res.data.data;
-        const next: AuthUser = { name: d.name, email: d.email, position: d.position, role: d.role };
+        const next: AuthUser = {
+          name: d.name,
+          email: d.email,
+          position: d.position,
+          role: d.role,
+          schoolLogo: d.school_logo ?? null,
+          schoolName: d.school_name ?? null,
+        };
         setUser(next);
+        // Publish for the PDF/print helpers, which run outside the React tree.
+        setCurrentSchoolLogo(next.schoolLogo);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         return next;
       }
@@ -76,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clear = useCallback(() => {
     setUser(null);
+    setCurrentSchoolLogo(null);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 

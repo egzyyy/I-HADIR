@@ -48,6 +48,8 @@ class PublicController extends Controller
                 'name'    => $school->name,
                 'city'    => $school->city,
                 'state'   => $school->state,
+                // Null means the admin hasn't uploaded one — frontend uses its default.
+                'logo'    => $school->logo_path ? Storage::url($school->logo_path) : null,
                 // Admin-managed landing copy; nulls mean "use the frontend default".
                 'profile' => [
                     'tagline'          => $profile?->tagline,

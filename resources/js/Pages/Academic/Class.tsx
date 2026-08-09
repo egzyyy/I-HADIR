@@ -21,7 +21,7 @@ import {
 } from '../../Components/ui/pagination';
 
 // IMPORT THE LOGO
-import logo from '../../assets/i_hadir_logo2.png';
+import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
@@ -219,7 +219,7 @@ function exportExcel(classes: ClassItem[]) {
 
 // ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
 
-function exportPDF(classes: ClassItem[], logoSrc: string) {
+function exportPDF(classes: ClassItem[], logoSrc: string | null) {
   const rows = classes.map((c, i) => `
     <tr>
       <td style="text-align:center">${i + 1}</td>
@@ -242,7 +242,7 @@ function exportPDF(classes: ClassItem[], logoSrc: string) {
         
         /* Standard Header Styling */
         .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-        .logo { max-height: 80px; margin-bottom: 15px; width: auto; }
+        ${printLogoCss}
         .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
         .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
         
@@ -270,7 +270,7 @@ function exportPDF(classes: ClassItem[], logoSrc: string) {
     </head>
     <body>
       <div class="header-container">
-        <img src="${logoSrc}" class="logo" alt="School Logo" />
+        ${printLogoHeader(logoSrc)}
         <h1 class="report-title">Class List Report</h1>
         <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
       </div>
@@ -307,7 +307,7 @@ function exportPDF(classes: ClassItem[], logoSrc: string) {
   }
 }
 
-function printTable(classes: ClassItem[], logoSrc: string) {
+function printTable(classes: ClassItem[], logoSrc: string | null) {
   exportPDF(classes, logoSrc);
 }
 
@@ -529,8 +529,8 @@ const ClassList = () => {
                 onCopy={() => copyToClipboard(sortedClasses)}
                 onExportCSV={() => exportCSV(sortedClasses)}
                 onExportExcel={() => exportExcel(sortedClasses)}
-                onExportPDF={() => exportPDF(sortedClasses, logo)}
-                onPrint={() => printTable(sortedClasses, logo)}
+                onExportPDF={() => exportPDF(sortedClasses, null)}
+                onPrint={() => printTable(sortedClasses, null)}
               />
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">

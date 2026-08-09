@@ -19,11 +19,15 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\QrController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SchoolProfileController;
+use App\Http\Controllers\BrandingController;
 
 // Public landing-page endpoints (no auth — consumed by logged-out visitors)
 Route::get('/api/public/schools', [PublicController::class, 'schools']);
 Route::get('/api/public/schools/{slug}', [PublicController::class, 'show']);
 Route::get('/api/public/schools/{slug}/events', [PublicController::class, 'events']);
+
+// Branding — the login screen and both landing pages read this while logged out.
+Route::get('/api/branding', [BrandingController::class, 'show']);
 
 // Authentication Routes
 Route::post('/login', [LoginController::class, 'store']);
@@ -48,6 +52,13 @@ Route::post('/api/password', [UserController::class, 'updatePassword']);
 // Landing Page Content (admin-managed public school profile)
 Route::get('/api/school/landing-profile', [SchoolProfileController::class, 'show']);
 Route::post('/api/school/landing-profile', [SchoolProfileController::class, 'update']);
+
+// Logo management (admin). The Fakulti Komputeran logo is a static frontend
+// asset and is intentionally not exposed here.
+Route::post('/api/branding/school-logo', [BrandingController::class, 'uploadSchoolLogo']);
+Route::delete('/api/branding/school-logo', [BrandingController::class, 'resetSchoolLogo']);
+Route::post('/api/branding/system-logo', [BrandingController::class, 'uploadSystemLogo']);
+Route::delete('/api/branding/system-logo', [BrandingController::class, 'resetSystemLogo']);
 
 // Admin Dashboard summary (org-wide counts)
 Route::get('/api/school/dashboard-summary', [SchoolController::class, 'dashboardSummary']);

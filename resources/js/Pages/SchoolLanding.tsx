@@ -29,6 +29,7 @@ interface LiveProfile {
 }
 
 interface LiveSchool {
+  logo: string | null;   // admin-uploaded; null means use the static default
   profile: LiveProfile;
   stats: { students: number; teachers: number; co_curriculars: number };
 }
@@ -44,7 +45,7 @@ const heroItem = {
 };
 
 // --- Branded hero banner showing the individual school's identity ---
-const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: string | null }) => {
+const SchoolHeroBanner = ({ school, tagline, logo }: { school: School; tagline?: string | null; logo?: string | null }) => {
   const features = [
     { icon: ScanLine, label: 'QR & biometric check-in' },
     { icon: BellRing, label: 'Instant parent SMS alerts' },
@@ -170,8 +171,8 @@ const SchoolHeroBanner = ({ school, tagline }: { school: School; tagline?: strin
                   className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center font-black text-2xl shadow-lg ring-1 ring-white/40 flex-shrink-0"
                   style={{ color: school.themeColor }}
                 >
-                  {school.logo ? (
-                    <img src={school.logo} alt={school.shortName} className="w-full h-full object-contain rounded-2xl" />
+                  {(logo || school.logo) ? (
+                    <img src={logo || `/${school.logo}`} alt={school.shortName} className="w-full h-full object-contain rounded-2xl" />
                   ) : (
                     school.monogram
                   )}
@@ -530,7 +531,7 @@ export default function SchoolLanding() {
       style={{ ['--brand' as any]: school.themeColor, ['--accent' as any]: school.accentColor }}
     >
       <Navbar />
-      <SchoolHeroBanner school={school} tagline={live?.profile.tagline} />
+      <SchoolHeroBanner school={school} tagline={live?.profile.tagline} logo={live?.logo} />
       <div id="events">
         <Hero slug={school.slug} />
       </div>

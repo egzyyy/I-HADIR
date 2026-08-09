@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ArrowRight, ScanLine, BarChart3, ShieldCheck } from 'lucide-react';
-import logo from '../assets/umpsa_fk_logo.png';
+import BrandLogos from '../Components/common/BrandLogos';
+import { useBranding } from '../hooks/useBranding';
+import { glassNav, glassPanel } from '../lib/glass';
 import { AboutSystem } from '../Components/landing/AboutSystem';
 import { HowItWorks } from '../Components/landing/HowItWorks';
 import { WhoIsItFor } from '../Components/landing/WhoIsItFor';
@@ -13,6 +15,8 @@ import { SchoolDirectory } from '../Components/landing/SchoolDirectory';
 // --- General system navbar (product-level, not school-specific) ---
 const GeneralNavbar = () => {
   const [open, setOpen] = useState(false);
+  // System-level page: the I-HADIR logo leads, Fakulti Komputeran stays fixed.
+  const { systemLogo } = useBranding();
 
   const links = [
     { label: 'About', href: '#about' },
@@ -22,11 +26,11 @@ const GeneralNavbar = () => {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#fcfafa]/95 backdrop-blur-sm shadow-sm border-b border-gray-100 font-sans">
+    <nav className={`sticky top-0 z-50 font-sans ${glassNav}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <Link to="/" className="flex items-center">
-            <img src={logo} alt="I-HADIR" className="h-16 w-auto object-contain" />
+            <BrandLogos src={systemLogo} fallback="none" size="h-16" alt="I-HADIR" />
           </Link>
 
           <div className="hidden lg:flex items-center gap-8">
@@ -51,7 +55,7 @@ const GeneralNavbar = () => {
       </div>
 
       {open && (
-        <div className="lg:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-1">
+        <div className={`lg:hidden px-4 py-4 space-y-1 ${glassPanel}`}>
           {links.map((l) => (
             <a
               key={l.label}

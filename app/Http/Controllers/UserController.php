@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Student;
 use App\Models\User;
+use App\Models\School;
 use App\Models\SchoolSession;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -446,6 +448,10 @@ class UserController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
+        // Sent alongside the user so the dashboard shell can render the school's
+        // logo on first paint without a second round trip.
+        $school = School::find($user->school_id);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -453,6 +459,8 @@ class UserController extends Controller
                 'email' => $user->email,
                 'position' => $user->position,
                 'role' => $this->resolveRole($user),
+                'school_name' => $school?->name,
+                'school_logo' => $school?->logo_path ? Storage::url($school->logo_path) : null,
             ],
         ]);
     }

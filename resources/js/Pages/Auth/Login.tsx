@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Mail, Lock, ArrowLeft, LogIn, KeyRound, Shield, EyeOff, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/i_hadir_logo2.png';
+import BrandLogos from '../../Components/common/BrandLogos';
+import { useBranding } from '../../hooks/useBranding';
 import { useAuth, homeForRole } from '../../contexts/AuthContext';
 
 // Set default axios configuration
@@ -12,6 +13,8 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 export default function Login() {
   const navigate = useNavigate();
   const { refresh } = useAuth();
+  // No school context before login, so the system logo leads here.
+  const { systemLogo } = useBranding();
   const [showPassword, setShowPassword] = useState(false);
   const [view, setView] = useState<'login' | 'forgot-password'>('login');
 
@@ -91,7 +94,7 @@ export default function Login() {
           {/* Logo - Clickable to go back */}
           <div className="flex items-center gap-2 cursor-pointer mb-8" onClick={() => { setView('login'); setResetFeedback(null); }}>
             <div className="flex-shrink-0 flex items-center">
-              <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
+              <BrandLogos src={systemLogo} size="h-24" alt="I-HADIR" />
             </div>
           </div>
 
@@ -270,7 +273,7 @@ export default function Login() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 cursor-pointer">
           <div className="flex-shrink-0 flex items-center">
-            <img src={logo} alt="I-HADIR Logo" className="h-24 w-auto object-contain" />
+            <BrandLogos src={systemLogo} size="h-24" alt="I-HADIR" />
           </div>
         </Link>
 
