@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, CheckCircle, AlertCircle, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, AlertCircle, Users, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────────
@@ -24,55 +24,12 @@ export interface ManageStudentsProps {
     moduleName: string;
 }
 
-// ─── Scrollable Class Tabs Sub-component ────────────────────────────────────────
-const ScrollableClassTabs = ({ classes, activeClassId, onSelect }: { classes: Classroom[]; activeClassId: number | null; onSelect: (id: number) => void; }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
-
-    const checkScroll = useCallback(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-        setCanScrollLeft(el.scrollLeft > 0);
-        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    }, []);
-
-    useEffect(() => {
-        checkScroll();
-        const el = scrollRef.current;
-        if (!el) return;
-        el.addEventListener('scroll', checkScroll, { passive: true });
-        const resizeObserver = new ResizeObserver(checkScroll);
-        resizeObserver.observe(el);
-        return () => {
-            el.removeEventListener('scroll', checkScroll);
-            resizeObserver.disconnect();
-        };
-    }, [checkScroll, classes]);
-
-    const scroll = (direction: 'left' | 'right') => {
-        const el = scrollRef.current;
-        if (!el) return;
-        const scrollAmount = el.clientWidth * 0.6;
-        el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-    };
-
-    return (
-        <div className="relative flex items-center gap-1">
-            <button onClick={() => scroll('left')} className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${canScrollLeft ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer' : 'text-gray-200 cursor-default pointer-events-none'}`} aria-label="Scroll tabs left" tabIndex={-1}><ChevronLeft size={18} /></button>
-            <div ref={scrollRef} className="flex overflow-x-auto space-x-2 scrollbar-hide flex-1 min-w-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {classes.map((cls) => (
-                    <button key={cls.classroom_id} onClick={() => onSelect(cls.classroom_id)} className={`flex-shrink-0 px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeClassId === cls.classroom_id ? 'bg-[#2f4fa8] text-white shadow-md' : 'text-gray-500 hover:text-[#2f4fa8] hover:bg-gray-50'}`}>{cls.name}</button>
-                ))}
-            </div>
-            <button onClick={() => scroll('right')} className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${canScrollRight ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer' : 'text-gray-200 cursor-default pointer-events-none'}`} aria-label="Scroll tabs right" tabIndex={-1}><ChevronRight size={18} /></button>
-        </div>
-    );
-};
-
 // ─── Component ──────────────────────────────────────────────────────────────────
 export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }: ManageStudentsProps) => {
     const [classes, setClasses] = useState<Classroom[]>([]);
+
+    // Two-tier selection state
+    const [activeStandard, setActiveStandard] = useState<string>('');
     const [activeClassId, setActiveClassId] = useState<number | null>(null);
 
     const [students, setStudents] = useState<StudentItem[]>([]);
@@ -96,11 +53,10 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
         const fetchClasses = async () => {
             setLoadingClasses(true);
             try {
-                // Pass all_classes=true so teachers see the whole school for clubs/sports
                 const res = await axios.get('/api/reports/classes', { params: { all_classes: true } });
                 const classData = res.data.data || [];
+                console.log(classData);
                 setClasses(classData);
-                if (classData.length > 0) setActiveClassId(classData[0].classroom_id);
             } catch (err) {
                 console.error('Failed to fetch classes', err);
             } finally {
@@ -110,6 +66,37 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
         fetchClasses();
     }, []);
 
+    // 2. Group Classes by "Darjah" intelligently based on the number in the name
+    const groupedClasses = useMemo(() => {
+        const groups: Record<string, Classroom[]> = {};
+        classes.forEach(c => {
+            const match = c.name.match(/\d/); // Finds the first number in "1 Kreatif"
+            const level = match ? `Darjah ${match[0]}` : 'Lain-lain';
+
+            if (!groups[level]) groups[level] = [];
+            groups[level].push(c);
+        });
+        return groups;
+    }, [classes]);
+
+    // 3. Set Initial Defaults when classes load
+    useEffect(() => {
+        const standards = Object.keys(groupedClasses).sort();
+        if (standards.length > 0 && !activeStandard) {
+            setActiveStandard(standards[0]);
+            setActiveClassId(groupedClasses[standards[0]][0].classroom_id);
+        }
+    }, [groupedClasses, activeStandard]);
+
+    // Handle Standard Tab Click
+    const handleStandardChange = (standard: string) => {
+        setActiveStandard(standard);
+        if (groupedClasses[standard]?.length > 0) {
+            setActiveClassId(groupedClasses[standard][0].classroom_id);
+        }
+    };
+
+    // 4. Fetch Students when Active Class changes
     useEffect(() => {
         if (!activeClassId) return;
 
@@ -274,14 +261,49 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                 )}
             </AnimatePresence>
 
-            {/* Class Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 w-full overflow-hidden">
+            {/* Two-Tier Class Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full flex flex-col md:flex-row gap-6 items-start md:items-center">
                 {loadingClasses ? (
-                    <div className="p-4 text-center text-sm text-gray-500 font-medium">Loading classes...</div>
-                ) : classes.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-gray-500 font-medium">No active classes found for this session.</div>
+                    <div className="text-sm text-gray-500 font-medium">Loading classes...</div>
+                ) : Object.keys(groupedClasses).length === 0 ? (
+                    <div className="text-sm text-gray-500 font-medium">No active classes found for this session.</div>
                 ) : (
-                    <ScrollableClassTabs classes={classes} activeClassId={activeClassId} onSelect={setActiveClassId} />
+                    <>
+                        {/* Tier 1: Darjah Tabs */}
+                        <div className="flex flex-wrap gap-2">
+                            {Object.keys(groupedClasses).sort().map((std) => (
+                                <button
+                                    key={std}
+                                    onClick={() => handleStandardChange(std)}
+                                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeStandard === std
+                                        ? 'bg-[#1c3068] text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-[#1c3068]'
+                                        }`}
+                                >
+                                    {std}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+
+                        {/* Tier 2: Class Dropdown */}
+                        <div className="w-full md:w-64 space-y-1.5 flex-shrink-0">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Class</label>
+                            <div className="relative">
+                                <select
+                                    value={activeClassId || ''}
+                                    onChange={(e) => setActiveClassId(Number(e.target.value))}
+                                    className="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:border-[#1c3068] outline-none transition-all appearance-none text-gray-700 font-bold cursor-pointer shadow-sm"
+                                >
+                                    {groupedClasses[activeStandard]?.map(c => (
+                                        <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -301,7 +323,7 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                     </div>
                 </div>
 
-                <div className="w-full">
+                <div className="w-full overflow-x-auto">
                     <table className="w-full text-left border-collapse relative min-w-max">
                         <thead className="top-0 z-10 shadow-sm">
                             <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">

@@ -9,6 +9,7 @@ type MyQrData = {
   payload: string;
   name: string;
   label: string;
+  position: string;
 };
 
 const MyQrCodeContent = () => {
@@ -83,7 +84,8 @@ const MyQrCodeContent = () => {
 
               <div className="text-center space-y-1">
                 <p className="text-lg font-black text-[#2f4fa8]">{data.name}</p>
-                <p className="text-sm font-bold text-[#c53336]">{data.label}</p>
+                {data.label && <p className="font-bold text-[#c53336]">{data.label}</p>}
+                {data.position && <p className="text-xs font-bold text-[#2f4fa8]">({data.position})</p>}
               </div>
 
               <button

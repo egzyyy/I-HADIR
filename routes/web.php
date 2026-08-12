@@ -108,6 +108,7 @@ Route::post('/api/events/{id}/scan', [EventController::class, 'scanAttendance'])
 Route::post('/api/events/{id}/manual-registration', [EventController::class, 'manualRegistration']);
 Route::get('/api/events/{id}/unregistered', [EventController::class, 'getUnregisteredParticipants']);
 Route::get('/api/events/{id}/attendees', [EventController::class, 'getAttendees']);
+Route::post('/api/events/parent-check', [EventController::class, 'checkParentIc']);
 
 // Attendance
 Route::post('/api/attendance/check-in', [AttendanceController::class, 'checkIn']);
