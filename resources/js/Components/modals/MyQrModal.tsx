@@ -69,7 +69,7 @@ export const MyQrModal = ({ isOpen, onClose }: MyQrModalProps) => {
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-lg font-bold text-[#2f4fa8]">My QR Code</h3>
+            <h3 className="text-lg font-bold text-role">My QR Code</h3>
             <p className="text-gray-400 text-xs mt-0.5">Scan to record your attendance</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -81,7 +81,7 @@ export const MyQrModal = ({ isOpen, onClose }: MyQrModalProps) => {
         <div className="p-8 flex flex-col items-center gap-4">
           {loading && (
             <div className="w-[240px] h-[240px] flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-role border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -94,18 +94,18 @@ export const MyQrModal = ({ isOpen, onClose }: MyQrModalProps) => {
 
           {!loading && !error && data && (
             <>
-              <div className="border-2 border-[#2f4fa8]/10 rounded-xl p-4 bg-white shadow-inner">
+              <div className="border-2 border-role/10 rounded-xl p-4 bg-white shadow-inner">
                 <canvas ref={canvasRef} />
               </div>
 
               <div className="text-center">
-                <p className="text-sm font-black text-[#2f4fa8]">{data.name}</p>
+                <p className="text-sm font-black text-role">{data.name}</p>
                 <p className="text-xs font-bold text-[#c53336] mt-0.5">{data.label}</p>
               </div>
 
               <button
                 onClick={handleDownload}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2f4fa8] text-white rounded-lg font-bold hover:bg-[#264190] transition-all text-sm shadow-lg shadow-blue-900/20"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-role text-white rounded-lg font-bold hover:bg-role-dark transition-all text-sm shadow-lg shadow-blue-900/20"
               >
                 <Download size={16} /> Download PNG
               </button>

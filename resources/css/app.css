@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        /* Fallback for the role accent: the brand blue #2f4fa8. DashboardLayout
+           overrides this per role, so signed-out and public pages keep the brand. */
+        --role-rgb: 47 79 168;
+        /* Matching fallback for the hover step: #264190. */
+        --role-dark-rgb: 38 65 144;
+    }
+}

@@ -163,11 +163,11 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#2f4fa8] transition-colors shadow-sm flex-shrink-0">
+                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-role transition-colors shadow-sm flex-shrink-0">
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-[#2f4fa8] uppercase tracking-wide">{moduleName} Attendance</h2>
+                        <h2 className="text-2xl font-bold text-role uppercase tracking-wide">{moduleName} Attendance</h2>
                         <p className="text-sm text-gray-500 mt-1 font-bold text-[#c53336]">{itemName}</p>
                     </div>
                 </div>
@@ -188,9 +188,9 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                 {/* Filters Bar */}
                 <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/30">
                     <div className="flex items-center gap-3">
-                        <Users size={24} className="text-[#2f4fa8]" />
+                        <Users size={24} className="text-role" />
                         <div>
-                            <h3 className="text-lg font-bold text-[#2f4fa8]">Attendee List</h3>
+                            <h3 className="text-lg font-bold text-role">Attendee List</h3>
                             <p className="text-xs text-gray-400 mt-1">Total {filteredAttendees.length} checked in</p>
                         </div>
                     </div>
@@ -198,7 +198,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full sm:w-40">
                             <Filter size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); if (e.target.value !== 'student') setClassFilter('all'); }} className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all cursor-pointer font-medium text-gray-600 appearance-none">
+                            <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); if (e.target.value !== 'student') setClassFilter('all'); }} className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-role outline-none transition-all cursor-pointer font-medium text-gray-600 appearance-none">
                                 <option value="all">All Types</option>
                                 <option value="student">Students</option>
                                 <option value="teacher">Teachers</option>
@@ -210,7 +210,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
                         {/* Only show Class filter if 'All' or 'Student' is selected */}
                         {(typeFilter === 'all' || typeFilter === 'student') && availableClasses.length > 0 && (
-                            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-full sm:w-36 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all cursor-pointer font-medium text-gray-600">
+                            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-full sm:w-36 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-role outline-none transition-all cursor-pointer font-medium text-gray-600">
                                 <option value="all">All Classes</option>
                                 {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -218,7 +218,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
                         <div className="relative w-full sm:w-64">
                             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <input type="text" placeholder="Search name or IC..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all" />
+                            <input type="text" placeholder="Search name or IC..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-role outline-none transition-all" />
                         </div>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                                 filteredAttendees.map((a, index) => (
                                     <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 text-sm text-center text-gray-500">{index + 1}</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-[#2f4fa8]">{a.name}</td>
+                                        <td className="px-6 py-4 text-sm font-bold text-role">{a.name}</td>
                                         <td className="px-6 py-4 text-sm font-mono text-gray-500">{a.ic_number}</td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${a.user_type === 'vip' ? 'bg-amber-50 text-amber-600 border-amber-200' :

@@ -220,7 +220,7 @@ const AttendanceReport = () => {
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-           <h2 className="text-2xl font-bold text-[#2f4fa8]">Daily Attendance</h2>
+           <h2 className="text-2xl font-bold text-role">Daily Attendance</h2>
            <p className="text-gray-500 text-sm mt-1">View and manage attendance records and daily statistics.</p>
         </div>
         
@@ -230,7 +230,7 @@ const AttendanceReport = () => {
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase() ? 'bg-[#2f4fa8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                activeTab === tab.toLowerCase() ? 'bg-role text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab}
@@ -241,18 +241,18 @@ const AttendanceReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
-           <h3 className="text-lg font-bold text-[#2f4fa8] mb-6">Filter Settings</h3>
+           <h3 className="text-lg font-bold text-role mb-6">Filter Settings</h3>
            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
              <div className="flex flex-col md:flex-row gap-6 items-end flex-1 w-full">
                 <div className="w-full md:w-64 space-y-2">
-                  <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Date</label>
-                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
+                  <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Date</label>
+                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
                 </div>
                 {activeTab === 'student' && (
                   <div className="w-full md:w-64 space-y-2">
-                    <label className="block text-sm font-bold text-[#2f4fa8]">Class Filter</label>
+                    <label className="block text-sm font-bold text-role">Class Filter</label>
                     <div className="relative">
-                      <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                      <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                         {canSeeStaffAndTeacher ? (
                           <option value="">All Classes</option>
                         ) : (
@@ -266,7 +266,7 @@ const AttendanceReport = () => {
                 )}
              </div>
              <div className="w-full md:w-auto">
-               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="w-full md:w-auto bg-[#2f4fa8] hover:bg-[#264190] text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform active:scale-95 disabled:opacity-50">
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="w-full md:w-auto bg-role hover:bg-role-dark text-white px-10 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all transform active:scale-95 disabled:opacity-50">
                  {loading ? 'Loading...' : 'Generate Report'}
                </button>
              </div>
@@ -277,11 +277,11 @@ const AttendanceReport = () => {
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col p-6 items-center justify-center">
-            <Users size={32} className="text-[#2f4fa8] mb-2" />
-            <p className="text-3xl font-bold text-[#2f4fa8]">{stats.total}</p>
+            <Users size={32} className="text-role mb-2" />
+            <p className="text-3xl font-bold text-role">{stats.total}</p>
             <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Total Expected</p>
           </div>
-          <div className="bg-[#2f4fa8] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
+          <div className="bg-role rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
              <p className="text-4xl font-bold mb-1">{stats.present}</p>
              <p className="text-sm font-medium opacity-90">Total Present</p>
           </div>
@@ -298,7 +298,7 @@ const AttendanceReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-6 border-b border-gray-100">
-           <p className="text-[#2f4fa8] font-bold text-lg capitalize">{activeTab} Attendance List</p>
+           <p className="text-role font-bold text-lg capitalize">{activeTab} Attendance List</p>
         </div>
         
         <div className="p-6">
@@ -317,7 +317,7 @@ const AttendanceReport = () => {
                  <select 
                    value={statusFilter}
                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                   className="w-full pl-4 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
+                   className="w-full pl-4 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                  >
                    <option value="all">All Status</option>
                    <option value="present">Present</option>
@@ -335,7 +335,7 @@ const AttendanceReport = () => {
                   placeholder="Search name..."
                   value={search} 
                   onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all" 
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all" 
                 />
               </div>
             </div>
@@ -356,7 +356,7 @@ const AttendanceReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" /></div></td></tr>
+                  <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-role border-t-transparent rounded-full animate-spin" /></div></td></tr>
                 ) : !submitted ? (
                   <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">Select a date and click Generate Report.</td></tr>
                 ) : currentData.length === 0 ? (
@@ -494,7 +494,7 @@ const InfographicReport = () => {
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-           <h2 className="text-2xl font-bold text-[#2f4fa8]">Infographic Report</h2>
+           <h2 className="text-2xl font-bold text-role">Infographic Report</h2>
            <p className="text-gray-500 text-sm mt-1">View monthly attendance infographics and statistics.</p>
         </div>
         <div className="bg-white p-1 rounded-lg border border-gray-200 shadow-sm flex">
@@ -503,7 +503,7 @@ const InfographicReport = () => {
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${
-                activeTab === tab.toLowerCase() ? 'bg-[#2f4fa8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                activeTab === tab.toLowerCase() ? 'bg-role text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
               {tab}
@@ -515,27 +515,27 @@ const InfographicReport = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-             <h3 className="text-lg font-bold text-[#2f4fa8]">Report</h3>
+             <h3 className="text-lg font-bold text-role">Report</h3>
              <div className="bg-gray-50 p-1 rounded-lg border border-gray-200 flex">
-               <button onClick={() => setViewType('date')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'date' ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>By Date</button>
-               <button onClick={() => setViewType('month')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'month' ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>By Month</button>
+               <button onClick={() => setViewType('date')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'date' ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>By Date</button>
+               <button onClick={() => setViewType('month')} className={`px-5 py-2 rounded-md text-sm font-semibold transition-all ${viewType === 'month' ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>By Month</button>
              </div>
            </div>
            
            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
              {viewType === 'month' ? (
                <div className="w-full md:w-64 space-y-2">
-                 <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Month</label>
-                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-gray-700" />
+                 <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Month</label>
+                 <input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-role outline-none transition-all text-gray-700" />
                </div>
              ) : (
                <div className="w-full md:w-64 space-y-2">
-                 <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Date</label>
-                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-gray-700" />
+                 <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Date</label>
+                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-role outline-none transition-all text-gray-700" />
                </div>
              )}
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button onClick={handleSubmit} disabled={loading || (viewType === 'month' ? !selectedMonth : !selectedDate)} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 min-w-[120px]">
+               <button onClick={handleSubmit} disabled={loading || (viewType === 'month' ? !selectedMonth : !selectedDate)} className="bg-role hover:bg-role-dark text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 min-w-[120px]">
                  {loading ? 'Loading...' : 'Generate'}
                </button>
              </div>
@@ -546,11 +546,11 @@ const InfographicReport = () => {
       { viewType !== 'month' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col p-6 items-center justify-center">
-            <Users size={32} className="text-[#2f4fa8] mb-2" />
-            <p className="text-3xl font-bold text-[#2f4fa8]">{total}</p>
+            <Users size={32} className="text-role mb-2" />
+            <p className="text-3xl font-bold text-role">{total}</p>
             <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Total Expected</p>
           </div>
-          <div className="bg-[#2f4fa8] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
+          <div className="bg-role rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white">
             <p className="text-4xl font-bold mb-1">{totalPresent}</p>
             <p className="text-sm font-medium opacity-90">Total Present</p>
           </div>
@@ -567,7 +567,7 @@ const InfographicReport = () => {
       
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-6 border-b border-gray-100">
-           <h3 className="text-lg font-bold text-[#2f4fa8]">{viewType === 'month' ? 'Daily Attendance Volume' : 'Attendance Summary'}</h3>
+           <h3 className="text-lg font-bold text-role">{viewType === 'month' ? 'Daily Attendance Volume' : 'Attendance Summary'}</h3>
         </div>
         <div className="p-6 h-[400px] w-full min-w-0 relative">
           {isMounted && (
@@ -597,7 +597,7 @@ const InfographicReport = () => {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-           <p className="text-[#2f4fa8] font-bold text-lg capitalize">List of {activeTab} {viewType === 'month' ? 'in Month' : 'on Date'}</p>
+           <p className="text-role font-bold text-lg capitalize">List of {activeTab} {viewType === 'month' ? 'in Month' : 'on Date'}</p>
            {viewType === 'date' && (
              <div className="bg-gray-100 p-1 rounded-lg flex">
                 {(['absent', 'present', 'late'] as const).map((status) => (
@@ -605,7 +605,7 @@ const InfographicReport = () => {
                     key={status}
                     onClick={() => { setActiveStatusTab(status); setCurrentPage(1); }}
                     className={`px-6 py-1.5 rounded-md text-xs font-bold transition-all capitalize ${
-                      activeStatusTab === status ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-[#2f4fa8]'
+                      activeStatusTab === status ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-role'
                     }`}
                   >
                     {status}
@@ -626,7 +626,7 @@ const InfographicReport = () => {
             />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-[#2f4fa8] focus:bg-white focus:ring-2 outline-none transition-all" />
+              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm focus:border-role focus:bg-white focus:ring-2 outline-none transition-all" />
             </div>
           </div>
 
@@ -754,21 +754,21 @@ const SummaryReport = () => {
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
       <div className="mb-6 flex justify-between items-center">
          <div>
-            <h2 className="text-2xl font-bold text-[#2f4fa8]">Summary Report</h2>
+            <h2 className="text-2xl font-bold text-role">Summary Report</h2>
             <p className="text-gray-500 text-sm mt-1">Review aggregated daily class attendance statistics.</p>
          </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
         <div className="p-8">
-           <h3 className="text-lg font-bold text-[#2f4fa8] mb-6">Report Date</h3>
+           <h3 className="text-lg font-bold text-role mb-6">Report Date</h3>
            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
              <div className="w-full md:w-64 space-y-2">
-               <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Date</label>
-               <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-gray-700" />
+               <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Date</label>
+               <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-gray-50 border border-gray-200 focus:border-role outline-none transition-all text-gray-700" />
              </div>
              <div className="mt-4 md:mt-0 md:ml-auto self-end md:self-center pt-6">
-               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-50 min-w-[120px]">
+               <button onClick={handleSubmit} disabled={loading || !selectedDate} className="bg-role hover:bg-role-dark text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all disabled:opacity-50 min-w-[120px]">
                  {loading ? 'Loading...' : 'Generate'}
                </button>
              </div>
@@ -779,10 +779,10 @@ const SummaryReport = () => {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-            <div className="bg-[#2f4fa8] text-white p-4 flex items-center justify-center h-24"><Users size={40} /></div>
+            <div className="bg-role text-white p-4 flex items-center justify-center h-24"><Users size={40} /></div>
             <div className="flex border-t border-gray-100 divide-x divide-gray-100 bg-white">
                <div className="flex-1 p-4 text-center">
-                 <p className="text-xl font-bold text-[#2f4fa8]">{stats?.present ?? 0}</p>
+                 <p className="text-xl font-bold text-role">{stats?.present ?? 0}</p>
                  <p className="text-xs text-gray-500 uppercase tracking-wider">Present</p>
                </div>
                <div className="flex-1 p-4 text-center">
@@ -791,7 +791,7 @@ const SummaryReport = () => {
                </div>
             </div>
           </div>
-          <div className="bg-[#2f4fa8] rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
+          <div className="bg-role rounded-xl shadow-sm p-6 flex flex-col items-center justify-center text-white h-full min-h-[140px]">
              <p className="text-4xl font-bold mb-1">{stats?.present ?? 0}</p>
              <p className="text-sm font-medium opacity-90">Total Present</p>
           </div>
@@ -818,7 +818,7 @@ const SummaryReport = () => {
             />
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <span className="text-sm text-gray-500">Search:</span>
-              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 focus:bg-white rounded text-sm focus:border-[#2f4fa8] outline-none transition-all" />
+              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full sm:w-48 px-3 py-1.5 bg-gray-50 border border-gray-200 focus:bg-white rounded text-sm focus:border-role outline-none transition-all" />
             </div>
           </div>
 
@@ -838,7 +838,7 @@ const SummaryReport = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" /></div></td></tr>
+                  <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-role border-t-transparent rounded-full animate-spin" /></div></td></tr>
                 ) : !submitted ? (
                   <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-500 text-sm">Select a date and click Generate.</td></tr>
                 ) : currentData.length === 0 ? (
@@ -909,8 +909,8 @@ const CombinedAttendanceReports = () => {
               onClick={() => setActiveReport(tab.id)}
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
                 activeReport === tab.id
-                  ? 'bg-[#2f4fa8] text-white shadow-md'
-                  : 'text-gray-500 hover:text-[#2f4fa8] hover:bg-gray-50'
+                  ? 'bg-role text-white shadow-md'
+                  : 'text-gray-500 hover:text-role hover:bg-gray-50'
               }`}
             >
               {tab.label}

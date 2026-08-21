@@ -91,7 +91,7 @@ const SettingCard = memo(({
       <div className="flex gap-1 shrink-0">
         <button
           onClick={() => onEdit(setting)}
-          className="p-1.5 rounded-lg hover:bg-[#2f4fa8]/10 text-gray-400 hover:text-[#2f4fa8] transition-colors"
+          className="p-1.5 rounded-lg hover:bg-role/10 text-gray-400 hover:text-role transition-colors"
         >
           <Pencil size={14} />
         </button>
@@ -116,7 +116,7 @@ const SettingCard = memo(({
     {setting.appliesToDays.length > 0 ? (
       <div className="flex gap-1 flex-wrap">
         {setting.appliesToDays.map(d => (
-          <span key={d} className="px-2 py-0.5 bg-[#2f4fa8]/10 text-[#2f4fa8] text-[10px] font-bold rounded-full">
+          <span key={d} className="px-2 py-0.5 bg-role/10 text-role text-[10px] font-bold rounded-full">
             {DAY_LABELS[d]}
           </span>
         ))}
@@ -205,7 +205,7 @@ const SettingModal = memo(({
         className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
       >
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-[#2f4fa8]">{isEdit ? 'Edit Setting' : 'New Time Setting'}</h3>
+          <h3 className="text-lg font-bold text-role">{isEdit ? 'Edit Setting' : 'New Time Setting'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
@@ -221,7 +221,7 @@ const SettingModal = memo(({
                 value={form.title}
                 onChange={e => handleChange('title', e.target.value)}
                 placeholder="e.g. Normal Class"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
               />
             </div>
 
@@ -234,7 +234,7 @@ const SettingModal = memo(({
                     required
                     value={(form as any)[key]}
                     onChange={e => handleChange(key, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                   />
                 </div>
               ))}
@@ -252,8 +252,8 @@ const SettingModal = memo(({
                     onClick={() => toggleDay(d)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                       form.appliesToDays.includes(d)
-                        ? 'bg-[#2f4fa8] text-white border-[#2f4fa8]'
-                        : 'text-gray-500 border-gray-200 hover:border-[#2f4fa8]'
+                        ? 'bg-role text-white border-role'
+                        : 'text-gray-500 border-gray-200 hover:border-role'
                     }`}
                   >
                     {DAY_LABELS[d]}
@@ -265,7 +265,7 @@ const SettingModal = memo(({
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 onClick={toggleDefault}
-                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.isDefault ? 'bg-[#2f4fa8]' : 'bg-gray-200'}`}
+                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.isDefault ? 'bg-role' : 'bg-gray-200'}`}
               >
                 <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isDefault ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
@@ -280,7 +280,7 @@ const SettingModal = memo(({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm bg-[#2f4fa8] text-white rounded-lg font-semibold hover:bg-[#264190] disabled:opacity-50"
+              className="px-5 py-2 text-sm bg-role text-white rounded-lg font-semibold hover:bg-role-dark disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -364,7 +364,7 @@ const OverrideModal = memo(({
       >
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-bold text-[#2f4fa8]">Date Override</h3>
+            <h3 className="text-lg font-bold text-role">Date Override</h3>
             <p className="text-xs text-gray-400 mt-0.5">{displayDate}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -395,7 +395,7 @@ const OverrideModal = memo(({
                 <select
                   value={settingId}
                   onChange={e => setSettingId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 >
                   <option value="">— Use default time setting —</option>
                   {settings.map(s => (
@@ -414,7 +414,7 @@ const OverrideModal = memo(({
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="e.g. Hari Raya Aidilfitri, Hari Sukan"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
               />
             </div>
           </div>
@@ -439,7 +439,7 @@ const OverrideModal = memo(({
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2 text-sm bg-[#2f4fa8] text-white rounded-lg font-semibold hover:bg-[#264190] disabled:opacity-50"
+                className="px-5 py-2 text-sm bg-role text-white rounded-lg font-semibold hover:bg-role-dark disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save Override'}
               </button>
@@ -480,8 +480,8 @@ const CalendarGrid = memo(({
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-[#2f4fa8]" />
-          <h3 className="font-bold text-[#2f4fa8]">Calendar Overrides</h3>
+          <Calendar size={18} className="text-role" />
+          <h3 className="font-bold text-role">Calendar Overrides</h3>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onPrev} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -510,8 +510,8 @@ const CalendarGrid = memo(({
             const isSelected = dateStr === selectedDate;
 
             let cellStyle = 'text-gray-700 hover:bg-gray-50';
-            if (isToday)                      cellStyle = 'font-bold text-[#2f4fa8]';
-            if (isSelected)                   cellStyle = 'bg-[#2f4fa8] text-white hover:bg-[#264190]';
+            if (isToday)                      cellStyle = 'font-bold text-role';
+            if (isSelected)                   cellStyle = 'bg-role text-white hover:bg-role-dark';
             if (ov?.isClosed && !isSelected)  cellStyle = 'text-red-400 bg-red-50 hover:bg-red-100';
             if (ov && !ov.isClosed && !isSelected) cellStyle = 'text-blue-600 bg-blue-50 hover:bg-blue-100';
 
@@ -643,7 +643,7 @@ const ShiftCard = memo(({
       <div className="flex gap-1 shrink-0">
         <button
           onClick={() => onEdit(shift)}
-          className="p-1.5 rounded-lg hover:bg-[#2f4fa8]/10 text-gray-400 hover:text-[#2f4fa8] transition-colors"
+          className="p-1.5 rounded-lg hover:bg-role/10 text-gray-400 hover:text-role transition-colors"
         >
           <Pencil size={14} />
         </button>
@@ -733,7 +733,7 @@ const ShiftModal = memo(({
         className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
       >
         <div className="p-5 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-[#2f4fa8]">{isEdit ? 'Edit Shift' : 'New Shift'}</h3>
+          <h3 className="text-lg font-bold text-role">{isEdit ? 'Edit Shift' : 'New Shift'}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
@@ -749,7 +749,7 @@ const ShiftModal = memo(({
                 value={form.name}
                 onChange={e => handleChange('name', e.target.value)}
                 placeholder="e.g. Night Shift"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
               />
             </div>
 
@@ -761,7 +761,7 @@ const ShiftModal = memo(({
                   required
                   value={form.startTime}
                   onChange={e => handleChange('startTime', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 />
               </div>
               <div>
@@ -771,7 +771,7 @@ const ShiftModal = memo(({
                   required
                   value={form.endTime}
                   onChange={e => handleChange('endTime', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 />
               </div>
               <div>
@@ -782,7 +782,7 @@ const ShiftModal = memo(({
                   type="time"
                   value={form.lateThreshold}
                   onChange={e => handleChange('lateThreshold', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 />
               </div>
               <div>
@@ -793,7 +793,7 @@ const ShiftModal = memo(({
                   type="time"
                   value={form.absentThreshold}
                   onChange={e => handleChange('absentThreshold', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 />
               </div>
             </div>
@@ -807,7 +807,7 @@ const ShiftModal = memo(({
             <label className="flex items-center gap-3 cursor-pointer">
               <div
                 onClick={toggleActive}
-                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.isActive ? 'bg-[#2f4fa8]' : 'bg-gray-200'}`}
+                className={`w-10 h-5 rounded-full transition-colors flex items-center px-0.5 ${form.isActive ? 'bg-role' : 'bg-gray-200'}`}
               >
                 <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
@@ -822,7 +822,7 @@ const ShiftModal = memo(({
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 text-sm bg-[#2f4fa8] text-white rounded-lg font-semibold hover:bg-[#264190] disabled:opacity-50"
+              className="px-5 py-2 text-sm bg-role text-white rounded-lg font-semibold hover:bg-role-dark disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -881,12 +881,12 @@ const ShiftsPanel = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield size={18} className="text-[#2f4fa8]" />
-              <h3 className="font-bold text-[#2f4fa8]">Security Shifts</h3>
+              <Shield size={18} className="text-role" />
+              <h3 className="font-bold text-role">Security Shifts</h3>
             </div>
             <button
               onClick={openNewShift}
-              className="flex items-center gap-2 px-3 py-2 bg-[#2f4fa8] text-white rounded-xl font-semibold text-xs hover:bg-[#264190] transition-all"
+              className="flex items-center gap-2 px-3 py-2 bg-role text-white rounded-xl font-semibold text-xs hover:bg-role-dark transition-all"
             >
               <Plus size={14} /> New Shift
             </button>
@@ -894,13 +894,13 @@ const ShiftsPanel = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-role border-t-transparent rounded-full animate-spin" />
             </div>
           ) : shifts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
               <Shield size={32} className="opacity-30" />
               <p className="text-sm">No shifts yet.</p>
-              <button onClick={openNewShift} className="text-[#2f4fa8] text-sm font-semibold hover:underline">
+              <button onClick={openNewShift} className="text-role text-sm font-semibold hover:underline">
                 Create one
               </button>
             </div>
@@ -1060,11 +1060,11 @@ const AttendanceTimeSetting = () => {
         className="max-w-full mx-auto space-y-6"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Time Settings</h2>
+          <h2 className="text-2xl font-bold text-role">Time Settings</h2>
           {tab === 'general' && (
             <button
               onClick={openNewSetting}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#2f4fa8] text-white rounded-xl font-semibold text-sm hover:bg-[#264190] transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 bg-role text-white rounded-xl font-semibold text-sm hover:bg-role-dark transition-all"
             >
               <Plus size={16} /> New Setting
             </button>
@@ -1075,7 +1075,7 @@ const AttendanceTimeSetting = () => {
           <button
             onClick={() => setTab('general')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === 'general' ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === 'general' ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             <Clock size={14} /> General
@@ -1083,7 +1083,7 @@ const AttendanceTimeSetting = () => {
           <button
             onClick={() => setTab('shifts')}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              tab === 'shifts' ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              tab === 'shifts' ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             <Shield size={14} /> Security Shifts
@@ -1097,19 +1097,19 @@ const AttendanceTimeSetting = () => {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-5 border-b border-gray-100 flex items-center gap-2">
-                <Clock size={18} className="text-[#2f4fa8]" />
-                <h3 className="font-bold text-[#2f4fa8]">Time Profiles</h3>
+                <Clock size={18} className="text-role" />
+                <h3 className="font-bold text-role">Time Profiles</h3>
               </div>
 
               {loading ? (
                 <div className="flex items-center justify-center py-16">
-                  <div className="w-8 h-8 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-4 border-role border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : settings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-2">
                   <Clock size={32} className="opacity-30" />
                   <p className="text-sm">No time profiles yet.</p>
-                  <button onClick={openNewSetting} className="text-[#2f4fa8] text-sm font-semibold hover:underline">
+                  <button onClick={openNewSetting} className="text-role text-sm font-semibold hover:underline">
                     Create one
                   </button>
                 </div>

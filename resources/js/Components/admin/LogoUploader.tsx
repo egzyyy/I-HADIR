@@ -109,7 +109,7 @@ const LogoUploader: React.FC<Props> = ({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm font-bold text-[#2f4fa8]">{title}</p>
+        <p className="text-sm font-bold text-role">{title}</p>
         <p className="text-sm text-gray-500">{description}</p>
       </div>
 
@@ -154,7 +154,7 @@ const LogoUploader: React.FC<Props> = ({
           type="button"
           disabled={busy}
           onClick={() => fileRef.current?.click()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2f4fa8] text-white font-bold text-sm hover:bg-[#264190] transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-role text-white font-bold text-sm hover:bg-role-dark transition-colors disabled:opacity-60"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
           {busy ? 'Uploading…' : 'Upload Logo'}
@@ -179,7 +179,7 @@ const LogoUploader: React.FC<Props> = ({
           type="checkbox"
           checked={removeBg}
           onChange={(e) => setRemoveBg(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#2f4fa8] focus:ring-[#2f4fa8]/30"
+          className="mt-0.5 w-4 h-4 rounded border-gray-300 text-role focus:ring-role/30"
         />
         <span className="text-xs text-gray-500 leading-relaxed">
           <span className="font-bold text-gray-600">Remove background automatically</span>

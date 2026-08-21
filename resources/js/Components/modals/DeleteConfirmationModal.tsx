@@ -158,7 +158,7 @@ export const DeleteConfirmationModal = ({
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">
                 <span className="font-bold text-gray-700 capitalize">{itemType}</span> has been successfully deleted.
               </p>

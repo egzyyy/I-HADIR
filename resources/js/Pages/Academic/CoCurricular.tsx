@@ -76,7 +76,7 @@ const AddCoCurricularModal = ({ onClose, teachers, onSaved }: { onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <div><h3 className="text-xl font-bold text-[#2f4fa8]">Add new Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+          <div><h3 className="text-xl font-bold text-role">Add new Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
         </div>
         <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -147,7 +147,7 @@ const EditCoCurricularModal = ({ isOpen, onClose, item, teachers, onSaved }: { i
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <div><h3 className="text-xl font-bold text-[#2f4fa8]">Edit Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+            <div><h3 className="text-xl font-bold text-role">Edit Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
           <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -375,8 +375,8 @@ const CoCurricularList = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Cocurricular List</h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Co-Curricular</button>
+          <h2 className="text-2xl font-bold text-role">Cocurricular List</h2>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-role text-white rounded-lg text-sm font-bold hover:bg-role-dark transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Co-Curricular</button>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
