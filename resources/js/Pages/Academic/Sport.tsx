@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, ChevronDown, X, Search, Users, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, X, Search, Users, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -30,6 +30,9 @@ interface SportItem {
   teacher: string; capacity: number | null; registeredDate: string;
   currentCapacity: number | null;
 }
+
+type SortColumn = 'name' | 'teacher' | 'capacity' | 'registeredDate' | null;
+type SortDirection = 'asc' | 'desc';
 
 const SportForm = ({ name, setName, capacity, setCapacity, teacherId, setTeacherId, teachers, error }: {
   name: string; setName: (v: string) => void; capacity: string; setCapacity: (v: string) => void;
@@ -103,7 +106,6 @@ const EditSportModal = ({ isOpen, onClose, item, teachers, onSaved }: { isOpen: 
     e.preventDefault();
     if (!name.trim()) { setError('Sport house name is required.'); return; }
 
-    // Front-end check for capacity
     if (capacity && Number(capacity) < (item.currentCapacity || 0)) {
       setErrorMsg(`Cannot set capacity to ${capacity} because this sport house currently has ${item.currentCapacity} enrolled students. Please remove students first.`);
       return;
@@ -166,10 +168,82 @@ function dlFile(content: string, name: string, mime: string) {
   a.click();
 }
 
+// ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
+function exportPDF(items: SportItem[], logoSrc: string | null) {
+  const rows = items.map((item: any, index: number) => `
+    <tr>
+      <td style="text-align:center">${index + 1}</td>
+      <td style="font-weight:bold">${item.name}</td>
+      <td>${item.teacher}</td>
+      <td style="text-align:center">${item.capacity ?? '-'}</td>
+      <td style="text-align:center">${formatStandardDate(item.registeredDate)}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Sport House List Report</title>
+      <style>
+        @page { margin: 15mm; size: A4 portrait; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
+        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
+        ${printLogoCss}
+        .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        th[style*="text-align:center"] { text-align: center; }
+        tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      </style>
+    </head>
+    <body>
+      <div class="header-container">
+        ${printLogoHeader(logoSrc)}
+        <h1 class="report-title">Sport House List Report</h1>
+        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:center; width:10%">No</th>
+            <th style="width:30%">Sport Name</th>
+            <th style="width:30%">Sport Teacher</th>
+            <th style="text-align:center; width:15%">Capacity</th>
+            <th style="text-align:center; width:15%">Registered</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        }
+      </script>
+    </body>
+    </html>
+  `;
+
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(html); win.document.close(); }
+}
+
 const SportList = () => {
-  const [items, setItems] = useState<SportItem[]>([]); const [teachers, setTeachers] = useState<Teacher[]>([]); const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<SportItem[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false); const [showEditModal, setShowEditModal] = useState(false); const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selected, setSelected] = useState<SportItem | null>(null);
   const [view, setView] = useState<'list' | 'manage_students'>('list');
 
@@ -180,12 +254,53 @@ const SportList = () => {
   };
   useEffect(() => { fetchAll(); }, []);
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
+    ) : (
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
+    );
+  };
+
   const filtered = items.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()) || i.teacher.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // --- APPLY PAGINATION HOOK HERE ---
+  const sortedData = [...filtered].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    if (sortColumn === 'registeredDate') {
+      const parseDate = (d: string) => {
+        if (!d) return 0;
+        const p = d.split(/[-/]/);
+        return p.length === 3 ? new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime() : 0;
+      };
+      const aTime = parseDate(a.registeredDate);
+      const bTime = parseDate(b.registeredDate);
+      if (aTime < bTime) return sortDirection === 'asc' ? -1 : 1;
+      if (aTime > bTime) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    }
+
+    const aVal = a[sortColumn] ?? '';
+    const bVal = b[sortColumn] ?? '';
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   const {
     currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems
-  } = usePagination(filtered, 10);
+  } = usePagination(sortedData, 10);
 
   const handleConfirmDelete = async () => {
     if (!selected) return;
@@ -195,72 +310,6 @@ const SportList = () => {
       if (currentData.length === 1 && currentPage > 1) { setCurrentPage(currentPage - 1); }
     }
     catch { alert('Failed to delete.'); } finally { setShowDeleteModal(false); setSelected(null); }
-  };
-
-  // --- STANDARDIZED PDF / PRINT FORMAT ---
-  const handleExportPDF = () => {
-    if (filtered.length === 0) return;
-
-    const rows = filtered.map((item: any, index: number) => `
-      <tr>
-        <td style="text-align:center">${index + 1}</td>
-        <td style="font-weight:bold">${item.name}</td>
-        <td>${item.teacher}</td>
-        <td style="text-align:center">${item.capacity ?? '-'}</td>
-        <td style="text-align:center">${formatStandardDate(item.registeredDate)}</td>
-      </tr>
-    `).join('');
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Sport House List Report</title>
-        <style>
-          @page { margin: 15mm; size: A4 portrait; }
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
-          .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-          ${printLogoCss}
-          .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
-          .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-          th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-          th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          th[style*="text-align:center"] { text-align: center; }
-          tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        </style>
-      </head>
-      <body>
-        <div class="header-container">
-          ${printLogoHeader()}
-          <h1 class="report-title">Sport House List Report</h1>
-          <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="text-align:center; width:10%">No</th>
-              <th style="width:30%">Sport Name</th>
-              <th style="width:30%">Sport Teacher</th>
-              <th style="text-align:center; width:15%">Capacity</th>
-              <th style="text-align:center; width:15%">Registered</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
-    const win = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); }
   };
 
   if (view === 'manage_students' && selected) {
@@ -290,19 +339,20 @@ const SportList = () => {
           <div className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
               <ExportButtons
-                onCopy={() => { const t = ['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date', ...filtered.map((s, i) => `${i + 1}\t${s.name}\t${s.teacher}\t${s.capacity ?? '-'}\t${s.registeredDate}`)].join('\n'); navigator.clipboard.writeText(t).then(() => alert('Copied!')); }}
-                onExportCSV={() => dlFile(['#,Sport Name,Sport Teacher,Capacity,Registered Date', ...filtered.map((s, i) => `${i + 1},"${s.name}","${s.teacher}",${s.capacity ?? ''},"${s.registeredDate}"`)].join('\n'), 'sport_houses.csv', 'text/csv')}
-                onExportExcel={() => dlFile(['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date', ...filtered.map((s, i) => `${i + 1}\t${s.name}\t${s.teacher}\t${s.capacity ?? '-'}\t${s.registeredDate}`)].join('\n'), 'sport_houses.xls', 'application/vnd.ms-excel')}
-                onExportPDF={handleExportPDF}
-                onPrint={handleExportPDF}
+                onCopy={() => { const t = ['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date', ...sortedData.map((s, i) => `${i + 1}\t${s.name}\t${s.teacher}\t${s.capacity ?? '-'}\t${s.registeredDate}`)].join('\n'); navigator.clipboard.writeText(t).then(() => alert('Copied!')); }}
+                onExportCSV={() => dlFile(['#,Sport Name,Sport Teacher,Capacity,Registered Date', ...sortedData.map((s, i) => `${i + 1},"${s.name}","${s.teacher}",${s.capacity ?? ''},"${s.registeredDate}"`)].join('\n'), 'sport_houses.csv', 'text/csv')}
+                onExportExcel={() => dlFile(['#\tSport Name\tSport Teacher\tCapacity\tRegistered Date', ...sortedData.map((s, i) => `${i + 1}\t${s.name}\t${s.teacher}\t${s.capacity ?? '-'}\t${s.registeredDate}`)].join('\n'), 'sport_houses.xls', 'application/vnd.ms-excel')}
+                onExportPDF={() => exportPDF(sortedData, null)}
+                onPrint={() => exportPDF(sortedData, null)}
               />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-600">Search:</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto relative">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                  placeholder="Search sports or teachers..."
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all"
                 />
               </div>
             </div>
@@ -310,10 +360,10 @@ const SportList = () => {
               <table className="w-full text-left border-collapse">
                 <thead><tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Sport Name</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Sport Teacher</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Capacity</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Registered Date</th>
+                  <th onClick={() => handleSort('name')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Sport Name <SortIcon column="name" /></th>
+                  <th onClick={() => handleSort('teacher')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Sport Teacher <SortIcon column="teacher" /></th>
+                  <th onClick={() => handleSort('capacity')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group text-center">Capacity <SortIcon column="capacity" /></th>
+                  <th onClick={() => handleSort('registeredDate')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group text-center">Registered Date <SortIcon column="registeredDate" /></th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Action</th>
                 </tr></thead>
                 <tbody className="divide-y divide-gray-100">
@@ -335,7 +385,7 @@ const SportList = () => {
                               >
                                 <Users size={16} />
                               </button>
-                              <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100 hover:border-[#10b981]" title="Edit"><Edit size={16} /></button>
+                              <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-[#16a34a] hover:text-white transition-all shadow-sm border border-green-100 hover:border-[#16a34a]" title="Edit"><Edit size={16} /></button>
                               <button onClick={() => { setSelected(item); setShowDeleteModal(true); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100 hover:border-[#c53336]" title="Delete"><Trash2 size={16} /></button>
                             </div>
                           </td>

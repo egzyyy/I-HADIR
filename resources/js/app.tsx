@@ -27,6 +27,7 @@ import CoCurricular from './Pages/Academic/CoCurricular';
 import Sport from './Pages/Academic/Sport';
 import EventPage from './Pages/Academic/Event';
 import EventScanPage from './Pages/Academic/EventScan';
+import MyCocuSport from './Pages/Academic/MyCocuSport';
 
 // Pages — Attendance Log dropdown (folder)
 import CheckIn from './Pages/AttendanceLog/CheckIn';
@@ -75,58 +76,59 @@ const root = createRoot(document.getElementById('app')!);
 root.render(
   <BrowserRouter>
     <AuthProvider>
-    <Routes>
-      {/* Public */}
-      <Route path="/" element={<GeneralLanding />} />
-      <Route path="/school/:slug" element={<SchoolLanding />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/visitor" element={<Visitor />} />
-      <Route path="/scan" element={<PublicScan />} />
-      <Route path="/parents-report" element={<ParentsReport />} />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<GeneralLanding />} />
+        <Route path="/school/:slug" element={<SchoolLanding />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/visitor" element={<Visitor />} />
+        <Route path="/scan" element={<PublicScan />} />
+        <Route path="/parents-report" element={<ParentsReport />} />
 
-      {/* Dashboard — all roles */}
-      <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />
+        {/* Dashboard — all roles */}
+        <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />
 
-      {/* School Management — admin only */}
-      <Route path="/school-session" element={<RequireRole allow={ADMIN}><SchoolSession /></RequireRole>} />
-      <Route path="/landing-content" element={<RequireRole allow={ADMIN}><LandingContent /></RequireRole>} />
+        {/* School Management — admin only */}
+        <Route path="/school-session" element={<RequireRole allow={ADMIN}><SchoolSession /></RequireRole>} />
+        <Route path="/landing-content" element={<RequireRole allow={ADMIN}><LandingContent /></RequireRole>} />
 
-      {/* Users (dropdown) */}
-      <Route path="/users/registration" element={<RequireRole allow={ADMIN}><UserRegistration /></RequireRole>} />
-      <Route path="/users/apdm" element={<RequireRole allow={ADMIN}><Apdm /></RequireRole>} />
-      <Route path="/users/list" element={<RequireRole allow={ADMIN_TEACHER}><UserList /></RequireRole>} />
-      <Route path="/users/visitor-list" element={<RequireRole allow={ADMIN_SECURITY}><VisitorList /></RequireRole>} />
+        {/* Users (dropdown) */}
+        <Route path="/users/registration" element={<RequireRole allow={ADMIN}><UserRegistration /></RequireRole>} />
+        <Route path="/users/apdm" element={<RequireRole allow={ADMIN}><Apdm /></RequireRole>} />
+        <Route path="/users/list" element={<RequireRole allow={ADMIN_TEACHER}><UserList /></RequireRole>} />
+        <Route path="/users/visitor-list" element={<RequireRole allow={ADMIN_SECURITY}><VisitorList /></RequireRole>} />
 
-      {/* Academic (dropdown) */}
-      <Route path="/academic/class" element={<RequireRole allow={ADMIN_TEACHER}><ClassPage /></RequireRole>} />
-      <Route path="/academic/co-curricular" element={<RequireRole allow={ADMIN}><CoCurricular /></RequireRole>} />
-      <Route path="/academic/sport" element={<RequireRole allow={ADMIN}><Sport /></RequireRole>} />
-      <Route path="/academic/event" element={<RequireRole allow={ADMIN}><EventPage /></RequireRole>} />
-      <Route path="/academic/event/:id/scan" element={<RequireRole allow={ADMIN}><EventScanPage /></RequireRole>} />
+        {/* Academic (dropdown) */}
+        <Route path="/academic/class" element={<RequireRole allow={ADMIN_TEACHER}><ClassPage /></RequireRole>} />
+        <Route path="/academic/co-curricular" element={<RequireRole allow={ADMIN}><CoCurricular /></RequireRole>} />
+        <Route path="/academic/sport" element={<RequireRole allow={ADMIN}><Sport /></RequireRole>} />
+        <Route path="/academic/event" element={<RequireRole allow={ADMIN}><EventPage /></RequireRole>} />
+        <Route path="/academic/event/:id/scan" element={<RequireRole allow={ADMIN}><EventScanPage /></RequireRole>} />
 
-      {/* Attendance Log (dropdown) */}
-      <Route path="/attendance-log" element={<RequireRole allow={ADMIN}><AttendanceLogList /></RequireRole>} />
-      <Route path="/attendance-log/check-in" element={<RequireRole allow={ALL}><CheckIn /></RequireRole>} />
-      <Route path="/attendance-log/check-out" element={<Navigate to="/attendance-log/check-in?mode=check-out" replace />} />
-      <Route path="/attendance-log/time-setting" element={<RequireRole allow={ADMIN}><TimeSetting /></RequireRole>} />
+        {/* Attendance Log (dropdown) */}
+        <Route path="/attendance-log" element={<RequireRole allow={ADMIN}><AttendanceLogList /></RequireRole>} />
+        <Route path="/attendance-log/check-in" element={<RequireRole allow={ALL}><CheckIn /></RequireRole>} />
+        <Route path="/attendance-log/check-out" element={<Navigate to="/attendance-log/check-in?mode=check-out" replace />} />
+        <Route path="/attendance-log/time-setting" element={<RequireRole allow={ADMIN}><TimeSetting /></RequireRole>} />
+        <Route path="/my-cocu-sport" element={<RequireRole allow={ADMIN_TEACHER}><MyCocuSport /></RequireRole>} />
 
-      {/* Check In */}
-      <Route path="/facility-check-in" element={<RequireRole allow={ADMIN_TEACHER}><FacilityCheckIn /></RequireRole>} />
-      <Route path="/manual-entry" element={<RequireRole allow={ADMIN_TEACHER}><ManualEntry /></RequireRole>} />
+        {/* Check In */}
+        <Route path="/facility-check-in" element={<RequireRole allow={ADMIN_TEACHER}><FacilityCheckIn /></RequireRole>} />
+        <Route path="/manual-entry" element={<RequireRole allow={ADMIN_TEACHER}><ManualEntry /></RequireRole>} />
 
-      {/* Reports */}
-      <Route path="/attendance-reports" element={<RequireRole allow={ADMIN_TEACHER}><AttendanceReports /></RequireRole>} />
-      <Route path="/general-report" element={<RequireRole allow={ADMIN_TEACHER}><GeneralReport /></RequireRole>} />
+        {/* Reports */}
+        <Route path="/attendance-reports" element={<RequireRole allow={ADMIN_TEACHER}><AttendanceReports /></RequireRole>} />
+        <Route path="/general-report" element={<RequireRole allow={ADMIN_TEACHER}><GeneralReport /></RequireRole>} />
 
-      {/* Support — all roles */}
-      <Route path="/faqs" element={<RequireRole allow={ALL}><Faqs /></RequireRole>} />
+        {/* Support — all roles */}
+        <Route path="/faqs" element={<RequireRole allow={ALL}><Faqs /></RequireRole>} />
 
-      {/* Personal account — all roles */}
-      <Route path="/my-profile" element={<RequireRole allow={ALL}><MyProfile /></RequireRole>} />
-      <Route path="/my-attendance" element={<RequireRole allow={ALL}><MyAttendance /></RequireRole>} />
-      <Route path="/my-qr-code" element={<RequireRole allow={ALL}><MyQrCode /></RequireRole>} />
-      <Route path="/change-password" element={<RequireRole allow={ALL}><ChangePassword /></RequireRole>} />
-    </Routes>
+        {/* Personal account — all roles */}
+        <Route path="/my-profile" element={<RequireRole allow={ALL}><MyProfile /></RequireRole>} />
+        <Route path="/my-attendance" element={<RequireRole allow={ALL}><MyAttendance /></RequireRole>} />
+        <Route path="/my-qr-code" element={<RequireRole allow={ALL}><MyQrCode /></RequireRole>} />
+        <Route path="/change-password" element={<RequireRole allow={ALL}><ChangePassword /></RequireRole>} />
+      </Routes>
     </AuthProvider>
   </BrowserRouter>
 );

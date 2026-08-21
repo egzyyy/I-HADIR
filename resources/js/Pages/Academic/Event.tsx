@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, X, Users, Search, ScanLine, Image as ImageIcon, UserPlus, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Users, Search, ScanLine, Image as ImageIcon, UserPlus, AlertCircle, CheckCircle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -33,6 +33,9 @@ const PARTICIPANT_LABELS: { key: ParticipantKey; label: string }[] = [
   { key: 'parent', label: 'Parent' },
   { key: 'vip', label: 'VIP' },
 ];
+
+type SortColumn = 'name' | 'date' | 'time' | 'spot' | null;
+type SortDirection = 'asc' | 'desc';
 
 // ── Checkbox ──────────────────────────────────────────────────────────────────
 const Checkbox = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
@@ -181,43 +184,57 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
   const [name, setName] = useState('');
   const [userType, setUserType] = useState<string>('');
   const [icNumber, setIcNumber] = useState('');
+
+  // VIP / Parent States
+  const [department, setDepartment] = useState('');
+  const [position, setPosition] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  // Parent Specific States
+  const [parentSearched, setParentSearched] = useState(false);
+  const [searchingParent, setSearchingParent] = useState(false);
+  const [parentChildren, setParentChildren] = useState<{ id: number, name: string }[]>([]);
+  const [selectedChildren, setSelectedChildren] = useState<Set<string>>(new Set());
+
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // New states for the Dropdown Logic
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  const [view, setView] = useState<'list' | 'view_event'>('list');
 
   const isSystemUser = ['student', 'teacher', 'staff'].includes(userType);
+  const isVip = userType === 'vip';
+  const isParent = userType === 'parent';
 
+  // Reset form when type or item changes
   useEffect(() => {
-    if (item && item.participantTypes.length > 0) {
-      setUserType(item.participantTypes[0]);
-    }
-    setName('');
-    setIcNumber('');
-    setErrorMsg(null);
-    setSuccessMsg(null);
+    const pTypes = item?.participantTypes || [];
+    if (item && pTypes.length > 0) setUserType(pTypes[0]);
+    else setUserType('');
+
+    resetForm();
   }, [item]);
 
-  // Fetch available users when a "System User" type is selected
+  const resetForm = () => {
+    setName(''); setIcNumber(''); setDepartment(''); setPosition('');
+    setPhone(''); setEmail(''); setErrorMsg(null); setSuccessMsg(null);
+    setParentSearched(false); setParentChildren([]); setSelectedChildren(new Set());
+  };
+
+  useEffect(() => { resetForm(); }, [userType]);
+
+  // Fetch available users for Students/Teachers/Staff
   useEffect(() => {
     if (isSystemUser && item) {
       setLoadingUsers(true);
       axios.get(`/api/events/${item.id}/unregistered?type=${userType}`)
-        .then(res => {
-          setAvailableUsers(res.data.data);
-          setName('');
-          setIcNumber('');
-        })
+        .then(res => { setAvailableUsers(res.data.data); setName(''); setIcNumber(''); })
         .catch(() => setAvailableUsers([]))
         .finally(() => setLoadingUsers(false));
     } else {
       setAvailableUsers([]);
-      setName('');
-      setIcNumber('');
     }
   }, [userType, item, isSystemUser]);
 
@@ -228,9 +245,38 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
       setName(selectedUser.name);
       setIcNumber(selectedUser.ic_number || '');
     } else {
-      setName('');
-      setIcNumber('');
+      setName(''); setIcNumber('');
     }
+  };
+
+  // --- PARENT SEARCH FUNCTION ---
+  const handleSearchParent = async () => {
+    if (!icNumber.trim()) { setErrorMsg("Please enter parent's IC number."); return; }
+    setSearchingParent(true);
+    setErrorMsg(null);
+    try {
+      const res = await axios.post('/api/events/parent-check', { ic_number: icNumber });
+      setName(res.data.parent_name || '');
+      setPhone(res.data.parent_phone || '');
+      setParentChildren(res.data.children || []);
+      setSelectedChildren(new Set(res.data.children.map((c: any) => c.name))); // Auto-select all children by default
+      setParentSearched(true);
+    } catch (err: any) {
+      console.log(err.response?.data?.message);
+      setErrorMsg(err.response?.data?.message || 'No children found. You can proceed to register manually.');
+      setParentSearched(true);
+    } finally {
+      setSearchingParent(false);
+    }
+  };
+
+  const toggleChild = (childName: string) => {
+    setSelectedChildren(prev => {
+      const next = new Set(prev);
+      if (next.has(childName)) next.delete(childName);
+      else next.add(childName);
+      return next;
+    });
   };
 
   if (!isOpen || !item) return null;
@@ -240,18 +286,29 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
     if (!name.trim()) { setErrorMsg('Name is required.'); return; }
     if (!userType) { setErrorMsg('Participant type is required.'); return; }
 
+    if (isVip) {
+      if (!department.trim()) { setErrorMsg('Department is required for VIP.'); return; }
+      if (!position.trim()) { setErrorMsg('Position is required for VIP.'); return; }
+    }
+
+    if (isParent && selectedChildren.size === 0 && parentChildren.length > 0) {
+      setErrorMsg('Please select at least one child.'); return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
     try {
       await axios.post(`/api/events/${item.id}/manual-registration`, {
         name: name.trim(),
         user_type: userType,
-        ic_number: icNumber.trim() || null,
+        ic_number: isVip ? null : (icNumber.trim() || null),
+        department: isVip ? department.trim() : null,
+        position: isVip ? position.trim() : null,
+        phone: (isVip || isParent) ? phone.trim() : null,
+        email: (isVip || isParent) ? email.trim() : null,
+        children: isParent ? Array.from(selectedChildren) : null,
       });
       setSuccessMsg('Participant manually registered successfully!');
-      setTimeout(() => {
-        onSaved();
-      }, 1500);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.message || 'Failed to register participant.');
     } finally {
@@ -278,14 +335,20 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={40} className="text-green-500" /></div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Success</h3>
               <p className="text-gray-500 mb-8">{successMsg}</p>
+              <button
+                onClick={() => { setSuccessMsg(null); onSaved(); }}
+                className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg transition-all"
+              >
+                Done
+              </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-          <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 top-0 z-10">
             <div><h3 className="text-xl font-bold text-role">Manual Registration</h3><p className="text-gray-500 text-sm mt-1">{item.name}</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
@@ -295,30 +358,23 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Participant Type</label>
                 <div className="relative">
-                  <select value={userType} onChange={e => setUserType(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer uppercase text-sm font-bold text-gray-700">
-                    {item.participantTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
+                  <select value={userType} onChange={e => setUserType(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all appearance-none cursor-pointer uppercase text-sm font-bold text-gray-700">
+                    {(item.participantTypes || []).map(type => <option key={type} value={type}>{type}</option>)}
+                    {(item.participantTypes || []).length === 0 && <option value="" disabled>No participant types enabled</option>}
                   </select>
                   <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
-              {/* DYNAMIC FORM RENDER */}
-              {isSystemUser ? (
+              {/* ─── SYSTEM USER VIEW ─── */}
+              {isSystemUser && (
                 <>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Select Participant</label>
                     <div className="relative">
-                      <select
-                        onChange={handleUserSelect}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none cursor-pointer text-sm text-gray-700"
-                        disabled={loadingUsers}
-                      >
+                      <select onChange={handleUserSelect} disabled={loadingUsers} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all appearance-none cursor-pointer text-sm text-gray-700">
                         <option value="">{loadingUsers ? 'Loading available participants...' : `— Select a ${userType} —`}</option>
-                        {availableUsers.map(u => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
+                        {availableUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -328,22 +384,91 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     <input type="text" value={icNumber} readOnly placeholder="Auto-filled" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500 outline-none cursor-not-allowed font-mono" />
                   </div>
                 </>
-              ) : (
+              )}
+
+              {/* ─── VIP VIEW ─── */}
+              {isVip && (
                 <>
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Full Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter full name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> VIP Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dato' Sri..." className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-gray-700">IC Number <span className="text-gray-400 font-normal">(Optional)</span></label>
-                    <input type="text" value={icNumber} onChange={e => setIcNumber(e.target.value)} placeholder="e.g. 010203040506" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all font-mono" />
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Department</label>
+                    <input type="text" value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Kementerian Pendidikan" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                   </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Position</label>
+                    <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Pengarah" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Phone <span className="text-gray-400 font-normal">(Optional)</span></label>
+                      <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vip@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ─── PARENT VIEW ─── */}
+              {isParent && (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Parent IC Number</label>
+                    <div className="flex gap-3">
+                      <input type="text" value={icNumber} onChange={e => setIcNumber(e.target.value.replace(/\D/g, ''))} maxLength={12} placeholder="e.g. 801010112233" className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
+                      <button type="button" onClick={handleSearchParent} disabled={searchingParent || icNumber.length < 12} className="bg-role hover:bg-role-dark disabled:opacity-50 text-white px-6 rounded-lg font-bold transition-all shadow-sm">
+                        {searchingParent ? '...' : 'Search'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {parentSearched && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Full Name</label>
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Parent Name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-gray-700">Phone <span className="text-gray-400 font-normal">(Optional)</span></label>
+                          <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
+                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="parent@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
+                        </div>
+                      </div>
+
+                      {parentChildren.length > 0 && (
+                        <div className="space-y-3 pt-2">
+                          <label className="block text-sm font-bold text-gray-700">Represent Child:</label>
+                          <div className="space-y-2 border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                            {parentChildren.map(child => (
+                              <label key={child.id} className="flex items-center gap-3 cursor-pointer group">
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedChildren.has(child.name) ? 'border-role bg-role' : 'border-gray-300 group-hover:border-role'}`}>
+                                  {selectedChildren.has(child.name) && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                                <span className="text-sm font-bold text-[#c53336]">{child.name}</span>
+                                <input type="checkbox" className="hidden" checked={selectedChildren.has(child.name)} onChange={() => toggleChild(child.name)} />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
                 </>
               )}
 
               <div className="pt-6 flex justify-end gap-3 border-t border-gray-100">
                 <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Cancel</button>
-                <button type="submit" disabled={saving || (!name && isSystemUser)} className="bg-[#0ea5e9] hover:bg-[#0284c7] disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-500/20 transition-all min-w-[120px]">{saving ? 'Registering...' : 'Register'}</button>
+                <button type="submit" disabled={saving || (!name && isSystemUser)} className="bg-role hover:bg-role-dark disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all min-w-[120px]">{saving ? 'Registering...' : 'Register'}</button>
               </div>
             </form>
           </div>
@@ -452,6 +577,9 @@ const EventList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -471,12 +599,54 @@ const EventList = () => {
   };
   useEffect(() => { fetchAll(); }, []);
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
+    ) : (
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
+    );
+  };
+
   const filtered = events.filter(e =>
     e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.spot.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(filtered, 10);
+  const sortedData = [...filtered].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    if (sortColumn === 'date') {
+      const parseDate = (d: string) => {
+        if (!d) return 0;
+        const p = d.split(/[-/]/);
+        return p.length === 3 ? new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime() : 0;
+      };
+      const aTime = parseDate(a.date);
+      const bTime = parseDate(b.date);
+      if (aTime < bTime) return sortDirection === 'asc' ? -1 : 1;
+      if (aTime > bTime) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    }
+
+    const aVal = a[sortColumn] ?? '';
+    const bVal = b[sortColumn] ?? '';
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sortedData, 10);
 
   const handleConfirmDelete = async () => {
     if (!selected) return;
@@ -494,6 +664,7 @@ const EventList = () => {
   };
 
   if (view === 'view_event' && selected) {
+    // console.log(selected);
     return (
       <ViewEventAttendance
         onBack={() => {
@@ -521,11 +692,11 @@ const EventList = () => {
           <div className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
               <ExportButtons
-                onCopy={() => copyToClipboard(filtered)}
-                onExportCSV={() => exportCSV(filtered)}
-                onExportExcel={() => exportExcel(filtered)}
-                onExportPDF={() => exportPDF(filtered, null)}
-                onPrint={() => printTable(filtered, null)}
+                onCopy={() => copyToClipboard(sortedData)}
+                onExportCSV={() => exportCSV(sortedData)}
+                onExportExcel={() => exportExcel(sortedData)}
+                onExportPDF={() => exportPDF(sortedData, null)}
+                onPrint={() => printTable(sortedData, null)}
               />
               <div className="flex items-center gap-2 w-full sm:w-auto relative">
                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -544,10 +715,10 @@ const EventList = () => {
                 <thead><tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-20 text-center">Banner</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Event Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Event Spot</th>
+                  <th onClick={() => handleSort('name')} className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Event Name <SortIcon column="name" /></th>
+                  <th onClick={() => handleSort('date')} className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Date <SortIcon column="date" /></th>
+                  <th onClick={() => handleSort('time')} className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Time <SortIcon column="time" /></th>
+                  <th onClick={() => handleSort('spot')} className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Event Spot <SortIcon column="spot" /></th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Participants</th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Action</th>
                 </tr></thead>

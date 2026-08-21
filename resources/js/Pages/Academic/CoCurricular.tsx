@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, ChevronDown, X, Search, Users, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, X, Search, Users, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -31,6 +31,9 @@ interface CoCurricularItem {
   currentCapacity: number | null;
 }
 
+type SortColumn = 'name' | 'teacher' | 'capacity' | 'registeredDate' | null;
+type SortDirection = 'asc' | 'desc';
+
 const CoCurricularForm = ({ name, setName, capacity, setCapacity, teacherId, setTeacherId, teachers, error }: {
   name: string; setName: (v: string) => void; capacity: string; setCapacity: (v: string) => void;
   teacherId: string; setTeacherId: (v: string) => void; teachers: Teacher[]; error: string;
@@ -41,18 +44,18 @@ const CoCurricularForm = ({ name, setName, capacity, setCapacity, teacherId, set
       <div className="space-y-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Club / Uniform Name</label>
         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 'St John'"
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400" />
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
       </div>
       <div className="space-y-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Capacity</label>
         <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. '30'" min={1}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400" />
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
       </div>
       <div className="space-y-2 md:col-span-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Club / Uniform Teacher</label>
         <div className="relative">
           <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
             <option value="">— No Teacher Assigned —</option>
             {teachers.map(t => <option key={t.teacher_id} value={t.teacher_id}>{t.name.toUpperCase()}</option>)}
             {teachers.length === 0 && <option value="" disabled>No teachers found</option>}
@@ -103,7 +106,6 @@ const EditCoCurricularModal = ({ isOpen, onClose, item, teachers, onSaved }: { i
     e.preventDefault();
     if (!name.trim()) { setError('Club name is required.'); return; }
 
-    // Front-end check for capacity
     if (capacity && Number(capacity) < (item.currentCapacity || 0)) {
       setErrorMsg(`Cannot set capacity to ${capacity} because this club currently has ${item.currentCapacity} enrolled students. Please remove students first.`);
       return;
@@ -114,7 +116,6 @@ const EditCoCurricularModal = ({ isOpen, onClose, item, teachers, onSaved }: { i
       await axios.put(`/api/co-curriculars/${item.id}`, { name: name.trim(), capacity: capacity ? Number(capacity) : null, teacher_id: teacherId || null });
       onSaved();
     } catch (err: any) {
-      // Backend catch
       setErrorMsg(err.response?.data?.message || 'Failed to update.');
     } finally {
       setSaving(false);
@@ -123,7 +124,6 @@ const EditCoCurricularModal = ({ isOpen, onClose, item, teachers, onSaved }: { i
 
   return (
     <>
-      {/* ERROR MODAL DISPLAYED OVER EDIT MODAL */}
       <AnimatePresence>
         {errorMsg && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -215,33 +215,15 @@ function exportPDF(items: CoCurricularItem[], logoSrc: string | null) {
       <style>
         @page { margin: 15mm; size: A4 portrait; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
-        
-        /* Standard Header Styling */
         .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
         ${printLogoCss}
         .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
         .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
-        
-        /* Table Styling */
         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
         th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-        
-        /* Enforce colors in print */
-        th { 
-          background-color: #2f4fa8 !important; 
-          color: white !important; 
-          font-weight: bold; 
-          text-align: left; 
-          -webkit-print-color-adjust: exact; 
-          print-color-adjust: exact; 
-        }
-        
+        th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         th[style*="text-align:center"] { text-align: center; }
-        tr:nth-child(even) { 
-          background-color: #f9fafb !important; 
-          -webkit-print-color-adjust: exact; 
-          print-color-adjust: exact; 
-        }
+        tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       </style>
     </head>
     <body>
@@ -250,7 +232,6 @@ function exportPDF(items: CoCurricularItem[], logoSrc: string | null) {
         <h1 class="report-title">Co-Curricular List Report</h1>
         <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
       </div>
-      
       <table>
         <thead>
           <tr>
@@ -263,33 +244,16 @@ function exportPDF(items: CoCurricularItem[], logoSrc: string | null) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
-
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 300);
-        }
-      </script>
+      <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
     </body>
     </html>`;
 
   const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  }
+  if (win) { win.document.write(html); win.document.close(); }
 }
 
-function printTable(items: CoCurricularItem[], logoSrc: string | null) {
-  exportPDF(items, logoSrc);
-}
-
-function copyToClipboard(items: CoCurricularItem[]) {
-  navigator.clipboard.writeText(buildTableText(items)).then(() => {
-    alert('Table data copied to clipboard!');
-  });
-}
+function printTable(items: CoCurricularItem[], logoSrc: string | null) { exportPDF(items, logoSrc); }
+function copyToClipboard(items: CoCurricularItem[]) { navigator.clipboard.writeText(buildTableText(items)).then(() => alert('Table data copied to clipboard!')); }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
@@ -298,6 +262,9 @@ const CoCurricularList = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -320,30 +287,60 @@ const CoCurricularList = () => {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // 1. Filter the items based on Search
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: SortColumn }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
+    ) : (
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
+    );
+  };
+
   const filtered = items.filter(i =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     i.teacher.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 2. Apply Pagination Hook
-  const {
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    startIndex,
-    endIndex,
-    currentData,
-    totalItems
-  } = usePagination(filtered, 10);
+  const sortedData = [...filtered].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    if (sortColumn === 'registeredDate') {
+      const parseDate = (d: string) => {
+        if (!d) return 0;
+        const p = d.split(/[-/]/);
+        return p.length === 3 ? new Date(`${p[2]}-${p[1]}-${p[0]}`).getTime() : 0;
+      };
+      const aTime = parseDate(a.registeredDate);
+      const bTime = parseDate(b.registeredDate);
+      if (aTime < bTime) return sortDirection === 'asc' ? -1 : 1;
+      if (aTime > bTime) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    }
+
+    const aVal = a[sortColumn] ?? '';
+    const bVal = b[sortColumn] ?? '';
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sortedData, 10);
 
   const handleConfirmDelete = async () => {
     if (!selected) return;
     try {
       await axios.delete(`/api/co-curriculars/${selected.id}`);
       setItems(prev => prev.filter(i => i.id !== selected.id));
-
-      // Navigate to previous page if we delete the last item on the current page
       if (currentData.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
@@ -354,17 +351,9 @@ const CoCurricularList = () => {
   if (view === 'manage_students' && selected) {
     return (
       <ManageStudents
-        onBack={() => {
-          setView('list');
-          setSelected(null);
-          fetchAll();
-        }}
-
-        // Passes the specific Club ID and Name to the new page
+        onBack={() => { setView('list'); setSelected(null); fetchAll(); }}
         itemId={selected.id}
         itemName={selected.name}
-
-        // Tells the reusable component to fetch from Co-Curriculars
         apiBase="/api/co-curriculars"
         moduleName="Co-Curricular"
       />
@@ -382,17 +371,15 @@ const CoCurricularList = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6">
 
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
               <ExportButtons
-                onCopy={() => copyToClipboard(filtered)}
-                onExportCSV={() => exportCSV(filtered)}
-                onExportExcel={() => exportExcel(filtered)}
-                onExportPDF={() => exportPDF(filtered, null)}
-                onPrint={() => printTable(filtered, null)}
+                onCopy={() => copyToClipboard(sortedData)}
+                onExportCSV={() => exportCSV(sortedData)}
+                onExportExcel={() => exportExcel(sortedData)}
+                onExportPDF={() => exportPDF(sortedData, null)}
+                onPrint={() => printTable(sortedData, null)}
               />
 
-              {/* Search Bar */}
               <div className="flex items-center gap-2 w-full sm:w-auto relative">
                 <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -405,16 +392,15 @@ const CoCurricularList = () => {
               </div>
             </div>
 
-            {/* Table */}
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Club / Uniform Name</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Club / Uniform Teacher</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Capacity</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">Registered Date</th>
+                    <th onClick={() => handleSort('name')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Club / Uniform Name <SortIcon column="name" /></th>
+                    <th onClick={() => handleSort('teacher')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group">Club / Uniform Teacher <SortIcon column="teacher" /></th>
+                    <th onClick={() => handleSort('capacity')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group text-center">Capacity <SortIcon column="capacity" /></th>
+                    <th onClick={() => handleSort('registeredDate')} className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 group text-center">Registered Date <SortIcon column="registeredDate" /></th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center">Action</th>
                   </tr>
                 </thead>
@@ -426,8 +412,8 @@ const CoCurricularList = () => {
                           <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + idx + 1}</td>
                           <td className="px-4 py-3 text-sm font-medium text-[#c53336]">{item.name}</td>
                           <td className="px-4 py-3 text-sm text-gray-600 uppercase">{item.teacher}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{item.currentCapacity}/{item.capacity ?? '-'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{formatStandardDate(item.registeredDate)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 text-center">{item.currentCapacity}/{item.capacity ?? '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 text-center">{formatStandardDate(item.registeredDate)}</td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex justify-center items-center gap-2">
                               <button
@@ -447,38 +433,22 @@ const CoCurricularList = () => {
               </table>
             </div>
 
-            {/* --- PAGINATION & COUNT --- */}
             {!loading && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
                 <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
-
                 {totalPages > 1 && (
                   <Pagination className="mx-0 w-auto">
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
+                        <PaginationPrevious onClick={() => setCurrentPage(currentPage - 1)} className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
                       </PaginationItem>
-
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                         <PaginationItem key={page}>
-                          <PaginationLink
-                            onClick={() => setCurrentPage(page)}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
+                          <PaginationLink onClick={() => setCurrentPage(page)} isActive={currentPage === page} className="cursor-pointer">{page}</PaginationLink>
                         </PaginationItem>
                       ))}
-
                       <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
+                        <PaginationNext onClick={() => setCurrentPage(currentPage + 1)} className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'} />
                       </PaginationItem>
                     </PaginationContent>
                   </Pagination>

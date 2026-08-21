@@ -17,6 +17,11 @@ return new class extends Migration
             $table->string('user_type');
             $table->string('user_id')->nullable();
             $table->string('name')->nullable();
+            $table->string('ic_number')->nullable();
+            $table->string('department')->nullable();
+            $table->string('position')->nullable();
+            $table->string('phone_number')->nullable();
+            $table->string('email')->nullable();
             $table->timestamp('check_in_time');
             $table->timestamps();
         });
