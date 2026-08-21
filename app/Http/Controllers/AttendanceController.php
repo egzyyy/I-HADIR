@@ -12,11 +12,14 @@ use App\Models\User;
 use App\Models\Classroom;
 use App\Models\Enrollment;
 use App\Models\Visitor;
+use App\Http\Controllers\Concerns\ChecksGeofence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class AttendanceController extends Controller
 {
+    use ChecksGeofence;
+
     // ─── Check In ────────────────────────────────────────────────────────────
 
     public function checkIn(Request $request)
@@ -25,10 +28,18 @@ class AttendanceController extends Controller
             'ic_number' => 'required|string',
             'user_type' => 'required|in:student,teacher,staff',
             'shift_id'  => 'nullable|integer',
+            'latitude'  => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'accuracy'  => 'nullable|numeric|min:0',
         ]);
 
         // Public kiosk scanning (landing page) works logged-out — same fallback as VisitorController
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        // Public kiosk scans must prove they happened at the school.
+        if ($denied = $this->denyOutsideGeofence($request, $schoolId)) {
+            return $denied;
+        }
+
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class, $classroomId] = $this->resolveByIc(
@@ -144,6 +155,11 @@ class AttendanceController extends Controller
         ]);
 
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        // Public kiosk scans must prove they happened at the school.
+        if ($denied = $this->denyOutsideGeofence($request, $schoolId)) {
+            return $denied;
+        }
+
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class] = $this->resolveByIc(
@@ -211,6 +227,9 @@ class AttendanceController extends Controller
             'user_type' => 'required|in:student,teacher,staff',
             'reason'    => 'required|string|max:255',
             'shift_id'  => 'nullable|integer',
+            'latitude'  => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'accuracy'  => 'nullable|numeric|min:0',
         ]);
 
         $schoolId = auth()->user()->school_id;

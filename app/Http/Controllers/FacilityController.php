@@ -7,11 +7,14 @@ use App\Models\Student;
 use App\Models\User; // <-- Switched to unified User model
 use App\Models\Enrollment;
 use App\Models\SchoolSession;
+use App\Http\Controllers\Concerns\ChecksGeofence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class FacilityController extends Controller
 {
+    use ChecksGeofence;
+
     public function checkIn(Request $request)
     {
         $request->validate([
@@ -19,6 +22,9 @@ class FacilityController extends Controller
             'user_type'     => 'required|in:student,teacher,staff',
             // Replaced 'activity' with 'rmt'
             'facility_type' => 'required|in:prayer,pss,ict,rmt', 
+            'latitude'      => 'nullable|numeric|between:-90,90',
+            'longitude'     => 'nullable|numeric|between:-180,180',
+            'accuracy'      => 'nullable|numeric|min:0',
         ]);
 
         // RESTRICTION: RMT is for students only
@@ -30,6 +36,11 @@ class FacilityController extends Controller
 
         // Public kiosk scanning (landing page) works logged-out — same fallback as VisitorController
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        // Public kiosk scans must prove they happened at the school.
+        if ($denied = $this->denyOutsideGeofence($request, $schoolId)) {
+            return $denied;
+        }
+
         $today    = Carbon::today()->toDateString();
         $now      = Carbon::now();
 
@@ -86,9 +97,17 @@ class FacilityController extends Controller
             'ic_number'     => 'required|string',
             'user_type'     => 'required|in:student,teacher,staff',
             'facility_type' => 'required|in:prayer,pss,ict,rmt',
+            'latitude'      => 'nullable|numeric|between:-90,90',
+            'longitude'     => 'nullable|numeric|between:-180,180',
+            'accuracy'      => 'nullable|numeric|min:0',
         ]);
 
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        // Public kiosk scans must prove they happened at the school.
+        if ($denied = $this->denyOutsideGeofence($request, $schoolId)) {
+            return $denied;
+        }
+
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class] = $this->resolveByIc(

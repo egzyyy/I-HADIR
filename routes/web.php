@@ -25,6 +25,9 @@ use App\Http\Controllers\BrandingController;
 Route::get('/api/public/schools', [PublicController::class, 'schools']);
 Route::get('/api/public/schools/{slug}', [PublicController::class, 'show']);
 Route::get('/api/public/schools/{slug}/events', [PublicController::class, 'events']);
+// Does the kiosk scanner need a location fix before it may scan?
+Route::get('/api/public/scan-policy', [PublicController::class, 'scanPolicy']);
+Route::post('/api/public/verify-location', [PublicController::class, 'verifyLocation']);
 
 // Branding — the login screen and both landing pages read this while logged out.
 Route::get('/api/branding', [BrandingController::class, 'show']);
