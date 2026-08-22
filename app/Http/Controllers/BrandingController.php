@@ -21,6 +21,16 @@ class BrandingController extends Controller
 {
     private const SYSTEM_LOGO_KEY = 'system_logo_path';
 
+    /**
+     * Shipped I-HADIR logo, used whenever no admin upload is in place.
+     *
+     * Lives in public/ rather than storage/ so it is version-controlled and
+     * deploys with the code. Admin uploads still override it, and resetting
+     * falls back here — so a fresh environment shows the right mark with no
+     * database row and no file copying.
+     */
+    private const SYSTEM_LOGO_DEFAULT = '/images/i-hadir-logo.png';
+
     /** Keep in sync with MAX_BYTES in Components/admin/LogoUploader.tsx. */
     private const MAX_KB = 10240; // 10 MB
     private const RULES = 'required|image|mimes:png,jpg,jpeg,webp,svg|max:' . self::MAX_KB;
@@ -57,7 +67,7 @@ class BrandingController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'system_logo' => $this->url(SystemSetting::getValue(self::SYSTEM_LOGO_KEY)),
+                'system_logo' => $this->systemLogoUrl(),
                 'school_logo' => $this->url($school?->logo_path),
                 'school_name' => $school?->name,
                 // Lets the admin UI hide the system-logo controls it can't use.
@@ -150,7 +160,7 @@ class BrandingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'System logo reset to the built-in default.',
-            'data'    => ['system_logo' => null],
+            'data'    => ['system_logo' => self::SYSTEM_LOGO_DEFAULT],
         ]);
     }
 
@@ -288,6 +298,13 @@ class BrandingController extends Controller
     private function url(?string $path): ?string
     {
         return $path ? Storage::url($path) : null;
+    }
+
+    /** The admin-uploaded system logo, or the shipped default when none is set. */
+    private function systemLogoUrl(): string
+    {
+        return $this->url(SystemSetting::getValue(self::SYSTEM_LOGO_KEY))
+            ?? self::SYSTEM_LOGO_DEFAULT;
     }
 
     /**
