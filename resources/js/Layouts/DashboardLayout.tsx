@@ -194,6 +194,7 @@ const TEACHER_MENU: MenuSection[] = [
   {
     category: "CHECK IN",
     items: [
+      { id: 'student-qr-scan', label: 'Student QR Scanner', icon: QrCodeIcon },
       { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
       { id: 'manual-entry', label: 'Manual Student Check-In', icon: Keyboard }
     ]
@@ -438,6 +439,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'event': '/academic/event',
       'my-cocu-sport': '/my-cocu-sport',
       'check-in': '/attendance-log/check-in',
+      'student-qr-scan': '/attendance-log/check-in?target=student',
       'time-setting': '/attendance-log/time-setting',
       'attendance-log-list': '/attendance-log',
       'facility-check-in': '/facility-check-in',

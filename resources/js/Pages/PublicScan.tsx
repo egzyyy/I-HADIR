@@ -13,7 +13,8 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // Public kiosk scanner (no login required) — reached from the landing page
 // navbar. Params decide what a scan records:
 //   /scan?mode=check-in&type=student          → daily attendance
-//   /scan?mode=check-out&type=staff           → daily attendance (security staff)
+//   /scan?mode=check-out&type=staff           → daily attendance (security staff, shift picker)
+//   /scan?mode=check-out&type=general-staff   → daily attendance (non-security staff, no shift picker)
 //   /scan?facility=pss&mode=check-in          → facility log (students)
 
 type ScanMode = 'check-in' | 'check-out';
@@ -115,15 +116,19 @@ export default function PublicScan() {
   const mode: ScanMode = searchParams.get('mode') === 'check-out' ? 'check-out' : 'check-in';
   const facility = searchParams.get('facility');
   const isFacility = !!facility && facility in FACILITY_LABELS;
-  // Attendance scans: student (default) or staff (security). Facility scans are student-only.
-  const userType = searchParams.get('type') === 'staff' ? 'staff' : 'student';
+  // Attendance scans: student (default), staff (security), or general-staff (non-security).
+  // Both staff variants resolve to the same backend user_type — the split only affects
+  // the label and whether the shift picker shows.
+  const typeParam = searchParams.get('type');
+  const isGeneralStaff = typeParam === 'general-staff';
+  const userType = typeParam === 'staff' || isGeneralStaff ? 'staff' : 'student';
   // School slug carried from the school landing page's navbar, so "back" returns there.
   const school = searchParams.get('school');
   const backHref = school ? `/school/${school}` : '/';
 
   const title = isFacility
     ? `${FACILITY_LABELS[facility!]} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`
-    : `${userType === 'staff' ? 'Security Staff' : 'Student'} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`;
+    : `${isGeneralStaff ? 'Staff' : userType === 'staff' ? 'Security Staff' : 'Student'} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`;
 
   // Anti-fraud: when the school has a geofence, the camera stays locked until
   // the browser gives us a position. The server re-checks it on every scan.
@@ -136,7 +141,8 @@ export default function PublicScan() {
   const [error, setError] = useState<string | null>(null);
 
   // Security staff pick a shift before scanning in — check-out auto-detects, no picker.
-  const needsShift = !isFacility && userType === 'staff' && mode === 'check-in';
+  // General staff skip this entirely and go straight to scanning, like students/teachers.
+  const needsShift = !isFacility && userType === 'staff' && !isGeneralStaff && mode === 'check-in';
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [shiftsLoaded, setShiftsLoaded] = useState(false);
   const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
