@@ -245,22 +245,22 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
       {/* Top Header / Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#2f4fa8]/5 rounded-lg">
-            <Users size={20} className="text-[#2f4fa8]" />
+          <div className="p-2 bg-role/5 rounded-lg">
+            <Users size={20} className="text-role" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-[#2f4fa8]">Class Management</h2>
+            <h2 className="text-lg font-bold text-role">Class Management</h2>
             <p className="text-xs text-gray-500">Manage students for {classNameStr}</p>
           </div>
         </div>
 
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2 text-[11px] font-medium text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-            <span className="flex items-center gap-1 hover:text-[#2f4fa8] cursor-pointer transition-colors">
+            <span className="flex items-center gap-1 hover:text-role cursor-pointer transition-colors">
               <Home size={12} />
             </span>
             <ChevronRight size={10} className="text-gray-300" />
-            <span className="hover:text-[#2f4fa8] cursor-pointer transition-colors" onClick={onBack}>Class List</span>
+            <span className="hover:text-role cursor-pointer transition-colors" onClick={onBack}>Class List</span>
             <ChevronRight size={10} className="text-gray-300" />
             <span className="text-[#0ea5e9]">Add Student</span>
           </div>
@@ -277,7 +277,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
 
           {/* Class Info Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
-            <div className="bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] px-6 py-4 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-role to-[#2a4595] px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-bold text-base flex items-center gap-2">
                 <Hash size={18} className="text-blue-200" /> Class Details
               </h3>
@@ -289,18 +289,18 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
               <div className="flex flex-col gap-4">
                 <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Class Name</span>
-                  <span className="text-lg font-bold text-[#2f4fa8]">{classroom?.name ?? classNameStr}</span>
+                  <span className="text-lg font-bold text-role">{classroom?.name ?? classNameStr}</span>
                 </div>
                 <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Academic Year</span>
-                  <span className="text-lg font-bold text-[#2f4fa8] flex items-center gap-2">
+                  <span className="text-lg font-bold text-role flex items-center gap-2">
                     <Calendar size={18} className="text-[#c53336]" /> {classroom?.sessionName ?? '—'}
                   </span>
                 </div>
                 {classroom?.capacity && (
                   <div className={`p-4 rounded-lg border ${isClassFull ? 'bg-orange-50/50 border-orange-200' : 'bg-blue-50/50 border-blue-100'}`}>
                     <span className={`text-xs font-bold uppercase tracking-wider block mb-1 ${isClassFull ? 'text-orange-500' : 'text-gray-400'}`}>Capacity</span>
-                    <span className={`text-lg font-bold ${isClassFull ? 'text-orange-600' : 'text-[#2f4fa8]'}`}>
+                    <span className={`text-lg font-bold ${isClassFull ? 'text-orange-600' : 'text-role'}`}>
                       {enrolled.length} / {classroom.capacity} {isClassFull && '(FULL)'}
                     </span>
                   </div>
@@ -359,7 +359,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                           <select
                             value={selectedStudentId}
                             onChange={(e) => setSelectedStudentId(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-sm text-gray-700 appearance-none cursor-pointer"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-sm text-gray-700 appearance-none cursor-pointer"
                           >
                             <option value="">Select a student...</option>
                             {available.map((s) => (
@@ -381,7 +381,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                       <button
                         onClick={handleEnroll}
                         disabled={enrolling || !selectedStudentId}
-                        className="w-full bg-[#2f4fa8] hover:bg-[#264190] disabled:opacity-60 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+                        className="w-full bg-role hover:bg-role-dark disabled:opacity-60 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
                       >
                         <UserPlus size={18} />
                         <span>{enrolling ? 'Enrolling...' : 'Enroll Student'}</span>
@@ -400,7 +400,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
             <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50">
               <div>
                 <h3 className="text-gray-800 font-bold text-base flex items-center gap-2">
-                  <Users size={18} className="text-[#2f4fa8]" /> Enrolled Students
+                  <Users size={18} className="text-role" /> Enrolled Students
                 </h3>
                 <p className="text-xs text-gray-400 mt-1">Total {enrolled.length} students enrolled</p>
               </div>
@@ -433,7 +433,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                       <tr key={student.enrollment_id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-6 text-sm text-gray-400 font-bold text-center">{index + 1}</td>
                         <td className="py-4 px-6">
-                          <span className="text-sm font-black text-[#2f4fa8] leading-tight">{student.name}</span>
+                          <span className="text-sm font-black text-role leading-tight">{student.name}</span>
                         </td>
                         <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.ic_number}</td>
                         <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.phone}</td>
@@ -455,7 +455,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                           <div className="flex justify-center items-center gap-2">
                             <button
                               onClick={() => handlePrintQr(student, classroom?.name ?? classNameStr)}
-                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-[#2f4fa8] hover:text-white transition-all shadow-sm border border-gray-200"
+                              className="p-2 bg-gray-50 text-gray-500 rounded-lg hover:bg-role hover:text-white transition-all shadow-sm border border-gray-200"
                               title="Print QR"
                             >
                               <Printer size={16} />
@@ -528,7 +528,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
             >
               <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <div>
-                  <h3 className="text-xl font-bold text-[#2f4fa8]">Transfer Student</h3>
+                  <h3 className="text-xl font-bold text-role">Transfer Student</h3>
                   <p className="text-gray-500 text-sm mt-1">Please enter all information required.</p>
                 </div>
                 <button onClick={() => setIsTransferModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -540,7 +540,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                 <div className="space-y-6">
                   <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-1">Student Name</span>
-                    <span className="text-lg font-bold text-[#2f4fa8]">{selectedStudentForTransfer?.name}</span>
+                    <span className="text-lg font-bold text-role">{selectedStudentForTransfer?.name}</span>
                   </div>
 
                   {transferError && (
@@ -555,7 +555,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                       <select
                         value={targetClassId}
                         onChange={(e) => setTargetClassId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
                       >
                         <option value="">Select a class to transfer to...</option>
                         {otherClasses.map((cls) => {
@@ -582,7 +582,7 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                   <button
                     onClick={handleTransfer}
                     disabled={transferring || !targetClassId}
-                    className="bg-[#2f4fa8] hover:bg-[#264190] disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2 min-w-[120px]"
+                    className="bg-role hover:bg-role-dark disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2 min-w-[120px]"
                   >
                     <ArrowRightLeft size={16} />
                     <span>{transferring ? 'Transferring...' : 'Transfer'}</span>

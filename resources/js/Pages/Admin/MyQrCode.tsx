@@ -9,6 +9,7 @@ type MyQrData = {
   payload: string;
   name: string;
   label: string;
+  position: string;
 };
 
 const MyQrCodeContent = () => {
@@ -54,7 +55,7 @@ const MyQrCodeContent = () => {
       className="max-w-2xl mx-auto"
     >
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#2f4fa8]">My QR Code</h2>
+        <h2 className="text-2xl font-bold text-role">My QR Code</h2>
         <p className="text-gray-500 text-sm mt-1">Your personal QR code for attendance scanning</p>
       </div>
 
@@ -62,7 +63,7 @@ const MyQrCodeContent = () => {
         <div className="p-8 flex flex-col items-center gap-6">
           {loading && (
             <div className="w-[300px] h-[300px] flex items-center justify-center">
-              <div className="w-12 h-12 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+              <div className="w-12 h-12 border-4 border-role border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -77,25 +78,26 @@ const MyQrCodeContent = () => {
 
           {!loading && !error && data && (
             <>
-              <div className="border-2 border-[#2f4fa8]/10 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50/50 shadow-inner">
+              <div className="border-2 border-role/10 rounded-2xl p-6 bg-gradient-to-br from-white to-gray-50/50 shadow-inner">
                 <canvas ref={canvasRef} />
               </div>
 
               <div className="text-center space-y-1">
-                <p className="text-lg font-black text-[#2f4fa8]">{data.name}</p>
-                <p className="text-sm font-bold text-[#c53336]">{data.label}</p>
+                <p className="text-lg font-black text-role">{data.name}</p>
+                {data.label && <p className="font-bold text-[#c53336]">{data.label}</p>}
+                {data.position && <p className="text-xs font-bold text-role">({data.position})</p>}
               </div>
 
               <button
                 onClick={handleDownload}
-                className="flex items-center justify-center gap-2 px-8 py-3 bg-[#2f4fa8] text-white rounded-xl font-bold hover:bg-[#264190] transition-all text-sm shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
+                className="flex items-center justify-center gap-2 px-8 py-3 bg-role text-white rounded-xl font-bold hover:bg-role-dark transition-all text-sm shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
               >
                 <Download size={18} /> Download QR Code
               </button>
 
               <div className="w-full mt-2 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
                 <div className="flex items-start gap-3">
-                  <QrCode size={20} className="text-[#2f4fa8] mt-0.5 flex-shrink-0" />
+                  <QrCode size={20} className="text-role mt-0.5 flex-shrink-0" />
                   <div className="text-xs text-gray-500 space-y-1">
                     <p className="font-bold text-gray-600">How to use your QR code:</p>
                     <p>• Show this QR code to the scanner during check-in / check-out.</p>

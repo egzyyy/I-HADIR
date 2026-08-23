@@ -94,7 +94,7 @@ const AddClassModal = ({
       >
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-xl font-bold text-[#2f4fa8]">Add new class</h3>
+            <h3 className="text-xl font-bold text-role">Add new class</h3>
             <p className="text-gray-500 text-sm mt-1">Please enter all information required.</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
@@ -480,9 +480,9 @@ const ClassList = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -508,11 +508,11 @@ const ClassList = () => {
         className="max-w-full mx-auto"
       >
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Class List</h2>
+          <h2 className="text-2xl font-bold text-role">Class List</h2>
           {canAddClass && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
+              className="flex items-center gap-2 px-4 py-2 bg-role text-white rounded-lg text-sm font-bold hover:bg-role-dark transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"
             >
               <Plus size={18} /> Add Class
             </button>
@@ -542,7 +542,7 @@ const ClassList = () => {
                       setSelectedSessionId(e.target.value);
                       setCurrentPage(1); // Reset page on filter
                     }}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                   >
                     <option value="all">All Time History</option>
                     {sessions.map(session => (

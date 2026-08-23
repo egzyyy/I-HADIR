@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, CheckCircle, AlertCircle, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, AlertCircle, Users, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────────
@@ -24,55 +24,12 @@ export interface ManageStudentsProps {
     moduleName: string;
 }
 
-// ─── Scrollable Class Tabs Sub-component ────────────────────────────────────────
-const ScrollableClassTabs = ({ classes, activeClassId, onSelect }: { classes: Classroom[]; activeClassId: number | null; onSelect: (id: number) => void; }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
-
-    const checkScroll = useCallback(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-        setCanScrollLeft(el.scrollLeft > 0);
-        setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-    }, []);
-
-    useEffect(() => {
-        checkScroll();
-        const el = scrollRef.current;
-        if (!el) return;
-        el.addEventListener('scroll', checkScroll, { passive: true });
-        const resizeObserver = new ResizeObserver(checkScroll);
-        resizeObserver.observe(el);
-        return () => {
-            el.removeEventListener('scroll', checkScroll);
-            resizeObserver.disconnect();
-        };
-    }, [checkScroll, classes]);
-
-    const scroll = (direction: 'left' | 'right') => {
-        const el = scrollRef.current;
-        if (!el) return;
-        const scrollAmount = el.clientWidth * 0.6;
-        el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
-    };
-
-    return (
-        <div className="relative flex items-center gap-1">
-            <button onClick={() => scroll('left')} className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${canScrollLeft ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer' : 'text-gray-200 cursor-default pointer-events-none'}`} aria-label="Scroll tabs left" tabIndex={-1}><ChevronLeft size={18} /></button>
-            <div ref={scrollRef} className="flex overflow-x-auto space-x-2 scrollbar-hide flex-1 min-w-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {classes.map((cls) => (
-                    <button key={cls.classroom_id} onClick={() => onSelect(cls.classroom_id)} className={`flex-shrink-0 px-6 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeClassId === cls.classroom_id ? 'bg-[#2f4fa8] text-white shadow-md' : 'text-gray-500 hover:text-[#2f4fa8] hover:bg-gray-50'}`}>{cls.name}</button>
-                ))}
-            </div>
-            <button onClick={() => scroll('right')} className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${canScrollRight ? 'bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer' : 'text-gray-200 cursor-default pointer-events-none'}`} aria-label="Scroll tabs right" tabIndex={-1}><ChevronRight size={18} /></button>
-        </div>
-    );
-};
-
 // ─── Component ──────────────────────────────────────────────────────────────────
 export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }: ManageStudentsProps) => {
     const [classes, setClasses] = useState<Classroom[]>([]);
+
+    // Two-tier selection state
+    const [activeStandard, setActiveStandard] = useState<string>('');
     const [activeClassId, setActiveClassId] = useState<number | null>(null);
 
     const [students, setStudents] = useState<StudentItem[]>([]);
@@ -89,16 +46,17 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
     const [saving, setSaving] = useState(false);
 
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-    const [errorMsg, setErrorMsg] = useState<string | null>(null); // For animated modal
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    // 1. Fetch Classes on Mount
     useEffect(() => {
         const fetchClasses = async () => {
             setLoadingClasses(true);
             try {
-                const res = await axios.get('/api/reports/classes');
+                const res = await axios.get('/api/reports/classes', { params: { all_classes: true } });
                 const classData = res.data.data || [];
+                console.log(classData);
                 setClasses(classData);
-                if (classData.length > 0) setActiveClassId(classData[0].classroom_id);
             } catch (err) {
                 console.error('Failed to fetch classes', err);
             } finally {
@@ -108,6 +66,37 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
         fetchClasses();
     }, []);
 
+    // 2. Group Classes by "Darjah" intelligently based on the number in the name
+    const groupedClasses = useMemo(() => {
+        const groups: Record<string, Classroom[]> = {};
+        classes.forEach(c => {
+            const match = c.name.match(/\d/); // Finds the first number in "1 Kreatif"
+            const level = match ? `Darjah ${match[0]}` : 'Lain-lain';
+
+            if (!groups[level]) groups[level] = [];
+            groups[level].push(c);
+        });
+        return groups;
+    }, [classes]);
+
+    // 3. Set Initial Defaults when classes load
+    useEffect(() => {
+        const standards = Object.keys(groupedClasses).sort();
+        if (standards.length > 0 && !activeStandard) {
+            setActiveStandard(standards[0]);
+            setActiveClassId(groupedClasses[standards[0]][0].classroom_id);
+        }
+    }, [groupedClasses, activeStandard]);
+
+    // Handle Standard Tab Click
+    const handleStandardChange = (standard: string) => {
+        setActiveStandard(standard);
+        if (groupedClasses[standard]?.length > 0) {
+            setActiveClassId(groupedClasses[standard][0].classroom_id);
+        }
+    };
+
+    // 4. Fetch Students when Active Class changes
     useEffect(() => {
         if (!activeClassId) return;
 
@@ -240,23 +229,23 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#2f4fa8] transition-colors shadow-sm flex-shrink-0">
+                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#1c3068] transition-colors shadow-sm flex-shrink-0">
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-[#2f4fa8] uppercase tracking-wide">Manage {moduleName} Students</h2>
+                        <h2 className="text-2xl font-bold text-[#1c3068] uppercase tracking-wide">Manage {moduleName} Students</h2>
                         <p className="text-sm text-gray-500 mt-1 font-bold text-[#c53336]">{itemName}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-6">
                     <div className="flex flex-col items-end pr-4 border-r border-gray-200 hidden sm:flex">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Capacity</span>
-                        <span className={`text-xl font-black ${maxCapacity !== null && currentProjectedTotal >= maxCapacity ? 'text-red-500' : 'text-[#2f4fa8]'}`}>
+                        <span className={`text-xl font-black ${maxCapacity !== null && currentProjectedTotal >= maxCapacity ? 'text-red-500' : 'text-[#1c3068]'}`}>
                             {currentProjectedTotal} <span className="text-gray-300 text-base font-medium">/ {maxCapacity ?? '∞'}</span>
                         </span>
                     </div>
                     {saving && <span className="text-sm font-bold text-blue-500 animate-pulse">Saving changes...</span>}
-                    <button onClick={handleSave} disabled={saving || loadingStudents} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-6 py-2.5 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 whitespace-nowrap">
+                    <button onClick={handleSave} disabled={saving || loadingStudents} className="bg-[#1c3068] hover:bg-[#152450] text-white px-6 py-2.5 rounded-lg font-bold shadow-md transition-all disabled:opacity-50 whitespace-nowrap">
                         Save Changes
                     </button>
                 </div>
@@ -272,14 +261,49 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                 )}
             </AnimatePresence>
 
-            {/* Class Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 w-full overflow-hidden">
+            {/* Two-Tier Class Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 w-full flex flex-col md:flex-row gap-6 items-start md:items-center">
                 {loadingClasses ? (
-                    <div className="p-4 text-center text-sm text-gray-500 font-medium">Loading classes...</div>
-                ) : classes.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-gray-500 font-medium">No active classes found for this session.</div>
+                    <div className="text-sm text-gray-500 font-medium">Loading classes...</div>
+                ) : Object.keys(groupedClasses).length === 0 ? (
+                    <div className="text-sm text-gray-500 font-medium">No active classes found for this session.</div>
                 ) : (
-                    <ScrollableClassTabs classes={classes} activeClassId={activeClassId} onSelect={setActiveClassId} />
+                    <>
+                        {/* Tier 1: Darjah Tabs */}
+                        <div className="flex flex-wrap gap-2">
+                            {Object.keys(groupedClasses).sort().map((std) => (
+                                <button
+                                    key={std}
+                                    onClick={() => handleStandardChange(std)}
+                                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${activeStandard === std
+                                        ? 'bg-[#1c3068] text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-[#1c3068]'
+                                        }`}
+                                >
+                                    {std}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+
+                        {/* Tier 2: Class Dropdown */}
+                        <div className="w-full md:w-64 space-y-1.5 flex-shrink-0">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Class</label>
+                            <div className="relative">
+                                <select
+                                    value={activeClassId || ''}
+                                    onChange={(e) => setActiveClassId(Number(e.target.value))}
+                                    className="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:border-[#1c3068] outline-none transition-all appearance-none text-gray-700 font-bold cursor-pointer shadow-sm"
+                                >
+                                    {groupedClasses[activeStandard]?.map(c => (
+                                        <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -289,17 +313,17 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                     <div className="flex items-center gap-3">
                         <Users size={25} className="text-[#c53336]" />
                         <div>
-                            <h3 className="text-lg font-bold text-[#2f4fa8]">Student Roster</h3>
+                            <h3 className="text-lg font-bold text-[#1c3068]">Student Roster</h3>
                             <p className="text-xs text-gray-400 mt-1">Total {filteredStudents.length} students in class</p>
                         </div>
                     </div>
                     <div className="relative w-full sm:w-72">
                         <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input type="text" placeholder="Search by name or IC..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:bg-white outline-none transition-all" />
+                        <input type="text" placeholder="Search by name or IC..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] focus:bg-white outline-none transition-all" />
                     </div>
                 </div>
 
-                <div className="w-full">
+                <div className="w-full overflow-x-auto">
                     <table className="w-full text-left border-collapse relative min-w-max">
                         <thead className="top-0 z-10 shadow-sm">
                             <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -311,7 +335,7 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                                 <th className="px-6 py-4 w-16 bg-gray-50">
                                     <label className="flex items-center justify-center cursor-pointer">
                                         <input type="checkbox" className="hidden" checked={isAllSelected} onChange={handleSelectAll} disabled={availableCount === 0 || loadingStudents} />
-                                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${availableCount === 0 ? 'bg-gray-200 border-gray-200 cursor-not-allowed' : isAllSelected ? 'bg-[#2f4fa8] border-[#2f4fa8]' : 'border-2 border-gray-300 hover:border-[#2f4fa8]'}`}>
+                                        <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${availableCount === 0 ? 'bg-gray-200 border-gray-200 cursor-not-allowed' : isAllSelected ? 'bg-[#1c3068] border-[#1c3068]' : 'border-2 border-gray-300 hover:border-[#1c3068]'}`}>
                                             {isAllSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                         </div>
                                     </label>
@@ -329,7 +353,7 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                                     return (
                                         <tr key={student.student_id} className={`transition-colors ${student.is_disabled ? 'bg-gray-50/50' : 'hover:bg-blue-50/30'}`} onClick={() => handleToggle(student.student_id, student.is_disabled)}>
                                             <td className="px-6 py-4 text-sm text-center text-gray-500">{index + 1}</td>
-                                            <td className={`px-6 py-4 text-sm font-bold ${student.is_disabled ? 'text-gray-400' : 'text-[#2f4fa8]'}`}>{student.name}</td>
+                                            <td className={`px-6 py-4 text-sm font-bold ${student.is_disabled ? 'text-gray-400' : 'text-[#1c3068]'}`}>{student.name}</td>
                                             <td className={`px-6 py-4 text-sm font-mono ${student.is_disabled ? 'text-gray-400' : 'text-gray-600'}`}>{student.ic_number}</td>
                                             <td className="py-4 px-6"><span className={`px-2 py-0.5 rounded text-[10px] font-black border ${student.gender?.toLowerCase() === 'male' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100'}`}>{student.gender?.toUpperCase() ?? '-'}</span></td>
                                             <td className="px-6 py-4">
@@ -344,7 +368,7 @@ export const ManageStudents = ({ onBack, itemId, itemName, apiBase, moduleName }
                                             <td className="px-6 py-4 text-center">
                                                 <label className={`flex items-center justify-center ${student.is_disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={(e) => e.stopPropagation()}>
                                                     <input type="checkbox" className="hidden" checked={isChecked} onChange={() => handleToggle(student.student_id, student.is_disabled)} disabled={student.is_disabled} />
-                                                    <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${student.is_disabled ? 'bg-gray-200 border-gray-200' : isChecked ? 'bg-[#2f4fa8] border-[#2f4fa8]' : 'border-2 border-gray-300'}`}>
+                                                    <div className={`w-5 h-5 rounded flex items-center justify-center transition-all ${student.is_disabled ? 'bg-gray-200 border-gray-200' : isChecked ? 'bg-[#1c3068] border-[#1c3068]' : 'border-2 border-gray-300'}`}>
                                                         {isChecked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                                     </div>
                                                 </label>

@@ -4,6 +4,19 @@ import { ArrowLeft, Search, Users, Filter } from 'lucide-react';
 import axios from 'axios';
 import { ExportButtons } from '../dashboard/ExportButtons';
 import { printLogoHeader, printLogoCss } from '../../lib/branding';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '../../Components/ui/hover-card';
+import logo from '../../assets/i_hadir_logo2.png';
+
+// IMPORT PAGINATION
+import { usePagination } from '../../utils/usePagination';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '../../Components/ui/pagination';
 
 interface Attendee {
     id: number;
@@ -11,8 +24,13 @@ interface Attendee {
     ic_number: string;
     user_type: string;
     class_name: string;
+    department: string;
+    position: string;
+    phone_number: string;
+    email: string;
     check_in_time: string;
     check_in_date: string;
+    children_details?: { name: string; ic: string; class: string }[];
 }
 
 export interface ViewEventAttendanceProps {
@@ -23,15 +41,7 @@ export interface ViewEventAttendanceProps {
     moduleName: string;
 }
 
-// ─── Export helpers ────────────────────────────────────────────────────────────
-function buildTableText(items: Attendee[]): string {
-    const header = ['No', 'Name', 'IC Number', 'Type', 'Class', 'Date', 'Time'].join('\t');
-    const rows = items.map((a, i) =>
-        [i + 1, a.name, a.ic_number, a.user_type.toUpperCase(), a.class_name, a.check_in_date, a.check_in_time].join('\t')
-    );
-    return [header, ...rows].join('\n');
-}
-
+// ─── Generic Download Helper ───────────────────────────────────────────────────
 function downloadFile(content: string, filename: string, mime: string) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
@@ -41,79 +51,6 @@ function downloadFile(content: string, filename: string, mime: string) {
     a.click();
     URL.revokeObjectURL(url);
 }
-
-function exportCSV(items: Attendee[], itemName: string) {
-    const header = ['No', 'Name', 'IC Number', 'Type', 'Class', 'Date', 'Time'].join(',');
-    const rows = items.map((a, i) =>
-        [`${i + 1}`, `"${a.name}"`, `"${a.ic_number}"`, `"${a.user_type.toUpperCase()}"`, `"${a.class_name}"`, `"${a.check_in_date}"`, `"${a.check_in_time}"`].join(',')
-    );
-    downloadFile([header, ...rows].join('\n'), `${itemName.replace(/\s+/g, '_')}_attendance.csv`, 'text/csv');
-}
-
-function exportExcel(items: Attendee[], itemName: string) {
-    downloadFile(buildTableText(items), `${itemName.replace(/\s+/g, '_')}_attendance.xls`, 'application/vnd.ms-excel');
-}
-
-// ─── STANDARDIZED PDF / PRINT FORMAT ──────────────────────────────────────────
-function exportPDF(items: Attendee[], logoSrc: string | null, itemName: string) {
-    const rows = items.map((a, i) => `
-    <tr>
-      <td style="text-align:center">${i + 1}</td>
-      <td style="font-weight:bold">${a.name}</td>
-      <td style="text-align:center">${a.ic_number}</td>
-      <td style="text-align:center; text-transform:uppercase;">${a.user_type}</td>
-      <td style="text-align:center">${a.class_name}</td>
-      <td style="text-align:center">${a.check_in_date} <br/> <span style="color:#6b7280; font-size:10px;">${a.check_in_time}</span></td>
-    </tr>`).join('');
-
-    const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${itemName} - Attendance Report</title>
-      <style>
-        @page { margin: 15mm; size: A4 portrait; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
-        .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
-        ${printLogoCss}
-        .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
-        .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-        th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; text-align: left; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        th[style*="text-align:center"] { text-align: center; }
-        tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      </style>
-    </head>
-    <body>
-      <div class="header-container">
-        ${printLogoHeader(logoSrc)}
-        <h1 class="report-title">${itemName} - Attendance Report</h1>
-        <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th style="text-align:center; width:5%">No</th>
-            <th style="width:30%">Name</th>
-            <th style="text-align:center; width:15%">IC Number</th>
-            <th style="text-align:center; width:15%">Type</th>
-            <th style="text-align:center; width:15%">Class</th>
-            <th style="text-align:center; width:20%">Check-in Time</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
-    </body>
-    </html>`;
-
-    const win = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); }
-}
-
-function printTable(items: Attendee[], logoSrc: string | null, itemName: string) { exportPDF(items, logoSrc, itemName); }
-function copyToClipboard(items: Attendee[]) { navigator.clipboard.writeText(buildTableText(items)).then(() => alert('Table data copied to clipboard!')); }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: ViewEventAttendanceProps) => {
@@ -140,7 +77,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
         fetchAttendees();
     }, [itemId]);
 
-    // Extract unique classes dynamically from student attendees for the filter dropdown
+    // Extract unique classes dynamically
     const availableClasses = useMemo(() => {
         const classes = new Set<string>();
         attendees.forEach(a => {
@@ -157,27 +94,263 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
         return matchesSearch && matchesType && matchesClass;
     });
 
+    // ─── PAGINATION (10 per page) ───────────────────────────────────────────────
+    const {
+        currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems
+    } = usePagination(filteredAttendees, 10);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, typeFilter, classFilter, setCurrentPage]);
+
+    // ─── DYNAMIC COLUMNS LOGIC ──────────────────────────────────────────────────
+    const columnsConfig = {
+        all: ['No.', 'Name', 'Type', 'IC Number', 'Phone Number', 'Affiliation', 'Check-In'],
+        vip: ['No.', 'Name', 'Department', 'Position', 'Phone', 'Email', 'Check-In'],
+        parent: ['No.', 'Name', 'IC Number', 'Attending For', 'Phone', 'Email', 'Check-In'],
+        student: ['No.', 'Name', 'IC Number', 'Class', 'Check-In'],
+        teacher: ['No.', 'Name', 'IC Number', 'Phone Number', 'Check-In'],
+        staff: ['No.', 'Name', 'IC Number', 'Phone Number', 'Check-In'],
+    };
+
+    const activeColumns = columnsConfig[typeFilter as keyof typeof columnsConfig] || columnsConfig.all;
+
+    const formatAttendingFor = (pos: string) => {
+        if (!pos || pos === '-') return '-';
+        return pos.replace(/Anak:\s*/i, '').replace(/Tiada rekod anak/i, 'No child record');
+    };
+
+    // Render HoverCard for Parent Affiliation
+    const renderParentAffiliation = (a: Attendee) => {
+        const defaultText = formatAttendingFor(a.position);
+        const namesArray = defaultText.split(',').map(n => n.trim());
+
+        // Fallback if no children details exist at all
+        if (!a.children_details || a.children_details.length === 0) {
+            return (
+                <div className="flex flex-col gap-1 items-center">
+                    {namesArray.map((n, idx) => <span key={idx} className="whitespace-nowrap">{n}</span>)}
+                </div>
+            );
+        }
+
+        // FILTER: Only grab the children that the parent explicitly selected
+        const filteredChildren = a.children_details.filter(child =>
+            namesArray.includes(child.name.trim())
+        );
+
+        // Fallback if no matched children were found after filtering
+        if (filteredChildren.length === 0) {
+            return (
+                <div className="flex flex-col gap-1 items-center">
+                    {namesArray.map((n, idx) => <span key={idx} className="whitespace-nowrap">{n}</span>)}
+                </div>
+            );
+        }
+
+        return (
+            <HoverCard openDelay={300} closeDelay={300}>
+                <HoverCardTrigger className="cursor-help flex flex-col gap-1 items-center">
+                    {namesArray.map((n, idx) => (
+                        <span key={idx} className="underline decoration-dashed decoration-gray-400 underline-offset-4 text-[#1c3068] font-semibold whitespace-nowrap">
+                            {n}
+                        </span>
+                    ))}
+                </HoverCardTrigger>
+                <HoverCardContent side="top" className="w-80 p-0 overflow-hidden shadow-xl border-gray-100 z-50">
+                    <div className="bg-[#1c3068] px-4 py-2 text-white text-xs font-bold uppercase tracking-wider">
+                        Children Details
+                    </div>
+                    <div className="divide-y divide-gray-50 bg-white">
+                        {filteredChildren.map((child, idx) => (
+                            <div key={idx} className="p-3 hover:bg-gray-50 transition-colors text-left">
+                                <p className="text-sm font-bold text-gray-800">{child.name}</p>
+                                <div className="flex justify-between items-center mt-1.5">
+                                    <span className="text-xs font-mono text-gray-500">{child.ic}</span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-[#1c3068] rounded-md border border-blue-100 uppercase tracking-wider">
+                                        {child.class}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </HoverCardContent>
+            </HoverCard>
+        );
+    };
+
+    const getRowData = (a: Attendee, index: number, format: 'ui' | 'csv' | 'html' | 'text') => {
+        const row = [];
+        const isHtml = format === 'html';
+
+        // Helper to wrap data based on format
+        const col = (val: string | React.ReactNode, align = 'center') => {
+            if (format === 'ui') return val;
+            if (isHtml) return `<td style="text-align:${align}">${val}</td>`;
+            if (format === 'csv') return `"${String(val).replace(/"/g, '""')}"`;
+            return String(val);
+        };
+
+        // 1. No. (Account for pagination index correctly)
+        row.push(col(index + 1));
+
+        // 2. Name
+        row.push(col(a.name, 'left'));
+
+        if (typeFilter === 'all') {
+            const ic_number = a.ic_number ?? '-';
+            const phone_number = a.phone_number ?? '-';
+
+            let affiliationUi: React.ReactNode = '-';
+            let affiliationText = '-';
+
+            if (a.user_type === 'student') {
+                affiliationUi = a.class_name;
+                affiliationText = a.class_name;
+            } else if (a.user_type === 'parent') {
+                affiliationUi = renderParentAffiliation(a);
+                affiliationText = formatAttendingFor(a.position);
+            } else if (a.user_type === 'vip') {
+                affiliationUi = a.department !== '-' ? a.department : a.position;
+                affiliationText = a.department !== '-' ? a.department : a.position;
+            }
+
+            // In HTML/Text, replace commas with new lines for parents
+            if (isHtml && a.user_type === 'parent') affiliationText = affiliationText.replace(/,\s*/g, '<br/>');
+
+            row.push(
+                col(a.user_type.toUpperCase()),
+                col(ic_number),
+                col(phone_number),
+                format === 'ui' ? affiliationUi : col(affiliationText)
+            );
+        } else if (typeFilter === 'vip') {
+            row.push(col(a.department), col(a.position), col(a.phone_number), col(a.email));
+        } else if (typeFilter === 'parent') {
+            const rawAffiliation = formatAttendingFor(a.position);
+            const htmlAffiliation = rawAffiliation.replace(/,\s*/g, '<br/>');
+
+            row.push(
+                col(a.ic_number),
+                format === 'ui' ? renderParentAffiliation(a) : col(isHtml ? htmlAffiliation : rawAffiliation),
+                col(a.phone_number),
+                col(a.email)
+            );
+        } else if (typeFilter === 'student') {
+            row.push(col(a.ic_number), col(a.class_name));
+        } else if (typeFilter === 'teacher' || typeFilter === 'staff') {
+            row.push(col(a.ic_number), col(a.phone_number ?? '-'));
+        }
+
+        // Final Check-in Column
+        const checkInText = `${a.check_in_time} (${a.check_in_date})`;
+        if (format === 'ui') {
+            row.push(
+                <div className="flex flex-col items-center whitespace-nowrap">
+                    <span className="font-bold text-gray-700">{a.check_in_time}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">{a.check_in_date}</span>
+                </div>
+            );
+        } else if (isHtml) {
+            row.push(`<td style="text-align:center">${a.check_in_time} <br/> <span style="color:#6b7280; font-size:10px;">${a.check_in_date}</span></td>`);
+        } else {
+            row.push(col(checkInText));
+        }
+
+        return row;
+    };
+
+    // ─── DYNAMIC EXPORT FUNCTIONS (exports ALL filtered data, not just the page) ───
+    const handleCopy = () => {
+        if (!filteredAttendees.length) return;
+        const text = [
+            activeColumns.join('\t'),
+            ...filteredAttendees.map((a, i) => getRowData(a, i, 'text').join('\t'))
+        ].join('\n');
+        navigator.clipboard.writeText(text).then(() => alert('Table data copied to clipboard!'));
+    };
+
+    const handleExportCSV = () => {
+        if (!filteredAttendees.length) return;
+        const csv = [
+            activeColumns.map(h => `"${h}"`).join(','),
+            ...filteredAttendees.map((a, i) => getRowData(a, i, 'csv').join(','))
+        ].join('\n');
+        downloadFile(csv, `${itemName.replace(/\s+/g, '_')}_attendance.csv`, 'text/csv');
+    };
+
+    const handleExportExcel = () => {
+        if (!filteredAttendees.length) return;
+        const text = [
+            activeColumns.join('\t'),
+            ...filteredAttendees.map((a, i) => getRowData(a, i, 'text').join('\t'))
+        ].join('\n');
+        downloadFile(text, `${itemName.replace(/\s+/g, '_')}_attendance.xls`, 'application/vnd.ms-excel');
+    };
+
+    const handleExportPDF = () => {
+        if (!filteredAttendees.length) return;
+        const theadHtml = `<tr>${activeColumns.map(col => `<th style="text-align:${col === 'Name' ? 'left' : 'center'}">${col}</th>`).join('')}</tr>`;
+        const tbodyHtml = filteredAttendees.map((a, i) => `<tr>${getRowData(a, i, 'html').join('')}</tr>`).join('');
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${itemName} - Attendance Report</title>
+          <style>
+            @page { margin: 15mm; size: A4 landscape; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11px; color: #333; margin: 0; padding: 0; }
+            .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
+            ${printLogoCss}
+            .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
+            .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+            th, td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+            th { background-color: #2f4fa8 !important; color: white !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            tr:nth-child(even) { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          </style>
+        </head>
+        <body>
+          <div class="header-container">
+            ${printLogoHeader(logo)}
+            <h1 class="report-title">${itemName} - Attendance Report</h1>
+            <p class="report-meta">Filter: ${typeFilter.toUpperCase()} &nbsp;&bull;&nbsp; Generated: ${new Date().toLocaleString('en-MY')}</p>
+          </div>
+          <table>
+            <thead>${theadHtml}</thead>
+            <tbody>${tbodyHtml}</tbody>
+          </table>
+          <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); }</script>
+        </body>
+        </html>`;
+
+        const win = window.open('', '_blank');
+        if (win) { win.document.write(html); win.document.close(); }
+    };
+
     return (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full min-w-0 flex flex-col space-y-6 overflow-hidden">
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#2f4fa8] transition-colors shadow-sm flex-shrink-0">
+                    <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#1c3068] transition-colors shadow-sm flex-shrink-0">
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h2 className="text-2xl font-bold text-[#2f4fa8] uppercase tracking-wide">{moduleName} Attendance</h2>
+                        <h2 className="text-2xl font-bold text-[#1c3068] uppercase tracking-wide">{moduleName} Attendance</h2>
                         <p className="text-sm text-gray-500 mt-1 font-bold text-[#c53336]">{itemName}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <ExportButtons
-                        onCopy={() => copyToClipboard(filteredAttendees)}
-                        onExportCSV={() => exportCSV(filteredAttendees, itemName)}
-                        onExportExcel={() => exportExcel(filteredAttendees, itemName)}
-                        onExportPDF={() => exportPDF(filteredAttendees, null, itemName)}
-                        onPrint={() => printTable(filteredAttendees, null, itemName)}
+                        onCopy={handleCopy}
+                        onExportCSV={handleExportCSV}
+                        onExportExcel={handleExportExcel}
+                        onExportPDF={handleExportPDF}
+                        onPrint={handleExportPDF}
                     />
                 </div>
             </div>
@@ -188,9 +361,9 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                 {/* Filters Bar */}
                 <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/30">
                     <div className="flex items-center gap-3">
-                        <Users size={24} className="text-[#2f4fa8]" />
+                        <Users size={24} className="text-[#1c3068]" />
                         <div>
-                            <h3 className="text-lg font-bold text-[#2f4fa8]">Attendee List</h3>
+                            <h3 className="text-lg font-bold text-[#1c3068]">Attendee List</h3>
                             <p className="text-xs text-gray-400 mt-1">Total {filteredAttendees.length} checked in</p>
                         </div>
                     </div>
@@ -198,7 +371,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                         <div className="relative w-full sm:w-40">
                             <Filter size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); if (e.target.value !== 'student') setClassFilter('all'); }} className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all cursor-pointer font-medium text-gray-600 appearance-none">
+                            <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); if (e.target.value !== 'student') setClassFilter('all'); }} className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none transition-all cursor-pointer font-medium text-gray-600 appearance-none">
                                 <option value="all">All Types</option>
                                 <option value="student">Students</option>
                                 <option value="teacher">Teachers</option>
@@ -208,9 +381,8 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                             </select>
                         </div>
 
-                        {/* Only show Class filter if 'All' or 'Student' is selected */}
                         {(typeFilter === 'all' || typeFilter === 'student') && availableClasses.length > 0 && (
-                            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-full sm:w-36 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all cursor-pointer font-medium text-gray-600">
+                            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-full sm:w-36 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none transition-all cursor-pointer font-medium text-gray-600">
                                 <option value="all">All Classes</option>
                                 {availableClasses.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -218,58 +390,97 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
                         <div className="relative w-full sm:w-64">
                             <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <input type="text" placeholder="Search name or IC..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all" />
+                            <input type="text" placeholder="Search name or info..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#1c3068] outline-none transition-all" />
                         </div>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto max-h-[500px] overflow-y-auto relative w-full">
+                {/* Dynamic Table */}
+                <div className="overflow-x-auto relative w-full">
                     <table className="w-full text-left border-collapse relative min-w-max">
                         <thead className="sticky top-0 z-10 shadow-sm">
                             <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                <th className="py-4 px-6 w-16 text-center">No.</th>
-                                <th className="px-6 py-4">Name</th>
-                                <th className="px-6 py-4">IC Number</th>
-                                <th className="px-6 py-4 text-center">Type</th>
-                                <th className="px-6 py-4 text-center">Class</th>
-                                <th className="px-6 py-4 text-center">Check-In Time</th>
+                                {activeColumns.map((col, i) => (
+                                    <th key={col} className={`py-4 px-6 ${i === 0 ? 'w-16 text-center' : i === 1 ? '' : 'text-center'}`}>
+                                        {col}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
-                                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium animate-pulse">Loading attendees...</td></tr>
-                            ) : filteredAttendees.length === 0 ? (
-                                <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">No attendees found.</td></tr>
+                                <tr><td colSpan={activeColumns.length} className="px-6 py-12 text-center text-gray-400 font-medium animate-pulse">Loading attendees...</td></tr>
+                            ) : currentData.length === 0 ? (
+                                <tr><td colSpan={activeColumns.length} className="px-6 py-12 text-center text-gray-400 font-medium">No attendees found.</td></tr>
                             ) : (
-                                filteredAttendees.map((a, index) => (
-                                    <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 text-sm text-center text-gray-500">{index + 1}</td>
-                                        <td className="px-6 py-4 text-sm font-bold text-[#2f4fa8]">{a.name}</td>
-                                        <td className="px-6 py-4 text-sm font-mono text-gray-500">{a.ic_number}</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${a.user_type === 'vip' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                    a.user_type === 'parent' ? 'bg-purple-50 text-purple-600 border-purple-200' :
-                                                        a.user_type === 'teacher' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                                                            a.user_type === 'staff' ? 'bg-teal-50 text-teal-600 border-teal-200' :
-                                                                'bg-gray-100 text-gray-600 border-gray-200'
-                                                }`}>
-                                                {a.user_type === 'vip' && '⭐ '} {a.user_type}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-center text-gray-500">{a.class_name}</td>
-                                        <td className="px-6 py-4 text-sm text-center">
-                                            <div className="flex flex-col items-center">
-                                                <span className="font-bold text-gray-700">{a.check_in_time}</span>
-                                                <span className="text-[10px] text-gray-400 font-medium">{a.check_in_date}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                currentData.map((a, index) => {
+                                    const rowData = getRowData(a, startIndex + index, 'ui');
+
+                                    return (
+                                        <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
+                                            {rowData.map((val, colIdx) => (
+                                                <td key={colIdx} className={`px-6 py-4 text-sm ${colIdx === 0 ? 'text-center text-gray-500' : colIdx === 1 ? 'font-bold text-[#1c3068]' : 'text-center text-gray-600'}`}>
+                                                    {/* Special styling for user type badge if in 'All' view */}
+                                                    {typeFilter === 'all' && colIdx === 2 && typeof val === 'string' ? (
+                                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${val === 'VIP' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                            val === 'PARENT' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                                                                val === 'TEACHER' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                                    val === 'STAFF' ? 'bg-teal-50 text-teal-600 border-teal-200' :
+                                                                        'bg-gray-100 text-gray-600 border-gray-200'
+                                                            }`}>
+                                                            {val === 'VIP' && '⭐ '} {val}
+                                                        </span>
+                                                    ) : (
+                                                        val
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* --- PAGINATION & COUNT --- */}
+                {!loading && (
+                    <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 gap-4 bg-gray-50/30">
+                        <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
+
+                        {totalPages > 1 && (
+                            <Pagination className="mx-0 w-auto">
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                        />
+                                    </PaginationItem>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => setCurrentPage(page)}
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        )}
+                    </div>
+                )}
             </div>
         </motion.div>
     );

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, MapPin, MapPinOff, LoaderCircle } from 'lucide-react';
 import axios from 'axios';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Navbar } from '../Components/landing/Navbar';
 import ScannerCard from '../Components/common/ScannerCard';
 import ScanResultModal, { ScanResultBadge } from '../Components/common/ScanResultModal';
+import { useScanLocation } from '../hooks/useScanLocation';
 
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -50,6 +51,65 @@ const statusTone: Record<string, ScanResultBadge['tone']> = {
   absent: 'danger',
 };
 
+
+// Shown instead of the camera until we have a usable position. Keeping the
+// scanner unmounted makes the requirement obvious rather than letting someone
+// scan and hit a confusing rejection afterwards.
+const LocationGate = ({ location }: { location: ReturnType<typeof useScanLocation> }) => {
+  const busy = location.state === 'checking'
+    || location.state === 'requesting'
+    || location.state === 'verifying';
+  const outOfArea = location.state === 'out-of-area';
+
+  const copy = {
+    checking:     { title: 'Preparing scanner…', body: 'Checking whether this school requires location.' },
+    requesting:   { title: 'Finding your location…', body: 'Allow location access when your browser asks.' },
+    verifying:    { title: 'Confirming you are at school…', body: 'Checking your location against the school grounds.' },
+    denied:       { title: 'Location is turned off', body: location.error },
+    unavailable:  { title: 'Location unavailable', body: location.error },
+    'out-of-area':{ title: 'You are not at the school', body: location.error },
+  }[location.state as 'checking' | 'requesting' | 'verifying' | 'denied' | 'unavailable' | 'out-of-area'];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+      <div
+        className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+          busy ? 'bg-[#2f4fa8]/10 text-[#2f4fa8]' : 'bg-red-50 text-[#c53336]'
+        }`}
+      >
+        {busy ? (
+          <LoaderCircle size={28} className="animate-spin" />
+        ) : location.state === 'denied' ? (
+          <MapPinOff size={28} />
+        ) : outOfArea ? (
+          <MapPinOff size={28} />
+        ) : (
+          <MapPin size={28} />
+        )}
+      </div>
+
+      <h3 className="text-xl font-bold text-[#2f4fa8] mb-2">{copy?.title}</h3>
+      <p className="text-gray-500 text-sm leading-relaxed max-w-sm mx-auto">{copy?.body}</p>
+
+      {!busy && (
+        <>
+          <button
+            onClick={location.retry}
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#2f4fa8] text-white font-bold text-sm hover:bg-[#264190] transition-colors"
+          >
+            <MapPin size={16} /> Try again
+          </button>
+          <p className="mt-4 text-xs text-gray-400 max-w-sm mx-auto">
+            {outOfArea
+              ? 'Attendance can only be recorded on the school grounds. Move closer and try again.'
+              : 'Attendance can only be recorded at the school. If you have blocked location for this site, re-enable it in your browser settings and try again.'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function PublicScan() {
   const [searchParams] = useSearchParams();
 
@@ -69,6 +129,11 @@ export default function PublicScan() {
   const title = isFacility
     ? `${FACILITY_LABELS[facility!]} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`
     : `${isGeneralStaff ? 'Staff' : userType === 'staff' ? 'Security Staff' : 'Student'} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`;
+
+  // Anti-fraud: when the school has a geofence, the camera stays locked until
+  // the browser gives us a position. The server re-checks it on every scan.
+  const location = useScanLocation(school);
+  const locationBlocking = location.state !== 'ready' && location.state !== 'not-needed';
 
   const [scanning, setScanning] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -98,9 +163,16 @@ export default function PublicScan() {
       const endpoint = isFacility
         ? `/api/facility/${mode}`
         : `/api/attendance/${mode}`;
+      const geo = location.coords
+        ? {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            accuracy: location.coords.accuracy,
+          }
+        : {};
       const payload = isFacility
-        ? { ic_number: decoded.trim(), user_type: 'student', facility_type: facility }
-        : { ic_number: decoded.trim(), user_type: userType, ...(needsShift ? { shift_id: selectedShiftId } : {}) };
+        ? { ic_number: decoded.trim(), user_type: 'student', facility_type: facility, ...geo }
+        : { ic_number: decoded.trim(), user_type: userType, ...(needsShift ? { shift_id: selectedShiftId } : {}), ...geo };
 
       const res = await axios.post(endpoint, payload);
       setResult(res.data);
@@ -133,7 +205,9 @@ export default function PublicScan() {
           <p className="text-gray-500">Show the QR code to the camera to record {mode === 'check-out' ? 'check-out' : 'check-in'}.</p>
         </div>
 
-        {needsShift && !shiftsLoaded ? (
+        {locationBlocking ? (
+          <LocationGate location={location} />
+        ) : needsShift && !shiftsLoaded ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-center py-16">
             <div className="w-8 h-8 border-4 border-[#1c3068] border-t-transparent rounded-full animate-spin" />
           </div>

@@ -22,16 +22,16 @@ export const ExportButtons = ({
     <button onClick={onCopy} className="flex items-center gap-2 px-3 py-2 bg-[#c53336] text-white rounded-lg hover:bg-[#a02224] transition-colors font-medium text-sm shadow-sm">
       <Copy size={16} /> Copy
     </button>
-    <button onClick={onExportCSV} className="flex items-center gap-2 px-3 py-2 bg-[#2f4fa8] text-white rounded-lg hover:bg-[#264190] transition-colors font-medium text-sm shadow-sm">
+    <button onClick={onExportCSV} className="flex items-center gap-2 px-3 py-2 bg-role text-white rounded-lg hover:bg-role-dark transition-colors font-medium text-sm shadow-sm">
       <FileText size={16} /> CSV
     </button>
-    <button onClick={onExportExcel} className="flex items-center gap-2 px-3 py-2 bg-[#2f4fa8] text-white rounded-lg hover:bg-[#264190] transition-colors font-medium text-sm shadow-sm">
+    <button onClick={onExportExcel} className="flex items-center gap-2 px-3 py-2 bg-role text-white rounded-lg hover:bg-role-dark transition-colors font-medium text-sm shadow-sm">
       <FileSpreadsheet size={16} /> Excel
     </button>
-    <button onClick={onExportPDF} className="flex items-center gap-2 px-3 py-2 bg-[#2f4fa8] text-white rounded-lg hover:bg-[#264190] transition-colors font-medium text-sm shadow-sm">
+    <button onClick={onExportPDF} className="flex items-center gap-2 px-3 py-2 bg-role text-white rounded-lg hover:bg-role-dark transition-colors font-medium text-sm shadow-sm">
       <FileType size={16} /> PDF
     </button>
-    <button onClick={onPrint} className="flex items-center gap-2 px-3 py-2 bg-white text-[#2f4fa8] rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm border border-gray-200 shadow-sm">
+    <button onClick={onPrint} className="flex items-center gap-2 px-3 py-2 bg-white text-role rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm border border-gray-200 shadow-sm">
       <Printer size={16} /> Print
     </button>
   </div>

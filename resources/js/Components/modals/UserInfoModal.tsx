@@ -51,7 +51,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
             >
                 <div className="overflow-y-auto">
                     {/* Header Background */}
-                    <div className="h-32 bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] w-full"></div>
+                    <div className="h-32 bg-gradient-to-r from-role to-[#2a4595] w-full"></div>
 
                     <div className="relative z-10 px-8 pb-8 -mt-16">
                         {/* Profile Section */}
@@ -72,7 +72,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                             </div>
 
                             <h2 className="text-2xl font-bold text-gray-800 text-center px-4">{user.name}</h2>
-                            <div className="mt-2 px-4 py-1 bg-blue-50 text-[#2f4fa8] rounded-full text-sm font-bold uppercase tracking-wide border border-blue-100 shadow-sm">
+                            <div className="mt-2 px-4 py-1 bg-blue-50 text-role rounded-full text-sm font-bold uppercase tracking-wide border border-blue-100 shadow-sm">
                                 {roleLabel}
                             </div>
                         </div>
@@ -81,7 +81,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             {/* Personal Info */}
                             <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-2 mb-4 text-[#2f4fa8]">
+                                <div className="flex items-center gap-2 mb-4 text-role">
                                     <UserCircle2 size={20} />
                                     <h3 className="font-bold text-lg">Personal Information</h3>
                                 </div>
@@ -127,19 +127,19 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                                 <div className="space-y-4">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact Name</span>
-                                        <span className="text-gray-900 font-bold uppercase">{user.raw_data?.emergency_contact_name}</span>
+                                        <span className="text-gray-900 font-bold uppercase">{user.raw_data?.emergency_contact_name ?? '-'}</span>
                                     </div>
 
                                     <div className="flex flex-col gap-1">
                                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Relation</span>
-                                        <span className="text-gray-900 font-medium uppercase">{user.raw_data?.emergency_relationship}</span>
+                                        <span className="text-gray-900 font-medium uppercase">{user.raw_data?.emergency_relationship ?? '-'}</span>
                                     </div>
 
                                     <div className="flex flex-col gap-1">
                                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1">
                                             <Phone size={12} /> Phone Number
                                         </span>
-                                        <span className="text-gray-900 font-medium font-mono">{user.raw_data?.emergency_phone_num}</span>
+                                        <span className="text-gray-900 font-medium font-mono">{user.raw_data?.emergency_phone_num ?? '-'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -155,7 +155,7 @@ export const UserInfoModal = ({ isOpen, onClose, user }: UserInfoModalProps) => 
                             </button>
                             <button
                                 onClick={() => window.print()}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-[#2f4fa8] text-white rounded-xl text-sm font-bold hover:bg-[#264190] transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-role text-white rounded-xl text-sm font-bold hover:bg-role-dark transition-all shadow-lg shadow-blue-900/20 transform hover:-translate-y-0.5"
                             >
                                 <Printer size={16} /> Print Details
                             </button>

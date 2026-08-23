@@ -247,12 +247,62 @@ class EventController extends Controller
         ];
     }
 
+    // 1. ADD THIS NEW METHOD to search for the Parent by IC
+    public function checkParentIc(Request $request)
+    {
+        $request->validate(['ic_number' => 'required|string']);
+        
+        $schoolId = auth()->user()->school_id;
+        
+        // Clean IC and make dashed version (Dash-proof logic)
+        $cleanIc = preg_replace('/[^0-9]/', '', $request->ic_number);
+        $dashedIc = strlen($cleanIc) === 12 
+            ? substr($cleanIc, 0, 6) . '-' . substr($cleanIc, 6, 2) . '-' . substr($cleanIc, 8, 4) 
+            : null;
+
+        // Find any students belonging to this IC
+        $students = Student::where('school_id', $schoolId)
+            ->where(function($q) use ($request, $cleanIc, $dashedIc) {
+                $q->where('father_ic', $request->ic_number)
+                  ->orWhere('mother_ic', $request->ic_number)
+                  ->orWhere('father_ic', $cleanIc)
+                  ->orWhere('mother_ic', $cleanIc);
+                if ($dashedIc) {
+                    $q->orWhere('father_ic', $dashedIc)->orWhere('mother_ic', $dashedIc);
+                }
+            })->get();
+
+        if ($students->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No records of children found for this IC Number.'], 404);
+        }
+
+        // Extract parent details from the first matched student
+        $firstStudent = $students->first();
+        $isFather = $firstStudent->father_ic === $cleanIc || $firstStudent->father_ic === $dashedIc || $firstStudent->father_ic === $request->ic_number;
+        
+        $parentName = $isFather ? $firstStudent->father_name : $firstStudent->mother_name;
+        $parentPhone = $isFather ? $firstStudent->father_phone_num : $firstStudent->mother_phone_num;
+
+        return response()->json([
+            'success' => true,
+            'parent_name' => $parentName,
+            'parent_phone' => $parentPhone,
+            'children' => $students->map(fn($s) => ['id' => $s->student_id, 'name' => $s->name])
+        ]);
+    }
+
+    // 2. UPDATE your existing manualRegistration method
     public function manualRegistration(Request $request, $id)
     {
         $request->validate([
-            'user_type' => 'required|string',
-            'name'      => 'required|string|max:255',
-            'ic_number' => 'nullable|string',
+            'user_type'  => 'required|string',
+            'name'       => 'required|string|max:255',
+            'ic_number'  => 'nullable|string',
+            'department' => 'nullable|string|required_if:user_type,vip',
+            'position'   => 'nullable|string|required_if:user_type,vip',
+            'phone'      => 'nullable|string',
+            'email'      => 'nullable|email',
+            'children'   => 'nullable|array', // Accept array of child names
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -261,14 +311,11 @@ class EventController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
-        // Ensure the selected type is allowed for this event
         if (!in_array($request->user_type, $event->participant_types ?? [])) {
             return response()->json(['message' => "This event does not allow {$request->user_type}s."], 422);
         }
 
         $userId = null;
-
-        // If it's a system user and an IC is provided, attempt to link their account
         if ($request->ic_number && in_array($request->user_type, ['student', 'teacher', 'staff'])) {
             [$resolvedUserId, $resolvedName, $resolvedClass] = $this->resolveByIc($request->ic_number, $request->user_type, $schoolId);
             if ($resolvedUserId) {
@@ -276,10 +323,7 @@ class EventController extends Controller
             }
         }
 
-        // Prevent Duplicate Check-ins manually
-        $query = EventAttendee::where('event_id', $event->event_id)
-            ->where('user_type', $request->user_type);
-            
+        $query = EventAttendee::where('event_id', $event->event_id)->where('user_type', $request->user_type);
         if ($userId) {
             $query->where('user_id', $userId);
         } else {
@@ -290,18 +334,32 @@ class EventController extends Controller
             return response()->json(['message' => 'This participant is already checked in to this event.'], 409);
         }
 
+        // --- Cleverly format Parent Data into existing columns ---
+        $department = $request->department;
+        $position = $request->position;
+        
+        if ($request->user_type === 'parent') {
+            $department = 'Ibu Bapa / Penjaga';
+            $childrenStr = is_array($request->children) && count($request->children) > 0 
+                ? implode(', ', $request->children) 
+                : 'No children found';
+            $position = $childrenStr;
+        }
+
         EventAttendee::create([
             'event_id'      => $event->event_id,
             'user_type'     => $request->user_type,
             'user_id'       => $userId,
             'name'          => $request->name,
+            'ic_number'     => $request->ic_number,
+            'department'    => $department,
+            'position'      => $position,
+            'phone_number'  => $request->phone,
+            'email'         => $request->email,
             'check_in_time' => Carbon::now(),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Manual registration successful.',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Manual registration successful.']);
     }
 
     // ─── Fetch Unregistered Participants for Dropdown ──────────────────────────
@@ -363,17 +421,14 @@ class EventController extends Controller
             ->orderBy('check_in_time', 'desc')
             ->get();
 
-        // Collect IDs to batch query system users efficiently
         $studentIds = $attendees->where('user_type', 'student')->whereNotNull('user_id')->pluck('user_id')->toArray();
         $teacherIds = $attendees->where('user_type', 'teacher')->whereNotNull('user_id')->pluck('user_id')->toArray();
         $staffIds   = $attendees->where('user_type', 'staff')->whereNotNull('user_id')->pluck('user_id')->toArray();
 
-        // Fetch user relations
         $students = Student::whereIn('student_id', $studentIds)->get()->keyBy('student_id');
         $teachers = User::whereIn('user_id', $teacherIds)->get()->keyBy('user_id');
         $staffs   = User::whereIn('user_id', $staffIds)->get()->keyBy('user_id');
 
-        // Fetch student classes
         $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         $enrollments = collect();
         if ($session && count($studentIds) > 0) {
@@ -384,33 +439,72 @@ class EventController extends Controller
                 ->keyBy('student_id');
         }
 
-        $data = $attendees->map(function ($a) use ($students, $teachers, $staffs, $enrollments) {
-            $name = $a->name; // fallback for manual registrations (VIPs, Parents)
-            $ic = '-';
+        // Fetch Children Details for Parents
+        $parentIcs = $attendees->where('user_type', 'parent')->pluck('ic_number')->filter()->unique()->toArray();
+        $parentChildren = [];
+        
+        if (!empty($parentIcs)) {
+            $children = Student::where('school_id', $schoolId)
+                ->where(function($q) use ($parentIcs) {
+                    $q->whereIn('father_ic', $parentIcs)->orWhereIn('mother_ic', $parentIcs);
+                })->get();
+                
+            $childIds = $children->pluck('student_id')->toArray();
+            $childEnrollments = collect();
+            if ($session && count($childIds) > 0) {
+                $childEnrollments = \App\Models\Enrollment::whereIn('student_id', $childIds)
+                    ->where('school_session_id', $session->school_session_id)
+                    ->with('classroom:classroom_id,name')
+                    ->get()
+                    ->keyBy('student_id');
+            }
+
+            foreach ($children as $child) {
+                $cData = [
+                    'name' => $child->name,
+                    'ic' => $child->ic_number,
+                    'class' => $childEnrollments->has($child->student_id) && $childEnrollments[$child->student_id]->classroom ? $childEnrollments[$child->student_id]->classroom->name : 'No Class'
+                ];
+                if (in_array($child->father_ic, $parentIcs)) $parentChildren[$child->father_ic][] = $cData;
+                if (in_array($child->mother_ic, $parentIcs)) $parentChildren[$child->mother_ic][] = $cData;
+            }
+        }
+
+        $data = $attendees->map(function ($a) use ($students, $teachers, $staffs, $enrollments, $parentChildren) {
+            $name = $a->name; 
+            $ic = $a->ic_number ?? '-';
             $className = '-';
+            $phone = $a->phone_number ?? '-'; // Base fallback
 
             if ($a->user_id) {
                 if ($a->user_type === 'student' && $students->has($a->user_id)) {
                     $name = $students[$a->user_id]->name;
-                    $ic = $students[$a->user_id]->ic_number;
+                    $ic = $students[$a->user_id]->ic_number ?? $ic;
                     $className = $enrollments->has($a->user_id) && $enrollments[$a->user_id]->classroom ? $enrollments[$a->user_id]->classroom->name : 'No Class';
                 } elseif ($a->user_type === 'teacher' && $teachers->has($a->user_id)) {
                     $name = $teachers[$a->user_id]->full_name;
-                    $ic = $teachers[$a->user_id]->ic_number;
+                    $ic = $teachers[$a->user_id]->ic_number ?? $ic;
+                    $phone = $teachers[$a->user_id]->phone_num ?? $teachers[$a->user_id]->phone_number ?? $phone; // Auto fetch phone
                 } elseif ($a->user_type === 'staff' && $staffs->has($a->user_id)) {
                     $name = $staffs[$a->user_id]->full_name;
-                    $ic = $staffs[$a->user_id]->ic_number;
+                    $ic = $staffs[$a->user_id]->ic_number ?? $ic;
+                    $phone = $staffs[$a->user_id]->phone_num ?? $staffs[$a->user_id]->phone_number ?? $phone; // Auto fetch phone
                 }
             }
 
             return [
-                'id'            => $a->id,
-                'name'          => $name ?? 'Unknown',
-                'ic_number'     => $ic,
-                'user_type'     => $a->user_type,
-                'class_name'    => $className,
-                'check_in_time' => $a->check_in_time->format('h:i A'),
-                'check_in_date' => $a->check_in_time->format('d/m/Y'),
+                'id'               => $a->id,
+                'name'             => $name ?? 'Unknown',
+                'ic_number'        => $ic,
+                'user_type'        => $a->user_type,
+                'class_name'       => $className,
+                'department'       => $a->department ?? '-',
+                'position'         => $a->position ?? '-',
+                'phone_number'     => $phone, // Returns the newly mapped phone number
+                'email'            => $a->email ?? '-',
+                'check_in_time'    => $a->check_in_time->format('h:i A'),
+                'check_in_date'    => $a->check_in_time->format('d/m/Y'),
+                'children_details' => $a->user_type === 'parent' && isset($parentChildren[$ic]) ? $parentChildren[$ic] : []
             ];
         });
 

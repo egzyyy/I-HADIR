@@ -32,7 +32,7 @@ const FaqPage = () => {
       className="max-w-4xl mx-auto"
     >
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-black text-[#2f4fa8] mb-4">Frequently Asked Questions</h2>
+        <h2 className="text-3xl font-black text-role mb-4">Frequently Asked Questions</h2>
         <p className="text-gray-500">Find answers to common questions about using the i-HADIR system.</p>
       </div>
 
@@ -54,7 +54,7 @@ const FaqPage = () => {
               onClick={() => toggleFaq(index)}
               className="w-full px-8 py-6 flex items-center justify-between gap-4 text-left focus:outline-none"
             >
-              <span className={`text-lg font-bold transition-colors ${openIndex === index ? 'text-[#2f4fa8]' : 'text-gray-700'}`}>
+              <span className={`text-lg font-bold transition-colors ${openIndex === index ? 'text-role' : 'text-gray-700'}`}>
                 {faq.question}
               </span>
               <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors
@@ -86,11 +86,11 @@ const FaqPage = () => {
 
       {/* Contact Support Section */}
       {/* <div className="mt-12 text-center bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
-        <h3 className="text-lg font-bold text-[#2f4fa8] mb-2">Still have questions?</h3>
+        <h3 className="text-lg font-bold text-role mb-2">Still have questions?</h3>
         <p className="text-gray-500 text-sm mb-6">Can't find the answer you're looking for? Please contact our support team.</p>
         <a
           href={`mailto:info@ihadir.edu?subject=${encodeURIComponent('I-HADIR Support Request')}`}
-          className="inline-block bg-[#2f4fa8] text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-[#264190] transition-colors shadow-lg shadow-blue-900/20"
+          className="inline-block bg-role text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-role-dark transition-colors shadow-lg shadow-blue-900/20"
         >
           Contact Support
         </a>

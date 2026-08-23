@@ -151,10 +151,10 @@ const SchoolProfile = () => {
       {/* School Session List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-[#2f4fa8]">School Sessions History</h3>
+          <h3 className="text-lg font-bold text-role">School Sessions History</h3>
           <button
             onClick={() => setIsSessionModalOpen(true)}
-            className="flex items-center gap-2 bg-[#2f4fa8] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#264190] transition-all shadow-lg shadow-[#2f4fa8]/20"
+            className="flex items-center gap-2 bg-role text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-role-dark transition-all shadow-lg shadow-role/20"
           >
             <Clock size={18} />
             Set School Session
@@ -178,7 +178,7 @@ const SchoolProfile = () => {
                ) : (
                  sessions.map((session) => (
                    <tr key={session.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-[#2f4fa8]">{session.year}</td>
+                      <td className="px-6 py-4 font-bold text-role">{session.year}</td>
                       <td className="px-6 py-4 text-gray-600 font-mono text-sm">{formatStandardDate(session.startDate)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
@@ -234,7 +234,7 @@ const SchoolProfile = () => {
             >
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                  <div>
-                   <h3 className="text-xl font-bold text-[#2f4fa8]">Set School Session</h3>
+                   <h3 className="text-xl font-bold text-role">Set School Session</h3>
                    <p className="text-gray-500 text-xs mt-1">Configure the academic year duration</p>
                  </div>
                  <button 
@@ -249,7 +249,7 @@ const SchoolProfile = () => {
                  <form className="space-y-6">
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#2f4fa8]">
+                        <label className="block text-sm font-bold text-role">
                           <span className="text-[#c53336] mr-1">*</span> Session Year
                         </label>
                         <input 
@@ -257,19 +257,19 @@ const SchoolProfile = () => {
                           value={newYear}
                           onChange={(e) => setNewYear(e.target.value)}
                           placeholder="e.g. 2026"
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-medium"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium"
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#2f4fa8]">
+                        <label className="block text-sm font-bold text-role">
                           <span className="text-[#c53336] mr-1">*</span> Start School Date
                         </label>
                         <input 
                           type="date" 
                           value={newStartDate}
                           onChange={(e) => setNewStartDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700"
                         />
                         <p className="text-xs text-gray-400">Note: New sessions are automatically set to Active.</p>
                       </div>
@@ -287,7 +287,7 @@ const SchoolProfile = () => {
                          type="button"
                          onClick={handleCreateSession}
                          disabled={isSubmitting}
-                         className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-70"
+                         className="bg-role hover:bg-role-dark text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-role/20 transition-all disabled:opacity-70"
                        >
                          {isSubmitting ? 'Saving...' : 'Submit'}
                        </button>
@@ -316,7 +316,7 @@ const SchoolProfile = () => {
             >
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                  <div>
-                   <h3 className="text-xl font-bold text-[#2f4fa8]">Edit School Session</h3>
+                   <h3 className="text-xl font-bold text-role">Edit School Session</h3>
                    <p className="text-gray-500 text-xs mt-1">Update the start date for session year {editingSession.year}</p>
                  </div>
                  <button 
@@ -331,7 +331,7 @@ const SchoolProfile = () => {
                  <form className="space-y-6">
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#2f4fa8]">
+                        <label className="block text-sm font-bold text-role">
                           Session Year
                         </label>
                         <input 
@@ -343,19 +343,19 @@ const SchoolProfile = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#2f4fa8]">
+                        <label className="block text-sm font-bold text-role">
                           <span className="text-[#c53336] mr-1">*</span> Start School Date
                         </label>
                         <input 
                           type="date" 
                           value={editStartDate}
                           onChange={(e) => setEditStartDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-[#2f4fa8]">
+                        <label className="block text-sm font-bold text-role">
                           Status
                         </label>
                         <div className="flex items-center gap-2">
@@ -382,7 +382,7 @@ const SchoolProfile = () => {
                          type="button"
                          onClick={handleSaveEdit}
                          disabled={isSubmitting}
-                         className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all disabled:opacity-70"
+                         className="bg-role hover:bg-role-dark text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-role/20 transition-all disabled:opacity-70"
                        >
                          {isSubmitting ? 'Updating...' : 'Update'}
                        </button>
@@ -412,7 +412,7 @@ const SchoolProfile = () => {
               <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertCircle size={40} className="text-red-500" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Delete Session?</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Delete Session?</h3>
               <p className="text-gray-500 mb-8">
                 Are you sure you want to delete the school session for <b>{sessionToDelete.year}</b>? This action cannot be undone.
               </p>
@@ -475,7 +475,7 @@ const SchoolProfile = () => {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">{successMessage}</p>
               <button 
                 onClick={() => setShowSuccessModal(false)}

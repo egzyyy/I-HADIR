@@ -120,9 +120,9 @@ const VisitorListContent = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -402,7 +402,7 @@ const VisitorListContent = () => {
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50">
           <div>
-            <h2 className="text-xl font-bold text-[#2f4fa8] flex items-center gap-2">
+            <h2 className="text-xl font-bold text-role flex items-center gap-2">
               <ClipboardList size={24} className="text-[#c53336]" /> Visitor Logbook
             </h2>
             <p className="text-gray-400 text-xs mt-1">Complete history of campus visitors as of {today}</p>
@@ -434,7 +434,7 @@ const VisitorListContent = () => {
                    type="date"
                    value={dateFilter}
                    onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
-                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none text-gray-600 bg-gray-50 focus:bg-white transition-all"
+                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none text-gray-600 bg-gray-50 focus:bg-white transition-all"
                  />
                </div>
 
@@ -443,7 +443,7 @@ const VisitorListContent = () => {
                  <select 
                    value={statusFilter}
                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
+                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                  >
                    <option value="All">All Status</option>
                    <option value="In Premise">In Premise</option>
@@ -457,7 +457,7 @@ const VisitorListContent = () => {
                  <select 
                    value={purposeFilter}
                    onChange={(e) => { setPurposeFilter(e.target.value); setCurrentPage(1); }}
-                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
+                   className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                  >
                    <option value="All">All Purposes</option>
                    <option value="Meeting / Discussion">Meeting / Discussion</option>
@@ -477,7 +477,7 @@ const VisitorListContent = () => {
                    placeholder="Search name, plate, host..."
                    value={searchQuery}
                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all bg-gray-50 focus:bg-white"
+                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all bg-gray-50 focus:bg-white"
                  />
                </div>
             </div>
@@ -517,7 +517,7 @@ const VisitorListContent = () => {
                       <td className="px-4 py-4 text-sm text-gray-500 text-center">{startIndex + index + 1}</td>
                       
                       <td className="px-4 py-4">
-                        <p className="text-sm font-bold text-[#2f4fa8]">{item.name}</p>
+                        <p className="text-sm font-bold text-role">{item.name}</p>
                         <p className="text-sm text-gray-500 mt-0.5">{item.phone} • {item.category}</p>
                       </td>
                       
@@ -638,7 +638,7 @@ const VisitorListContent = () => {
              onClick={(e) => e.stopPropagation()}
            >
               <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
-                 <h3 className="font-bold text-[#2f4fa8] flex items-center gap-2"><ClipboardList size={18} /> 
+                 <h3 className="font-bold text-role flex items-center gap-2"><ClipboardList size={18} /> 
                    Visitor Details
                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border uppercase tracking-wider ${
                        selectedVisitor.status === 'In Premise' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'
@@ -682,7 +682,7 @@ const VisitorListContent = () => {
               <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <HelpCircle size={40} className="text-blue-500" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Confirm Check-Out</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Confirm Check-Out</h3>
               <p className="text-gray-500 mb-8">
                 Force check-out for <span className="font-bold text-gray-800">{checkOutConfirm.name}</span>?
               </p>
@@ -696,7 +696,7 @@ const VisitorListContent = () => {
                 <button 
                   onClick={proceedCheckOut}
                   disabled={isSubmitting}
-                  className="flex-1 py-3 rounded-xl font-bold bg-[#2f4fa8] hover:bg-[#264190] text-white shadow-lg transition-all disabled:opacity-70"
+                  className="flex-1 py-3 rounded-xl font-bold bg-role hover:bg-role-dark text-white shadow-lg transition-all disabled:opacity-70"
                 >
                   {isSubmitting ? 'Checking out...' : 'Confirm'}
                 </button>
@@ -717,7 +717,7 @@ const VisitorListContent = () => {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Check-Out Complete!</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Check-Out Complete!</h3>
               <p className="text-gray-500 mb-8">
                 The visitor has been successfully marked as checked out.
               </p>

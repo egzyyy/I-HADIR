@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\SchoolProfile;
 use App\Models\Student;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -67,6 +68,65 @@ class PublicController extends Controller
                     'co_curriculars' => CoCurricular::where('school_id', $school->school_id)
                         ->where('is_active', true)->count(),
                 ],
+            ],
+        ]);
+    }
+
+
+    /**
+     * Tells the public kiosk scanner whether it must obtain a location fix
+     * before scanning. Coordinates are deliberately NOT returned — the client
+     * only needs to know that a fix is required; the server decides whether the
+     * reported position passes.
+     */
+    public function scanPolicy(Request $request)
+    {
+        $school = $request->filled('school')
+            ? $this->findBySlug($request->school)
+            : School::where('is_active', true)->first();
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'geofence_required' => (bool) $school?->hasGeofence(),
+                'school_name'       => $school?->name,
+            ],
+        ]);
+    }
+
+
+    /**
+     * Pre-flight check for the kiosk scanner: is this position inside the
+     * school's geofence? Lets the page refuse to open the camera at all,
+     * instead of letting someone scan and be rejected afterwards.
+     *
+     * Shares GeofenceGuard with the scan endpoints so the preview and the
+     * actual enforcement can never disagree.
+     */
+    public function verifyLocation(Request $request)
+    {
+        $request->validate([
+            'latitude'  => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'accuracy'  => 'nullable|numeric|min:0',
+        ]);
+
+        $school = $request->filled('school')
+            ? $this->findBySlug($request->school)
+            : School::where('is_active', true)->first();
+
+        if (!$school || !$school->hasGeofence()) {
+            return response()->json(['success' => true, 'data' => ['inside' => true]]);
+        }
+
+        $failure = app(\App\Services\GeofenceGuard::class)->check($request, $school);
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'inside'  => $failure === null,
+                'code'    => $failure['code'] ?? null,
+                'message' => $failure['message'] ?? null,
             ],
         ]);
     }

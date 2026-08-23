@@ -78,10 +78,11 @@ class QrController extends Controller
         }
 
         return response()->json([
-            'success' => true,
-            'payload' => $user->ic_number,
-            'name'    => $user->full_name,
-            'label'   => $user->user_type === 'security_staff' ? 'Security' : ucfirst($userType),
+            'success'  => true,
+            'payload'  => $user->ic_number,
+            'name'     => $user->full_name,
+            'label'    => $user->user_type === 'security_staff' ? 'Security' : ucfirst($userType),
+            'position' => $user->position,
         ]);
     }
 
