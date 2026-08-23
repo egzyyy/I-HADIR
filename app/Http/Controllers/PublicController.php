@@ -33,6 +33,50 @@ class PublicController extends Controller
         return response()->json(['success' => true, 'data' => $schools]);
     }
 
+    /**
+     * Attaches each organization member's photo for the landing page.
+     *
+     * The org chart is free-text JSON typed into the Landing Page editor, so it
+     * holds no photo of its own — the picture a person uploads lives on their
+     * user account as profile_pic_path. This resolves one to the other:
+     *
+     *   1. by user_id, when the admin has linked the row to an account;
+     *   2. otherwise by normalised full name, so rows created before linking
+     *      existed still show a photo without needing to be re-entered.
+     *
+     * Members with no matching account (a PIBG chairperson, say) get a null
+     * photo and the frontend falls back to its placeholder icon.
+     */
+    private function organizationWithPhotos(?SchoolProfile $profile, int $schoolId): array
+    {
+        $members = $profile?->organization ?? [];
+        if (!$members) {
+            return [];
+        }
+
+        $staff = User::where('school_id', $schoolId)
+            ->whereNotNull('profile_pic_path')
+            ->get(['user_id', 'first_name', 'last_name', 'profile_pic_path']);
+
+        $byId   = $staff->keyBy('user_id');
+        $byName = $staff->keyBy(fn($u) => $this->normalizeName($u->full_name));
+
+        return array_map(function ($member) use ($byId, $byName) {
+            $match = (isset($member['user_id']) ? $byId->get($member['user_id']) : null)
+                ?? $byName->get($this->normalizeName($member['name'] ?? ''));
+
+            $member['photo'] = $match ? Storage::url($match->profile_pic_path) : null;
+
+            return $member;
+        }, $members);
+    }
+
+    /** Case- and spacing-insensitive key, so "Ahmad  bin Abdullah" matches. */
+    private function normalizeName(string $name): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim($name)));
+    }
+
     public function show($slug)
     {
         $school = $this->findBySlug($slug);
@@ -58,7 +102,7 @@ class PublicController extends Controller
                     'about'            => $profile?->about,
                     'vision'           => $profile?->vision,
                     'mission'          => $profile?->mission,
-                    'organization'     => $profile?->organization ?? [],
+                    'organization'     => $this->organizationWithPhotos($profile, $school->school_id),
                 ],
                 'stats' => [
                     'students'       => Student::where('school_id', $school->school_id)

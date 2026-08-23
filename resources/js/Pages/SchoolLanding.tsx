@@ -16,6 +16,12 @@ interface OrgMember {
   name: string;
   position: string;
   level: number; // 1 = head, 2 = deputies, 3 = other staff
+  /**
+   * Resolved server-side from the matching user account's uploaded photo.
+   * Null when the member has no account or hasn't uploaded one — the card
+   * falls back to a placeholder icon.
+   */
+  photo?: string | null;
 }
 
 interface LiveProfile {
@@ -357,10 +363,16 @@ const SchoolOrganization = ({ school, members }: { school: School; members: OrgM
       }`}
     >
       <div
-        className={`mx-auto rounded-full flex items-center justify-center mb-4 ${large ? 'w-16 h-16' : 'w-12 h-12'}`}
+        className={`mx-auto rounded-full flex items-center justify-center mb-4 overflow-hidden ${
+          large ? 'w-20 h-20' : 'w-16 h-16'
+        }`}
         style={{ backgroundColor: `${school.themeColor}14`, color: school.themeColor }}
       >
-        <UserRound size={large ? 28 : 22} />
+        {member.photo ? (
+          <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+        ) : (
+          <UserRound size={large ? 32 : 26} />
+        )}
       </div>
       <p className={`font-bold leading-snug ${large ? 'text-lg' : 'text-sm'}`} style={{ color: school.themeColor }}>
         {member.name}
