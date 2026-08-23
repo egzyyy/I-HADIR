@@ -44,12 +44,18 @@ const statusLabel: Record<NonNullable<ScanResult['status']>, string> = {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const AttendanceScan = () => {
   const { role } = useAuth();
-  const userType = role === 'Teacher' ? 'teacher' : role === 'Security' ? 'staff' : 'student';
-  const scanTargetLabel = role === 'Teacher' || role === 'Security' ? 'your' : "a student's";
 
-  // Deep-link support (used by dashboard quick actions): ?mode=check-out
+  // Deep-link support (used by dashboard quick actions & teacher's Student QR
+  // Scanner menu item): ?mode=check-out, ?target=student
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
+  // Teachers/Security normally scan their OWN QR here (self clock-in). When
+  // reached via the "Student QR Scanner" menu item (?target=student), they're
+  // scanning a student's QR instead — same page, same endpoint, no duplication.
+  const scanningStudent = searchParams.get('target') === 'student';
+
+  const userType = scanningStudent ? 'student' : role === 'Teacher' ? 'teacher' : role === 'Security' ? 'staff' : 'student';
+  const scanTargetLabel = !scanningStudent && (role === 'Teacher' || role === 'Security') ? 'your' : "a student's";
 
   const [scanMode, setScanMode] = useState<ScanMode>(modeParam === 'check-out' ? 'check-out' : 'check-in');
   const [scanning, setScanning] = useState(false);
@@ -124,7 +130,7 @@ const AttendanceScan = () => {
         className="max-w-2xl mx-auto"
       >
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-role">Scan Attendance</h2>
+          <h2 className="text-2xl font-bold text-[#2f4fa8]">{scanningStudent ? 'Student QR Scanner' : 'Scan Attendance'}</h2>
           <p className="text-gray-500 text-sm mt-1">
             Point the camera at {scanTargetLabel} QR code to record {scanMode === 'check-out' ? 'check-out' : 'check-in'}.
           </p>
@@ -227,8 +233,11 @@ const AttendanceScan = () => {
 };
 
 export default function CheckInPage() {
+  const [searchParams] = useSearchParams();
+  const activePageId = searchParams.get('target') === 'student' ? 'student-qr-scan' : 'check-in';
+
   return (
-    <DashboardLayout activePageId="check-in">
+    <DashboardLayout activePageId={activePageId}>
       <AttendanceScan />
     </DashboardLayout>
   );

@@ -41,6 +41,8 @@ export const Navbar: React.FC = () => {
       dropdownItems: [
         { label: 'Student Check In', href: `/scan?mode=check-in&type=student${schoolSuffix}` },
         { label: 'Student Check Out', href: `/scan?mode=check-out&type=student${schoolSuffix}` },
+        { label: 'General Staff Check In', href: `/scan?mode=check-in&type=general-staff${schoolSuffix}` },
+        { label: 'General Staff Check Out', href: `/scan?mode=check-out&type=general-staff${schoolSuffix}` },
         { label: 'Security Staff Check In', href: `/scan?mode=check-in&type=staff${schoolSuffix}` },
         { label: 'Security Staff Check Out', href: `/scan?mode=check-out&type=staff${schoolSuffix}` }
       ]
