@@ -130,7 +130,7 @@ const AttendanceScan = () => {
         className="max-w-2xl mx-auto"
       >
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">{scanningStudent ? 'Student QR Scanner' : 'Scan Attendance'}</h2>
+          <h2 className="text-2xl font-bold text-role">{scanningStudent ? 'Student QR Scanner' : 'Scan Attendance'}</h2>
           <p className="text-gray-500 text-sm mt-1">
             Point the camera at {scanTargetLabel} QR code to record {scanMode === 'check-out' ? 'check-out' : 'check-in'}.
           </p>
