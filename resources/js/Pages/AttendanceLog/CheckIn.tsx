@@ -22,7 +22,7 @@ type ScanResult = {
   success: boolean;
   name: string;
   class: string;
-  status?: 'present' | 'late' | 'absent';
+  status?: 'present' | 'late' | 'absent' | 'incomplete';
   time: string;
   message: string;
   duplicate?: boolean;
@@ -33,12 +33,14 @@ const statusTone: Record<NonNullable<ScanResult['status']>, ScanResultTone> = {
   present: 'success',
   late: 'warning',
   absent: 'danger',
+  incomplete: 'warning',
 };
 
 const statusLabel: Record<NonNullable<ScanResult['status']>, string> = {
   present: 'Present',
   late: 'Late',
   absent: 'Absent',
+  incomplete: 'Incomplete Shift',
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -217,12 +219,16 @@ const AttendanceScan = () => {
             )
           ) : (
             <ScanResultModal
-              tone={result.duplicate ? 'warning' : 'success'}
+              tone={result.duplicate ? 'warning' : result.status === 'incomplete' ? 'warning' : 'success'}
               eyebrow={result.duplicate ? 'Already Checked Out' : 'Check-Out Recorded'}
               name={result.name}
               subtitle={result.class}
               time={result.time}
-              badges={[{ label: result.duplicate ? 'Duplicate' : 'Checked Out' }]}
+              badges={[{
+                label: result.duplicate
+                  ? 'Duplicate'
+                  : result.status === 'incomplete' ? 'Incomplete Shift — Left Early' : 'Checked Out',
+              }]}
               onClose={() => setResult(null)}
             />
           )

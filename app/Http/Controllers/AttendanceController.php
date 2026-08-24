@@ -40,6 +40,8 @@ class AttendanceController extends Controller
             return $denied;
         }
 
+        $this->closeOverdueShifts($schoolId);
+
         $today    = Carbon::today()->toDateString();
 
         [$userId, $name, $class, $classroomId] = $this->resolveByIc(
@@ -170,12 +172,15 @@ class AttendanceController extends Controller
             return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
         }
 
-        if ($request->user_type === 'staff' && $this->isSecurityStaff($userId)) {
+        $isSecurity = $request->user_type === 'staff' && $this->isSecurityStaff($userId);
+
+        if ($isSecurity) {
             $log = AttendanceLog::where('user_type', 'staff')
                 ->where('user_id', $userId)
                 ->whereNotNull('check_in_time')
                 ->whereNull('check_out_time')
                 ->orderByDesc('check_in_time')
+                ->with('shift')
                 ->first();
         } else {
             $log = AttendanceLog::where('user_type', $request->user_type)
@@ -201,8 +206,17 @@ class AttendanceController extends Controller
             ], 409);
         }
 
-        $now = Carbon::now();
-        $log->update(['check_out_time' => $now]);
+        $now     = Carbon::now();
+        $updates = ['check_out_time' => $now];
+
+        // Leaving before the shift's own end time means the shift wasn't fully covered —
+        // 'incomplete' overwrites whatever the check-in status was (present/late), since
+        // that's the more operationally important fact once the shift is over.
+        if ($isSecurity && $log->shift && $now->lt($this->shiftEndDateTime($log->shift, $log->date))) {
+            $updates['status'] = 'incomplete';
+        }
+
+        $log->update($updates);
 
         return response()->json([
             'success' => true,
@@ -328,6 +342,7 @@ class AttendanceController extends Controller
     public function getLog(Request $request)
     {
         $schoolId = auth()->user()->school_id;
+        $this->closeOverdueShifts($schoolId);
         $date     = $request->date ? Carbon::parse($request->date)->toDateString() : Carbon::today()->toDateString();
         $type     = $request->user_type ?? 'student';
         $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
@@ -475,6 +490,8 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        $this->closeOverdueShifts($user->school_id);
+
         $query = AttendanceLog::where('school_id', $user->school_id)
             ->where('user_type', $userType)
             ->where('user_id', $user->user_id);
@@ -508,16 +525,18 @@ class AttendanceController extends Controller
     public function getDashboard()
     {
         $schoolId = auth()->user()->school_id;
+        $this->closeOverdueShifts($schoolId);
         $today    = Carbon::today()->toDateString();
 
         $logs = AttendanceLog::where('school_id', $schoolId)
             ->whereDate('date', $today)
             ->get();
 
-        $present  = $logs->where('status', 'present')->count();
-        $late     = $logs->where('status', 'late')->count();
-        $absent   = $logs->where('status', 'absent')->count();
-        $inSchool = $logs->whereNotNull('check_in_time')->whereNull('check_out_time')->count();
+        $present    = $logs->where('status', 'present')->count();
+        $late       = $logs->where('status', 'late')->count();
+        $absent     = $logs->where('status', 'absent')->count();
+        $incomplete = $logs->where('status', 'incomplete')->count();
+        $inSchool   = $logs->whereNotNull('check_in_time')->whereNull('check_out_time')->count();
 
         $recent = $logs->sortByDesc('check_in_time')->take(10)->map(function ($log) {
             [$name, $class] = $this->resolveNameClass($log);
@@ -553,7 +572,8 @@ class AttendanceController extends Controller
                 'present'         => $present,
                 'late'            => $late,
                 'absent'          => $absent,
-                'total'           => $present + $late + $absent,
+                'incomplete'      => $incomplete,
+                'total'           => $present + $late + $absent + $incomplete,
                 'in_school'       => $inSchool,
                 'visitors_today'  => $todaysVisitors->count(),
                 'recent'          => $recent,
@@ -643,29 +663,49 @@ class AttendanceController extends Controller
         return [$shift, null];
     }
 
+    // Security staff are never marked absent (they physically scanned in) — the only
+    // states at check-in are present (at/before start) or late (any time after).
+    // "Very late" doesn't get a harsher status; that's what 'incomplete' at checkout
+    // is for instead.
     private function resolveShiftStatus(Shift $shift, Carbon $now): string
     {
         if (!$shift->is_overnight) {
-            $time = $now->format('H:i:s');
-
-            if ($time <= $shift->start_time) return 'present';
-            if ($shift->late_threshold) {
-                if ($time <= $shift->late_threshold) return 'late';
-                return $shift->absent_threshold
-                    ? ($time <= $shift->absent_threshold ? 'late' : 'absent')
-                    : 'absent';
-            }
-            return 'late';
+            return $now->format('H:i:s') <= $shift->start_time ? 'present' : 'late';
         }
 
-        $elapsed  = $this->minutesSinceShiftStart($shift->start_time, $now);
-        $lateAt   = $shift->late_threshold   ? $this->minutesBetween($shift->start_time, $shift->late_threshold)   : null;
-        $absentAt = $shift->absent_threshold ? $this->minutesBetween($shift->start_time, $shift->absent_threshold) : null;
+        return $this->minutesSinceShiftStart($shift->start_time, $now) <= 0 ? 'present' : 'late';
+    }
 
-        if ($elapsed <= 0) return 'present';
-        if ($lateAt !== null && $elapsed <= $lateAt) return 'late';
-        if ($absentAt !== null) return $elapsed <= $absentAt ? 'late' : 'absent';
-        return $lateAt !== null ? 'absent' : 'late';
+    // Datetime the shift is due to end for a given log's calendar date, rolling
+    // onto the next day for overnight shifts (e.g. checked in 23:00, shift ends 06:00).
+    private function shiftEndDateTime(Shift $shift, Carbon $date): Carbon
+    {
+        [$h, $m] = array_map('intval', explode(':', substr($shift->end_time, 0, 5)));
+        $end = $date->copy()->setTime($h, $m, 0);
+
+        return $shift->is_overnight ? $end->addDay() : $end;
+    }
+
+    // Self-healing sweep: flips any open security-staff log whose shift has already
+    // ended into 'incomplete', since there's no scheduler in this project to do it on
+    // a timer. Cheap and scoped, so it's safe to call at the top of any attendance read
+    // or check-in.
+    private function closeOverdueShifts(int $schoolId): void
+    {
+        $now = Carbon::now();
+
+        AttendanceLog::where('school_id', $schoolId)
+            ->where('user_type', 'staff')
+            ->whereNotNull('shift_id')
+            ->whereNull('check_out_time')
+            ->whereIn('status', ['present', 'late'])
+            ->with('shift')
+            ->get()
+            ->each(function (AttendanceLog $log) use ($now) {
+                if ($log->shift && $now->gte($this->shiftEndDateTime($log->shift, $log->date))) {
+                    $log->update(['status' => 'incomplete']);
+                }
+            });
     }
 
     // Minutes elapsed since an overnight shift's start, wrapping past midnight. Arrivals up to
@@ -676,12 +716,6 @@ class AttendanceController extends Controller
     {
         $diff = ($now->hour * 60 + $now->minute) - $this->toMinutes($start);
         return $diff >= -60 ? $diff : $diff + 1440;
-    }
-
-    private function minutesBetween(string $from, string $to): int
-    {
-        $diff = $this->toMinutes($to) - $this->toMinutes($from);
-        return $diff < 0 ? $diff + 1440 : $diff;
     }
 
     private function toMinutes(string $time): int
