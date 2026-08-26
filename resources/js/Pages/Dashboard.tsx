@@ -56,6 +56,7 @@ const statusBadgeClass = (status: string) => {
     present: 'bg-green-50 text-green-700',
     late: 'bg-yellow-50 text-yellow-700',
     absent: 'bg-red-50 text-red-700',
+    incomplete: 'bg-orange-50 text-orange-700',
   };
   return map[status] ?? 'bg-gray-50 text-gray-600';
 };

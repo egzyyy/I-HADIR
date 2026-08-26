@@ -426,7 +426,8 @@ const ManualEntry = () => {
                     <td className="px-6 py-4 text-sm capitalize">
                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wider uppercase ${entry.status === 'present' ? 'bg-green-50 text-green-700 border-green-200' :
                           entry.status === 'late' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            'bg-red-50 text-red-700 border-red-200'
+                            entry.status === 'incomplete' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                              'bg-red-50 text-red-700 border-red-200'
                         }`}>
                         {entry.status}
                       </span>

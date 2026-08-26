@@ -33,10 +33,20 @@ type Shift = {
   startTime: string;
   endTime: string;
   isOvernight: boolean;
-  lateThreshold: string | null;
-  absentThreshold: string | null;
   isActive: boolean;
 };
+
+// "19:00" → "7:00 PM" — mirrors the backend's ShiftController::formatShiftName so the
+// modal's live preview matches what actually gets saved.
+const fmtShiftTime = (t: string) => {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
+};
+const shiftNamePreview = (start: string, end: string) =>
+  start && end ? `${fmtShiftTime(start)} - ${fmtShiftTime(end)}` : '';
 
 const DAY_LABELS: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -660,8 +670,6 @@ const ShiftCard = memo(({
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-500">
       <span>Starts: <strong className="text-gray-700">{shift.startTime}</strong></span>
       <span>Ends: <strong className="text-gray-700">{shift.endTime}</strong></span>
-      <span>Late after: <strong className="text-gray-700">{shift.lateThreshold ?? '—'}</strong></span>
-      <span>Absent after: <strong className="text-gray-700">{shift.absentThreshold ?? '—'}</strong></span>
     </div>
   </div>
 ));
@@ -677,12 +685,9 @@ const ShiftModal = memo(({
 }) => {
   const isEdit = !!initial;
   const [form, setForm] = useState({
-    name:            initial?.name            ?? '',
-    startTime:       initial?.startTime       ?? '07:00',
-    endTime:         initial?.endTime         ?? '15:00',
-    lateThreshold:   initial?.lateThreshold   ?? '',
-    absentThreshold: initial?.absentThreshold ?? '',
-    isActive:        initial?.isActive        ?? true,
+    startTime: initial?.startTime ?? '07:00',
+    endTime:   initial?.endTime   ?? '15:00',
+    isActive:  initial?.isActive  ?? true,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -703,12 +708,9 @@ const ShiftModal = memo(({
     setError(null);
     try {
       const payload = {
-        name:              form.name,
-        start_time:        form.startTime,
-        end_time:          form.endTime,
-        late_threshold:    form.lateThreshold || null,
-        absent_threshold:  form.absentThreshold || null,
-        is_active:         form.isActive,
+        start_time: form.startTime,
+        end_time:   form.endTime,
+        is_active:  form.isActive,
       };
       if (isEdit) {
         await axios.put(`/api/shifts/${initial!.id}`, payload);
@@ -741,18 +743,6 @@ const ShiftModal = memo(({
           <div className="p-5 space-y-4">
             {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Shift Name</label>
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={e => handleChange('name', e.target.value)}
-                placeholder="e.g. Night Shift"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
-              />
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">Start Time</label>
@@ -774,28 +764,13 @@ const ShiftModal = memo(({
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">
-                  Late After <span className="font-normal text-gray-400">(optional)</span>
-                </label>
-                <input
-                  type="time"
-                  value={form.lateThreshold}
-                  onChange={e => handleChange('lateThreshold', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">
-                  Absent After <span className="font-normal text-gray-400">(optional)</span>
-                </label>
-                <input
-                  type="time"
-                  value={form.absentThreshold}
-                  onChange={e => handleChange('absentThreshold', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-role outline-none"
-                />
-              </div>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Shift name (from times)</p>
+              <p className="text-sm font-semibold text-gray-700">
+                {shiftNamePreview(form.startTime, form.endTime) || '—'}
+              </p>
             </div>
 
             {willBeOvernight && (

@@ -37,6 +37,7 @@ const STATUS_BADGE: Record<string, { label: string; badge: string }> = {
   present:     { label: 'Entered',        badge: 'text-green-700 bg-green-50' },
   late:        { label: 'Late Arrival',   badge: 'text-orange-700 bg-orange-50' },
   absent:      { label: 'Marked Absent',  badge: 'text-red-700 bg-red-50' },
+  incomplete:  { label: 'Left Shift Early', badge: 'text-orange-700 bg-orange-100' },
   in_premise:  { label: 'Checked In',     badge: 'text-blue-700 bg-blue-50' },
   checked_out: { label: 'Checked Out',    badge: 'text-gray-700 bg-gray-100' },
 };

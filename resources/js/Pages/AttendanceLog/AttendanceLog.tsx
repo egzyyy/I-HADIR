@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle, AlertTriangle, XCircle, Clock, Info, X } from 'lucide-react';
+import { Search, CheckCircle, AlertTriangle, XCircle, MinusCircle, Clock, Info, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 
@@ -20,7 +20,7 @@ type LogEntry = {
   name: string;
   class: string;
   user_type: string;
-  status: 'present' | 'late' | 'absent';
+  status: 'present' | 'late' | 'absent' | 'incomplete';
   date: string;
   check_in: string | null;
   check_out: string | null;
@@ -29,10 +29,13 @@ type LogEntry = {
   shift?: string | null;
 };
 
+// 'incomplete' only ever occurs for security staff (left before their shift ended,
+// or never checked out at all) — students/teachers/regular staff never get this status.
 const statusConfig = {
-  present: { label: 'Present', color: 'text-green-700',  bg: 'bg-green-100',  icon: CheckCircle },
-  late:    { label: 'Late',    color: 'text-yellow-700', bg: 'bg-yellow-100', icon: AlertTriangle },
-  absent:  { label: 'Absent',  color: 'text-red-700',    bg: 'bg-red-100',    icon: XCircle },
+  present:    { label: 'Present',    color: 'text-green-700',  bg: 'bg-green-100',  icon: CheckCircle },
+  late:       { label: 'Late',       color: 'text-yellow-700', bg: 'bg-yellow-100', icon: AlertTriangle },
+  absent:     { label: 'Absent',     color: 'text-red-700',    bg: 'bg-red-100',    icon: XCircle },
+  incomplete: { label: 'Incomplete', color: 'text-orange-700', bg: 'bg-orange-100', icon: MinusCircle },
 };
 
 const AttendanceLogPage = () => {
@@ -87,9 +90,10 @@ const AttendanceLogPage = () => {
   } = usePagination(filtered, 10);
 
   const counts = {
-    present: logs.filter(l => l.status === 'present').length,
-    late:    logs.filter(l => l.status === 'late').length,
-    absent:  logs.filter(l => l.status === 'absent').length,
+    present:    logs.filter(l => l.status === 'present').length,
+    late:       logs.filter(l => l.status === 'late').length,
+    absent:     logs.filter(l => l.status === 'absent').length,
+    incomplete: logs.filter(l => l.status === 'incomplete').length,
   };
 
   const SCAN_METHOD_LABELS: Record<string, string> = {
@@ -98,9 +102,12 @@ const AttendanceLogPage = () => {
     '-': '-',
   };
 
-  // Shift only applies to security staff — only worth a column when viewing Staff records
+  // Shift / Incomplete only apply to security staff — only worth showing when viewing Staff records
   const showShiftColumn = filterType === 'staff';
   const columnCount = showShiftColumn ? 8 : 7;
+  const statusTabs = showShiftColumn
+    ? (['present', 'late', 'absent', 'incomplete'] as const)
+    : (['present', 'late', 'absent'] as const);
 
   return (
     <motion.div
@@ -114,8 +121,8 @@ const AttendanceLogPage = () => {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
-        {(['present', 'late', 'absent'] as const).map((s) => {
+      <div className={`grid gap-4 ${showShiftColumn ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        {statusTabs.map((s) => {
           const cfg  = statusConfig[s];
           const Icon = cfg.icon;
           return (
@@ -163,6 +170,7 @@ const AttendanceLogPage = () => {
           <option value="present">Present</option>
           <option value="late">Late</option>
           <option value="absent">Absent</option>
+          {showShiftColumn && <option value="incomplete">Incomplete</option>}
         </select>
 
         {/* Search */}

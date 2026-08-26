@@ -49,6 +49,11 @@ const statusTone: Record<string, ScanResultBadge['tone']> = {
   present: 'success',
   late: 'warning',
   absent: 'danger',
+  incomplete: 'warning',
+};
+
+const statusLabel: Record<string, string> = {
+  incomplete: 'Incomplete Shift — Left Early',
 };
 
 
@@ -259,13 +264,13 @@ export default function PublicScan() {
 
       {result && (
         <ScanResultModal
-          tone={result.duplicate ? 'warning' : 'success'}
+          tone={result.duplicate ? 'warning' : result.status === 'incomplete' ? 'warning' : 'success'}
           eyebrow={result.duplicate ? 'Already Recorded' : mode === 'check-out' ? 'Check-Out Recorded' : 'Check-In Recorded'}
           name={result.name}
           subtitle={result.class}
           time={result.time}
           badges={[
-            ...(result.status ? [{ label: result.status, tone: statusTone[result.status], variant: 'pill' as const }] : []),
+            ...(result.status ? [{ label: statusLabel[result.status] ?? result.status, tone: statusTone[result.status], variant: 'pill' as const }] : []),
             ...(result.duration ? [{ label: result.duration, tone: 'success' as const }] : []),
           ]}
           onClose={() => setResult(null)}
