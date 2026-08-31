@@ -20,6 +20,7 @@ use App\Http\Controllers\QrController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SchoolProfileController;
 use App\Http\Controllers\BrandingController;
+use App\Http\Controllers\ReportController;
 
 // Public landing-page endpoints (no auth — consumed by logged-out visitors)
 Route::get('/api/public/schools', [PublicController::class, 'schools']);
@@ -71,7 +72,6 @@ Route::put('/api/sessions/{id}', [SchoolController::class, 'updateSession']);
 Route::delete('/api/sessions/{id}', [SchoolController::class, 'destroySession']);
 
 
-
 // Class Management
 Route::get('/api/classes', [ClassController::class, 'index']);
 Route::get('/api/classes/teachers', [ClassController::class, 'getTeachers']);
@@ -102,13 +102,16 @@ Route::post('/api/sport-houses/{id}/students', [SportHouseController::class, 'sy
 // Event Management
 Route::get('/api/events', [EventController::class, 'index']);
 Route::post('/api/events', [EventController::class, 'store']);
+Route::get('/api/events/{id}', [EventController::class, 'show']);
 Route::put('/api/events/{id}', [EventController::class, 'update']);
 Route::delete('/api/events/{id}', [EventController::class, 'destroy']);
+Route::post('/api/events/parent-check', [EventController::class, 'checkParentIc']);
 Route::post('/api/events/{id}/scan', [EventController::class, 'scanAttendance']);
 Route::post('/api/events/{id}/manual-registration', [EventController::class, 'manualRegistration']);
+Route::post('/api/events/{id}/public-registration', [EventController::class, 'publicRegistration']);
+Route::post('/api/events/{id}/public-parent-check', [EventController::class, 'publicCheckParentIc']);
 Route::get('/api/events/{id}/unregistered', [EventController::class, 'getUnregisteredParticipants']);
 Route::get('/api/events/{id}/attendees', [EventController::class, 'getAttendees']);
-Route::post('/api/events/parent-check', [EventController::class, 'checkParentIc']);
 
 // Attendance
 Route::post('/api/attendance/check-in', [AttendanceController::class, 'checkIn']);
@@ -149,8 +152,6 @@ Route::post('/api/facility/check-in', [FacilityController::class, 'checkIn']);
 Route::post('/api/facility/check-out', [FacilityController::class, 'checkOut']);
 Route::get('/api/facility/log', [FacilityController::class, 'getLog']);
 
-use App\Http\Controllers\ReportController;
-
 // Reports
 Route::get('/api/reports/classes', [ReportController::class, 'getClasses']);
 Route::get('/api/reports/attendance', [ReportController::class, 'attendanceReport']);
@@ -158,11 +159,11 @@ Route::get('/api/reports/monthly', [ReportController::class, 'monthlyReport']);
 Route::get('/api/reports/summary', [ReportController::class, 'summaryReport']);
 Route::get('/api/visitors', [VisitorController::class, 'index']);
 Route::post('/api/visitors', [VisitorController::class, 'store']);
-Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE
+Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']);
 Route::put('/api/visitors/{id}/checkout', [VisitorController::class, 'checkout']);
+
 // Public IC-number lookup — throttled to slow brute-force enumeration of student ICs
-Route::post('/api/reports/parent-student', [ReportController::class, 'parentStudentReport'])
-    ->middleware('throttle:10,1');
+Route::post('/api/reports/parent-student', [ReportController::class, 'parentStudentReport'])->middleware('throttle:10,1');
 Route::get('/api/reports/facility', [ReportController::class, 'facilityReport']);
 Route::get('/api/reports/visitors', [ReportController::class, 'visitorReport']);
 Route::get('/api/reports/events', [ReportController::class, 'getEvents']); // To populate the dropdown

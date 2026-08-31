@@ -35,7 +35,7 @@ class EventController extends Controller
             'location'          => 'nullable|string|max:255',
             'description'       => 'nullable|string',
             'participant_types' => 'required|array|min:1',
-            'participant_types.*' => 'in:teacher,student,staff,parent,vip',
+            'participant_types.*' => 'in:teacher,student,staff,parent,vip,outsider',
             'banner'            => 'nullable|image|max:10240',
         ]);
 
@@ -61,13 +61,23 @@ class EventController extends Controller
             'banner_path'       => $bannerPath,
             'participant_types' => $request->participant_types,
             'is_active'         => true,
-        ]);
+        ]); 
 
         return response()->json([
             'success' => true,
             'message' => 'Event created successfully!',
             'data'    => $this->formatEvent($event),
         ], 201);
+    }
+
+    public function show($id)
+    {
+        $schoolId = auth()->user()->school_id;
+        $event    = Event::where('school_id', $schoolId)
+            ->where('event_id', $id)
+            ->firstOrFail();
+
+        return response()->json(['success' => true, 'data' => $this->formatEvent($event)]);
     }
 
     public function update(Request $request, $id)
@@ -79,7 +89,7 @@ class EventController extends Controller
             'location'          => 'nullable|string|max:255',
             'description'       => 'nullable|string',
             'participant_types' => 'required|array|min:1',
-            'participant_types.*' => 'in:teacher,student,staff,parent,vip', 
+            'participant_types.*' => 'in:teacher,student,staff,parent,vip,outsider', 
             'banner'            => 'nullable|image|max:10240',
         ]);
 
@@ -276,6 +286,16 @@ class EventController extends Controller
             return response()->json(['success' => false, 'message' => 'No records of children found for this IC Number.'], 404);
         }
 
+        // Fetch classes to attach to the children
+        $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+        $enrollments = collect();
+        if ($session) {
+            $enrollments = Enrollment::whereIn('student_id', $students->pluck('student_id'))
+                ->where('school_session_id', $session->school_session_id)
+                ->with('classroom:classroom_id,name')
+                ->get()->keyBy('student_id');
+        }
+
         // Extract parent details from the first matched student
         $firstStudent = $students->first();
         $isFather = $firstStudent->father_ic === $cleanIc || $firstStudent->father_ic === $dashedIc || $firstStudent->father_ic === $request->ic_number;
@@ -287,11 +307,19 @@ class EventController extends Controller
             'success' => true,
             'parent_name' => $parentName,
             'parent_phone' => $parentPhone,
-            'children' => $students->map(fn($s) => ['id' => $s->student_id, 'name' => $s->name])
+            'children' => $students->map(function($s) use ($enrollments) {
+                $className = $enrollments->has($s->student_id) && $enrollments[$s->student_id]->classroom ? $enrollments[$s->student_id]->classroom->name : '';
+                return [
+                    'id' => $s->student_id, 
+                    'name' => $s->name,
+                    'class' => $className
+                ];
+            })
         ]);
     }
 
     // 2. UPDATE your existing manualRegistration method
+    // --- UPDATE THIS EXISTING METHOD ---
     public function manualRegistration(Request $request, $id)
     {
         $request->validate([
@@ -300,27 +328,24 @@ class EventController extends Controller
             'ic_number'  => 'nullable|string',
             'department' => 'nullable|string|required_if:user_type,vip',
             'position'   => 'nullable|string|required_if:user_type,vip',
+            'purpose'    => 'nullable|string|required_if:user_type,vip', // <-- NEW
             'phone'      => 'nullable|string',
             'email'      => 'nullable|email',
-            'children'   => 'nullable|array', // Accept array of child names
+            'children'   => 'nullable|array', 
         ]);
 
         $schoolId = auth()->user()->school_id;
-        $event    = Event::where('school_id', $schoolId)
-            ->where('event_id', $id)
-            ->where('is_active', true)
-            ->firstOrFail();
+        $event    = Event::where('school_id', $schoolId)->where('event_id', $id)->where('is_active', true)->firstOrFail();
 
-        if (!in_array($request->user_type, $event->participant_types ?? [])) {
+        // Allow 'outsider' even if not strictly in the event's base participant_types array
+        if ($request->user_type !== 'outsider' && !in_array($request->user_type, $event->participant_types ?? [])) {
             return response()->json(['message' => "This event does not allow {$request->user_type}s."], 422);
         }
 
         $userId = null;
         if ($request->ic_number && in_array($request->user_type, ['student', 'teacher', 'staff'])) {
             [$resolvedUserId, $resolvedName, $resolvedClass] = $this->resolveByIc($request->ic_number, $request->user_type, $schoolId);
-            if ($resolvedUserId) {
-                $userId = $resolvedUserId;
-            }
+            if ($resolvedUserId) $userId = $resolvedUserId;
         }
 
         $query = EventAttendee::where('event_id', $event->event_id)->where('user_type', $request->user_type);
@@ -334,7 +359,6 @@ class EventController extends Controller
             return response()->json(['message' => 'This participant is already checked in to this event.'], 409);
         }
 
-        // --- Cleverly format Parent Data into existing columns ---
         $department = $request->department;
         $position = $request->position;
         
@@ -344,6 +368,9 @@ class EventController extends Controller
                 ? implode(', ', $request->children) 
                 : 'No children found';
             $position = $childrenStr;
+        } elseif ($request->user_type === 'outsider') {
+            $department = 'Outsider / Awam';
+            $position = '-';
         }
 
         EventAttendee::create([
@@ -354,12 +381,115 @@ class EventController extends Controller
             'ic_number'     => $request->ic_number,
             'department'    => $department,
             'position'      => $position,
+            'purpose'       => $request->user_type === 'vip' ? $request->purpose : null, // <-- NEW
             'phone_number'  => $request->phone,
             'email'         => $request->email,
             'check_in_time' => Carbon::now(),
         ]);
 
-        return response()->json(['success' => true, 'message' => 'Manual registration successful.']);
+        return response()->json(['success' => true, 'message' => 'Registration successful.']);
+    }
+
+    // --- ADD THIS NEW METHOD FOR PUBLIC QR REGISTRATION ---
+    public function publicRegistration(Request $request, $id)
+    {
+        // Identical validation, but we don't rely on auth()->user()
+        $request->validate([
+            'user_type'  => 'required|string|in:parent,outsider', // Public form only allows these two
+            'name'       => 'required|string|max:255',
+            'ic_number'  => 'nullable|string',
+            'phone'      => 'required|string',
+            'email'      => 'nullable|email',
+            'children'   => 'nullable|array', 
+        ]);
+
+        // Find event directly by ID
+        $event = Event::where('event_id', $id)->where('is_active', true)->firstOrFail();
+
+        $query = EventAttendee::where('event_id', $event->event_id)
+            ->where('user_type', $request->user_type)
+            ->where('name', $request->name);
+
+        if ($query->first()) {
+            return response()->json(['message' => 'Anda telah pun mendaftar untuk acara ini. (You are already registered)'], 409);
+        }
+
+        $department = $request->user_type === 'parent' ? 'Ibu Bapa / Penjaga' : 'Outsider / Awam';
+        $position = '-';
+        
+        if ($request->user_type === 'parent') {
+            $childrenStr = is_array($request->children) && count($request->children) > 0 
+                ? implode(', ', $request->children) 
+                : 'No children found';
+            $position = $childrenStr;
+        }
+
+        EventAttendee::create([
+            'event_id'      => $event->event_id,
+            'user_type'     => $request->user_type,
+            'name'          => $request->name,
+            'ic_number'     => $request->ic_number,
+            'department'    => $department,
+            'position'      => $position,
+            'phone_number'  => $request->phone,
+            'email'         => $request->email,
+            'check_in_time' => Carbon::now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Pendaftaran berjaya! (Registration successful)']);
+    }
+
+    // --- ADD THIS NEW METHOD FOR PUBLIC PARENT SEARCH ---
+    public function publicCheckParentIc(Request $request, $id)
+    {
+        $request->validate(['ic_number' => 'required|string']);
+        
+        // We must get the school_id from the Event, not Auth
+        $event = Event::findOrFail($id);
+        $schoolId = $event->school_id;
+        
+        $cleanIc = preg_replace('/[^0-9]/', '', $request->ic_number);
+        $dashedIc = strlen($cleanIc) === 12 ? substr($cleanIc, 0, 6) . '-' . substr($cleanIc, 6, 2) . '-' . substr($cleanIc, 8, 4) : null;
+
+        $students = Student::where('school_id', $schoolId)
+            ->where(function($q) use ($request, $cleanIc, $dashedIc) {
+                $q->where('father_ic', $request->ic_number)->orWhere('mother_ic', $request->ic_number)
+                  ->orWhere('father_ic', $cleanIc)->orWhere('mother_ic', $cleanIc);
+                if ($dashedIc) {
+                    $q->orWhere('father_ic', $dashedIc)->orWhere('mother_ic', $dashedIc);
+                }
+            })->get();
+
+        if ($students->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'No records of children found for this IC Number.'], 404);
+        }
+
+        // Fetch classes to attach to the children
+        $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+        $enrollments = collect();
+        if ($session) {
+            $enrollments = Enrollment::whereIn('student_id', $students->pluck('student_id'))
+                ->where('school_session_id', $session->school_session_id)
+                ->with('classroom:classroom_id,name')
+                ->get()->keyBy('student_id');
+        }
+
+        $firstStudent = $students->first();
+        $isFather = $firstStudent->father_ic === $cleanIc || $firstStudent->father_ic === $dashedIc || $firstStudent->father_ic === $request->ic_number;
+        
+        return response()->json([
+            'success' => true,
+            'parent_name' => $isFather ? $firstStudent->father_name : $firstStudent->mother_name,
+            'parent_phone' => $isFather ? $firstStudent->father_phone_num : $firstStudent->mother_phone_num,
+            'children' => $students->map(function($s) use ($enrollments) {
+                $className = $enrollments->has($s->student_id) && $enrollments[$s->student_id]->classroom ? $enrollments[$s->student_id]->classroom->name : '';
+                return [
+                    'id' => $s->student_id, 
+                    'name' => $s->name,
+                    'class' => $className // Attaching the class name here!
+                ];
+            })
+        ]);
     }
 
     // ─── Fetch Unregistered Participants for Dropdown ──────────────────────────
@@ -474,7 +604,7 @@ class EventController extends Controller
             $name = $a->name; 
             $ic = $a->ic_number ?? '-';
             $className = '-';
-            $phone = $a->phone_number ?? '-'; // Base fallback
+            $phone = $a->phone_number ?? '-';
 
             if ($a->user_id) {
                 if ($a->user_type === 'student' && $students->has($a->user_id)) {
@@ -500,7 +630,8 @@ class EventController extends Controller
                 'class_name'       => $className,
                 'department'       => $a->department ?? '-',
                 'position'         => $a->position ?? '-',
-                'phone_number'     => $phone, // Returns the newly mapped phone number
+                'purpose'          => $a->purpose ?? '-',
+                'phone_number'     => $phone,
                 'email'            => $a->email ?? '-',
                 'check_in_time'    => $a->check_in_time->format('h:i A'),
                 'check_in_date'    => $a->check_in_time->format('d/m/Y'),

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, X, Users, Search, ScanLine, Image as ImageIcon, UserPlus, AlertCircle, CheckCircle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Users, Search, ScanLine, Image as ImageIcon, UserPlus, AlertCircle, CheckCircle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import QRCode from 'qrcode';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
@@ -25,13 +26,14 @@ import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip';
+type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip' | 'outsider';
 const PARTICIPANT_LABELS: { key: ParticipantKey; label: string }[] = [
   { key: 'teacher', label: 'Teacher' },
   { key: 'student', label: 'Student' },
   { key: 'staff', label: 'School Staff' },
   { key: 'parent', label: 'Parent' },
   { key: 'vip', label: 'VIP' },
+  { key: 'outsider', label: 'Outsider / Public' },
 ];
 
 type SortColumn = 'name' | 'date' | 'time' | 'spot' | null;
@@ -83,13 +85,13 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Time</label>
         <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-700" />
       </div>
-      <div className="space-y-3">
-        <label className="block text-sm font-bold text-gray-700">Participant</label>
-        <div className="space-y-2">
+      <div className="space-y-3 md:col-span-2">
+        <label className="block text-sm font-bold text-gray-700">Participants Allowed</label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {PARTICIPANT_LABELS.map(p => <Checkbox key={p.key} checked={participants[p.key]} onChange={() => toggleParticipant(p.key)} label={p.label} />)}
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 md:col-span-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Event Spot e.g. "Padang Besar"</label>
         <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="Event Spot"
           className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400" />
@@ -125,7 +127,7 @@ const EventForm = ({ name, setName, date, setDate, time, setTime, location, setL
 const AddEventModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: (item: EventItem) => void }) => {
   const [name, setName] = useState(''); const [date, setDate] = useState(''); const [time, setTime] = useState('');
   const [location, setLocation] = useState(''); const [description, setDescription] = useState('');
-  const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false, vip: false });
+  const [participants, setParticipants] = useState<Record<ParticipantKey, boolean>>({ teacher: false, student: false, staff: false, parent: false, vip: false, outsider: false });
   const [imageFile, setImageFile] = useState<File | null>(null); const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false); const [error, setError] = useState('');
 
@@ -185,17 +187,22 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
   const [userType, setUserType] = useState<string>('');
   const [icNumber, setIcNumber] = useState('');
 
-  // VIP / Parent States
+  // VIP / Parent / Outsider States
   const [department, setDepartment] = useState('');
   const [position, setPosition] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
 
   // Parent Specific States
   const [parentSearched, setParentSearched] = useState(false);
   const [searchingParent, setSearchingParent] = useState(false);
-  const [parentChildren, setParentChildren] = useState<{ id: number, name: string }[]>([]);
+  const [parentChildren, setParentChildren] = useState<{ id: number, name: string, class: string }[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<Set<string>>(new Set());
+
+  // QR Code State
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const publicUrl = `${window.location.origin}/event/${item?.id}/register`;
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -207,6 +214,25 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
   const isSystemUser = ['student', 'teacher', 'staff'].includes(userType);
   const isVip = userType === 'vip';
   const isParent = userType === 'parent';
+  const isOutsider = userType === 'outsider';
+
+  // Generate QR Code automatically for Parent and Outsider
+  useEffect(() => {
+    if ((isParent || isOutsider) && canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, publicUrl, {
+        width: 180, margin: 2, color: { dark: '#1c3068', light: '#ffffff' }
+      });
+    }
+  }, [isParent, isOutsider, publicUrl, userType]);
+
+  const downloadQR = () => {
+    if (!canvasRef.current) return;
+    const url = canvasRef.current.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Event_${item?.id}_Public_Registration_QR.png`;
+    a.click();
+  };
 
   // Reset form when type or item changes
   useEffect(() => {
@@ -218,7 +244,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
   }, [item]);
 
   const resetForm = () => {
-    setName(''); setIcNumber(''); setDepartment(''); setPosition('');
+    setName(''); setIcNumber(''); setDepartment(''); setPosition(''); setPurpose('');
     setPhone(''); setEmail(''); setErrorMsg(null); setSuccessMsg(null);
     setParentSearched(false); setParentChildren([]); setSelectedChildren(new Set());
   };
@@ -289,6 +315,11 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
     if (isVip) {
       if (!department.trim()) { setErrorMsg('Department is required for VIP.'); return; }
       if (!position.trim()) { setErrorMsg('Position is required for VIP.'); return; }
+      if (!purpose.trim()) { setErrorMsg('Purpose is required for VIP.'); return; }
+    }
+
+    if (isOutsider) {
+      if (!phone.trim()) { setErrorMsg('Phone number is required for Outsider.'); return; }
     }
 
     if (isParent && selectedChildren.size === 0 && parentChildren.length > 0) {
@@ -301,11 +332,12 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
       await axios.post(`/api/events/${item.id}/manual-registration`, {
         name: name.trim(),
         user_type: userType,
-        ic_number: isVip ? null : (icNumber.trim() || null),
+        ic_number: (isVip || isOutsider) ? null : (icNumber.trim() || null),
         department: isVip ? department.trim() : null,
         position: isVip ? position.trim() : null,
-        phone: (isVip || isParent) ? phone.trim() : null,
-        email: (isVip || isParent) ? email.trim() : null,
+        purpose: isVip ? purpose.trim() : null,
+        phone: (isVip || isParent || isOutsider) ? phone.trim() : null,
+        email: (isVip || isParent || isOutsider) ? email.trim() : null,
         children: isParent ? Array.from(selectedChildren) : null,
       });
       setSuccessMsg('Participant manually registered successfully!');
@@ -362,7 +394,6 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     {(item.participantTypes || []).map(type => <option key={type} value={type}>{type}</option>)}
                     {(item.participantTypes || []).length === 0 && <option value="" disabled>No participant types enabled</option>}
                   </select>
-                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
 
@@ -376,7 +407,6 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                         <option value="">{loadingUsers ? 'Loading available participants...' : `— Select a ${userType} —`}</option>
                         {availableUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -401,6 +431,10 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Position</label>
                     <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Pengarah" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
                   </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Purpose of Visit</label>
+                    <input type="text" value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Perasmi Majlis" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Phone <span className="text-gray-400 font-normal">(Optional)</span></label>
@@ -409,6 +443,26 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
                       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vip@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* ─── OUTSIDER VIEW ─── */}
+              {isOutsider && (
+                <>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Full Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Enter full name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Phone</label>
+                      <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all font-mono" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="outsider@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
                     </div>
                   </div>
                 </>
@@ -454,7 +508,10 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                                 <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedChildren.has(child.name) ? 'border-[#2f4fa8] bg-[#2f4fa8]' : 'border-gray-300 group-hover:border-[#2f4fa8]'}`}>
                                   {selectedChildren.has(child.name) && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                 </div>
-                                <span className="text-sm font-bold text-[#c53336]">{child.name}</span>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-[#c53336]">{child.name}</span>
+                                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{child.class}</span>
+                                </div>
                                 <input type="checkbox" className="hidden" checked={selectedChildren.has(child.name)} onChange={() => toggleChild(child.name)} />
                               </label>
                             ))}
@@ -464,6 +521,30 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     </motion.div>
                   )}
                 </>
+              )}
+
+              {/* PUBLIC QR CODE RENDERER */}
+              {(isParent || isOutsider) && (
+                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6 bg-blue-50/30 p-6 rounded-xl border-dashed border-blue-200">
+                  <div>
+                    <h4 className="text-[#1c3068] font-bold flex items-center gap-2">
+                      Public Registration QR
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xs leading-relaxed">
+                      Print or display this QR code to allow {userType}s to register themselves using their own devices.
+                    </p>
+                    <button type="button" onClick={downloadQR} className="mt-4 text-sm font-bold bg-white border border-gray-200 text-[#1c3068] hover:bg-gray-50 px-4 py-2 rounded-lg shadow-sm transition-all">
+                      Download QR Code
+                    </button>
+                  </div>
+                  <div
+                    className="bg-white p-2 rounded-xl shadow-sm border border-gray-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-all hover:scale-105"
+                    title="Click to open registration page"
+                    onClick={() => window.open(publicUrl, '_blank')}
+                  >
+                    <canvas ref={canvasRef}></canvas>
+                  </div>
+                </div>
               )}
 
               <div className="pt-6 flex justify-end gap-3 border-t border-gray-100">
@@ -746,7 +827,10 @@ const EventList = () => {
                             )}
                           </td>
 
-                          <td className="px-6 py-4 text-sm font-medium text-[#c53336]">{item.name}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-[#c53336]">
+                            {item.name}
+                            <p className="text-[10px] font-bold text-gray-500">Event ID: {item.id}</p>
+                          </td>
                           <td className="px-6 py-4 text-sm text-gray-600">{item.date}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{item.time ?? '-'}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{item.spot}</td>

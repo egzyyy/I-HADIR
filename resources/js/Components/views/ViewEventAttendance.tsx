@@ -26,6 +26,7 @@ interface Attendee {
     class_name: string;
     department: string;
     position: string;
+    purpose: string;
     phone_number: string;
     email: string;
     check_in_time: string;
@@ -106,12 +107,13 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
     // ─── DYNAMIC COLUMNS LOGIC ──────────────────────────────────────────────────
     const columnsConfig = {
-        all: ['No.', 'Name', 'Type', 'IC Number', 'Phone Number', 'Affiliation', 'Check-In'],
-        vip: ['No.', 'Name', 'Department', 'Position', 'Phone', 'Email', 'Check-In'],
+        all: ['No.', 'Name', 'Type', 'IC Number', 'Phone Number', 'Affiliation / Details', 'Check-In'],
+        vip: ['No.', 'Name', 'Department', 'Position', 'Purpose', 'Phone', 'Email', 'Check-In'],
         parent: ['No.', 'Name', 'IC Number', 'Attending For', 'Phone', 'Email', 'Check-In'],
         student: ['No.', 'Name', 'IC Number', 'Class', 'Check-In'],
         teacher: ['No.', 'Name', 'IC Number', 'Phone Number', 'Check-In'],
         staff: ['No.', 'Name', 'IC Number', 'Phone Number', 'Check-In'],
+        outsider: ['No.', 'Name', 'Phone Number', 'Email', 'Check-In'],
     };
 
     const activeColumns = columnsConfig[typeFilter as keyof typeof columnsConfig] || columnsConfig.all;
@@ -126,7 +128,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
         const defaultText = formatAttendingFor(a.position);
         const namesArray = defaultText.split(',').map(n => n.trim());
 
-        // Fallback if no children details exist at all
         if (!a.children_details || a.children_details.length === 0) {
             return (
                 <div className="flex flex-col gap-1 items-center">
@@ -135,12 +136,10 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
             );
         }
 
-        // FILTER: Only grab the children that the parent explicitly selected
         const filteredChildren = a.children_details.filter(child =>
             namesArray.includes(child.name.trim())
         );
 
-        // Fallback if no matched children were found after filtering
         if (filteredChildren.length === 0) {
             return (
                 <div className="flex flex-col gap-1 items-center">
@@ -192,10 +191,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
             return String(val);
         };
 
-        // 1. No. (Account for pagination index correctly)
         row.push(col(index + 1));
-
-        // 2. Name
         row.push(col(a.name, 'left'));
 
         if (typeFilter === 'all') {
@@ -214,9 +210,11 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
             } else if (a.user_type === 'vip') {
                 affiliationUi = a.department !== '-' ? a.department : a.position;
                 affiliationText = a.department !== '-' ? a.department : a.position;
+            } else if (a.user_type === 'outsider') {
+                affiliationUi = 'Outsider / Public';
+                affiliationText = 'Outsider / Public';
             }
 
-            // In HTML/Text, replace commas with new lines for parents
             if (isHtml && a.user_type === 'parent') affiliationText = affiliationText.replace(/,\s*/g, '<br/>');
 
             row.push(
@@ -226,7 +224,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                 format === 'ui' ? affiliationUi : col(affiliationText)
             );
         } else if (typeFilter === 'vip') {
-            row.push(col(a.department), col(a.position), col(a.phone_number), col(a.email));
+            row.push(col(a.department), col(a.position), col(a.purpose ?? '-'), col(a.phone_number ?? '-'), col(a.email ?? '-'));
         } else if (typeFilter === 'parent') {
             const rawAffiliation = formatAttendingFor(a.position);
             const htmlAffiliation = rawAffiliation.replace(/,\s*/g, '<br/>');
@@ -234,16 +232,17 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
             row.push(
                 col(a.ic_number),
                 format === 'ui' ? renderParentAffiliation(a) : col(isHtml ? htmlAffiliation : rawAffiliation),
-                col(a.phone_number),
-                col(a.email)
+                col(a.phone_number ?? '-'),
+                col(a.email ?? '-')
             );
         } else if (typeFilter === 'student') {
             row.push(col(a.ic_number), col(a.class_name));
         } else if (typeFilter === 'teacher' || typeFilter === 'staff') {
             row.push(col(a.ic_number), col(a.phone_number ?? '-'));
+        } else if (typeFilter === 'outsider') {
+            row.push(col(a.phone_number ?? '-'), col(a.email ?? '-'));
         }
 
-        // Final Check-in Column
         const checkInText = `${a.check_in_time} (${a.check_in_date})`;
         if (format === 'ui') {
             row.push(
@@ -261,7 +260,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
         return row;
     };
 
-    // ─── DYNAMIC EXPORT FUNCTIONS (exports ALL filtered data, not just the page) ───
+    // ─── DYNAMIC EXPORT FUNCTIONS ────────────────────────────────────────────────
     const handleCopy = () => {
         if (!filteredAttendees.length) return;
         const text = [
@@ -332,8 +331,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
     return (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full min-w-0 flex flex-col space-y-6 overflow-hidden">
-
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-[#1c3068] transition-colors shadow-sm flex-shrink-0">
@@ -355,10 +352,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                 </div>
             </div>
 
-            {/* Main Content Area */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden w-full min-w-0">
-
-                {/* Filters Bar */}
                 <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/30">
                     <div className="flex items-center gap-3">
                         <Users size={24} className="text-[#1c3068]" />
@@ -378,6 +372,7 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                                 <option value="staff">Staff</option>
                                 <option value="parent">Parents</option>
                                 <option value="vip">VIPs</option>
+                                <option value="outsider">Outsiders</option>
                             </select>
                         </div>
 
@@ -395,7 +390,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                     </div>
                 </div>
 
-                {/* Dynamic Table */}
                 <div className="overflow-x-auto relative w-full">
                     <table className="w-full text-left border-collapse relative min-w-max">
                         <thead className="sticky top-0 z-10 shadow-sm">
@@ -418,23 +412,31 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
 
                                     return (
                                         <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
-                                            {rowData.map((val, colIdx) => (
-                                                <td key={colIdx} className={`px-6 py-4 text-sm ${colIdx === 0 ? 'text-center text-gray-500' : colIdx === 1 ? 'font-bold text-[#1c3068]' : 'text-center text-gray-600'}`}>
-                                                    {/* Special styling for user type badge if in 'All' view */}
-                                                    {typeFilter === 'all' && colIdx === 2 && typeof val === 'string' ? (
-                                                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${val === 'VIP' ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                                                            val === 'PARENT' ? 'bg-purple-50 text-purple-600 border-purple-200' :
-                                                                val === 'TEACHER' ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                                                                    val === 'STAFF' ? 'bg-teal-50 text-teal-600 border-teal-200' :
-                                                                        'bg-gray-100 text-gray-600 border-gray-200'
-                                                            }`}>
-                                                            {val === 'VIP' && '⭐ '} {val}
-                                                        </span>
-                                                    ) : (
-                                                        val
-                                                    )}
-                                                </td>
-                                            ))}
+                                            {rowData.map((val, colIdx) => {
+                                                const colName = activeColumns[colIdx];
+                                                const isLongTextColumn = ['Name', 'Department', 'Purpose', 'Position', 'Affiliation / Details'].includes(colName);
+
+                                                return (
+                                                    <td
+                                                        key={colIdx}
+                                                        className={`px-6 py-4 text-sm align-top ${colIdx === 0 ? 'text-center text-gray-500' : colIdx === 1 ? 'font-bold text-[#1c3068]' : 'text-center text-gray-600'} ${isLongTextColumn ? 'max-w-[200px] sm:max-w-[250px] whitespace-normal break-words leading-relaxed' : 'whitespace-nowrap'}`}
+                                                    >
+                                                        {typeFilter === 'all' && colIdx === 2 && typeof val === 'string' ? (
+                                                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${val === 'VIP' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                                                val === 'PARENT' ? 'bg-purple-50 text-purple-600 border-purple-200' :
+                                                                    val === 'TEACHER' ? 'bg-blue-50 text-blue-600 border-blue-200' :
+                                                                        val === 'STAFF' ? 'bg-teal-50 text-teal-600 border-teal-200' :
+                                                                            val === 'OUTSIDER' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                                                'bg-gray-100 text-gray-600 border-gray-200'
+                                                                }`}>
+                                                                {val === 'VIP' && '⭐ '} {val}
+                                                            </span>
+                                                        ) : (
+                                                            val
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     );
                                 })
@@ -443,7 +445,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                     </table>
                 </div>
 
-                {/* --- PAGINATION & COUNT --- */}
                 {!loading && (
                     <div className="p-6 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 gap-4 bg-gray-50/30">
                         <p>Showing {startIndex + (currentData.length > 0 ? 1 : 0)} to {endIndex} of {totalItems} entries</p>
@@ -457,7 +458,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                                             className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                                         />
                                     </PaginationItem>
-
                                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                         <PaginationItem key={page}>
                                             <PaginationLink
@@ -469,7 +469,6 @@ export const ViewEventAttendance = ({ onBack, itemId, itemName, moduleName }: Vi
                                             </PaginationLink>
                                         </PaginationItem>
                                     ))}
-
                                     <PaginationItem>
                                         <PaginationNext
                                             onClick={() => setCurrentPage(currentPage + 1)}

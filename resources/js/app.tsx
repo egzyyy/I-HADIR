@@ -27,6 +27,7 @@ import CoCurricular from './Pages/Academic/CoCurricular';
 import Sport from './Pages/Academic/Sport';
 import EventPage from './Pages/Academic/Event';
 import EventScanPage from './Pages/Academic/EventScan';
+import PublicEventRegistration from './Pages/Academic/PublicEventRegistration';
 import MyCocuSport from './Pages/Academic/MyCocuSport';
 
 // Pages — Attendance Log dropdown (folder)
@@ -84,6 +85,7 @@ root.render(
         <Route path="/visitor" element={<Visitor />} />
         <Route path="/scan" element={<PublicScan />} />
         <Route path="/parents-report" element={<ParentsReport />} />
+        <Route path="/event/:id/register" element={<PublicEventRegistration />} />
 
         {/* Dashboard — all roles */}
         <Route path="/dashboard" element={<RequireRole allow={ALL}><Dashboard /></RequireRole>} />

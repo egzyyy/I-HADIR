@@ -17,6 +17,7 @@ class EventAttendee extends Model
         'user_id',
         'department',
         'position',
+        'purpose',
         'email',
         'phone_number',
         'check_in_time',

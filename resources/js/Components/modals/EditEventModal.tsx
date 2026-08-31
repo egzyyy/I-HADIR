@@ -4,14 +4,15 @@ import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
 // ─── ADDED 'vip' TO THE TYPE ──────────────────────────────────────────────────
-type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip';
+type ParticipantKey = 'teacher' | 'student' | 'staff' | 'parent' | 'vip' | 'outsider';
 
 const PARTICIPANT_LABELS: { key: ParticipantKey; label: string }[] = [
     { key: 'teacher', label: 'Teacher' },
     { key: 'student', label: 'Student' },
     { key: 'staff', label: 'School Staff' },
     { key: 'parent', label: 'Parent' },
-    { key: 'vip', label: 'VIP' }, // <--- ADDED VIP LABEL
+    { key: 'vip', label: 'VIP' },
+    { key: 'outsider', label: 'Outsider' },
 ];
 
 export interface EventItem {
