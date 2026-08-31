@@ -22,7 +22,7 @@ type ScanResult = {
   success: boolean;
   name: string;
   class: string;
-  status?: 'present' | 'late' | 'absent';
+  status?: 'present' | 'late' | 'absent' | 'incomplete';
   time: string;
   message: string;
   duplicate?: boolean;
@@ -33,23 +33,31 @@ const statusTone: Record<NonNullable<ScanResult['status']>, ScanResultTone> = {
   present: 'success',
   late: 'warning',
   absent: 'danger',
+  incomplete: 'warning',
 };
 
 const statusLabel: Record<NonNullable<ScanResult['status']>, string> = {
   present: 'Present',
   late: 'Late',
   absent: 'Absent',
+  incomplete: 'Incomplete Shift',
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const AttendanceScan = () => {
   const { role } = useAuth();
-  const userType = role === 'Teacher' ? 'teacher' : role === 'Security' ? 'staff' : 'student';
-  const scanTargetLabel = role === 'Teacher' || role === 'Security' ? 'your' : "a student's";
 
-  // Deep-link support (used by dashboard quick actions): ?mode=check-out
+  // Deep-link support (used by dashboard quick actions & teacher's Student QR
+  // Scanner menu item): ?mode=check-out, ?target=student
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
+  // Teachers/Security normally scan their OWN QR here (self clock-in). When
+  // reached via the "Student QR Scanner" menu item (?target=student), they're
+  // scanning a student's QR instead — same page, same endpoint, no duplication.
+  const scanningStudent = searchParams.get('target') === 'student';
+
+  const userType = scanningStudent ? 'student' : role === 'Teacher' ? 'teacher' : role === 'Security' ? 'staff' : 'student';
+  const scanTargetLabel = !scanningStudent && (role === 'Teacher' || role === 'Security') ? 'your' : "a student's";
 
   const [scanMode, setScanMode] = useState<ScanMode>(modeParam === 'check-out' ? 'check-out' : 'check-in');
   const [scanning, setScanning] = useState(false);
@@ -105,7 +113,7 @@ const AttendanceScan = () => {
             onClick={() => { setScanMode(m); setScanning(false); setError(null); setResult(null); }}
             className={`px-4 py-2 text-sm font-semibold transition-colors ${
               scanMode === m
-                ? 'bg-[#2f4fa8] text-white'
+                ? 'bg-role text-white'
                 : 'bg-white text-gray-500 hover:bg-gray-50'
             }`}
           >
@@ -124,7 +132,7 @@ const AttendanceScan = () => {
         className="max-w-2xl mx-auto"
       >
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Scan Attendance</h2>
+          <h2 className="text-2xl font-bold text-role">{scanningStudent ? 'Student QR Scanner' : 'Scan Attendance'}</h2>
           <p className="text-gray-500 text-sm mt-1">
             Point the camera at {scanTargetLabel} QR code to record {scanMode === 'check-out' ? 'check-out' : 'check-in'}.
           </p>
@@ -132,21 +140,21 @@ const AttendanceScan = () => {
 
         {stillLoadingShifts ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-4 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-role border-t-transparent rounded-full animate-spin" />
           </div>
         ) : needsShiftPick ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             {modeToggle}
             <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck size={18} className="text-[#2f4fa8]" />
-              <h3 className="font-bold text-[#2f4fa8]">Which shift are you checking in for?</h3>
+              <ShieldCheck size={18} className="text-role" />
+              <h3 className="font-bold text-role">Which shift are you checking in for?</h3>
             </div>
             <div className="space-y-2">
               {shifts.map(s => (
                 <button
                   key={s.id}
                   onClick={() => setSelectedShiftId(s.id)}
-                  className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#2f4fa8] hover:bg-[#2f4fa8]/5 transition-colors flex items-center justify-between"
+                  className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-role hover:bg-role/5 transition-colors flex items-center justify-between"
                 >
                   <span className="text-sm font-semibold text-gray-700">{s.name}</span>
                   <span className="text-xs text-gray-400">
@@ -162,11 +170,11 @@ const AttendanceScan = () => {
               <>
                 {modeToggle}
                 {isSecurity && scanMode === 'check-in' && selectedShiftId && (
-                  <div className="mb-4 flex items-center justify-between text-sm bg-[#2f4fa8]/5 border border-[#2f4fa8]/10 rounded-xl px-4 py-2.5">
+                  <div className="mb-4 flex items-center justify-between text-sm bg-role/5 border border-role/10 rounded-xl px-4 py-2.5">
                     <span className="text-gray-600">
-                      Checking in for <strong className="text-[#2f4fa8]">{shifts.find(s => s.id === selectedShiftId)?.name}</strong>
+                      Checking in for <strong className="text-role">{shifts.find(s => s.id === selectedShiftId)?.name}</strong>
                     </span>
-                    <button onClick={() => setSelectedShiftId(null)} className="text-[#2f4fa8] font-semibold hover:underline">
+                    <button onClick={() => setSelectedShiftId(null)} className="text-role font-semibold hover:underline">
                       Change
                     </button>
                   </div>
@@ -211,12 +219,16 @@ const AttendanceScan = () => {
             )
           ) : (
             <ScanResultModal
-              tone={result.duplicate ? 'warning' : 'success'}
+              tone={result.duplicate ? 'warning' : result.status === 'incomplete' ? 'warning' : 'success'}
               eyebrow={result.duplicate ? 'Already Checked Out' : 'Check-Out Recorded'}
               name={result.name}
               subtitle={result.class}
               time={result.time}
-              badges={[{ label: result.duplicate ? 'Duplicate' : 'Checked Out' }]}
+              badges={[{
+                label: result.duplicate
+                  ? 'Duplicate'
+                  : result.status === 'incomplete' ? 'Incomplete Shift — Left Early' : 'Checked Out',
+              }]}
               onClose={() => setResult(null)}
             />
           )
@@ -227,8 +239,11 @@ const AttendanceScan = () => {
 };
 
 export default function CheckInPage() {
+  const [searchParams] = useSearchParams();
+  const activePageId = searchParams.get('target') === 'student' ? 'student-qr-scan' : 'check-in';
+
   return (
-    <DashboardLayout activePageId="check-in">
+    <DashboardLayout activePageId={activePageId}>
       <AttendanceScan />
     </DashboardLayout>
   );

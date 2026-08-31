@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle, AlertTriangle, XCircle, Clock, Info, X } from 'lucide-react';
+import { Search, CheckCircle, AlertTriangle, XCircle, MinusCircle, Clock, Info, X } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 
@@ -20,7 +20,7 @@ type LogEntry = {
   name: string;
   class: string;
   user_type: string;
-  status: 'present' | 'late' | 'absent';
+  status: 'present' | 'late' | 'absent' | 'incomplete';
   date: string;
   check_in: string | null;
   check_out: string | null;
@@ -29,10 +29,13 @@ type LogEntry = {
   shift?: string | null;
 };
 
+// 'incomplete' only ever occurs for security staff (left before their shift ended,
+// or never checked out at all) — students/teachers/regular staff never get this status.
 const statusConfig = {
-  present: { label: 'Present', color: 'text-green-700',  bg: 'bg-green-100',  icon: CheckCircle },
-  late:    { label: 'Late',    color: 'text-yellow-700', bg: 'bg-yellow-100', icon: AlertTriangle },
-  absent:  { label: 'Absent',  color: 'text-red-700',    bg: 'bg-red-100',    icon: XCircle },
+  present:    { label: 'Present',    color: 'text-green-700',  bg: 'bg-green-100',  icon: CheckCircle },
+  late:       { label: 'Late',       color: 'text-yellow-700', bg: 'bg-yellow-100', icon: AlertTriangle },
+  absent:     { label: 'Absent',     color: 'text-red-700',    bg: 'bg-red-100',    icon: XCircle },
+  incomplete: { label: 'Incomplete', color: 'text-orange-700', bg: 'bg-orange-100', icon: MinusCircle },
 };
 
 const AttendanceLogPage = () => {
@@ -87,9 +90,10 @@ const AttendanceLogPage = () => {
   } = usePagination(filtered, 10);
 
   const counts = {
-    present: logs.filter(l => l.status === 'present').length,
-    late:    logs.filter(l => l.status === 'late').length,
-    absent:  logs.filter(l => l.status === 'absent').length,
+    present:    logs.filter(l => l.status === 'present').length,
+    late:       logs.filter(l => l.status === 'late').length,
+    absent:     logs.filter(l => l.status === 'absent').length,
+    incomplete: logs.filter(l => l.status === 'incomplete').length,
   };
 
   const SCAN_METHOD_LABELS: Record<string, string> = {
@@ -98,9 +102,12 @@ const AttendanceLogPage = () => {
     '-': '-',
   };
 
-  // Shift only applies to security staff — only worth a column when viewing Staff records
+  // Shift / Incomplete only apply to security staff — only worth showing when viewing Staff records
   const showShiftColumn = filterType === 'staff';
   const columnCount = showShiftColumn ? 8 : 7;
+  const statusTabs = showShiftColumn
+    ? (['present', 'late', 'absent', 'incomplete'] as const)
+    : (['present', 'late', 'absent'] as const);
 
   return (
     <motion.div
@@ -109,13 +116,13 @@ const AttendanceLogPage = () => {
       className="max-w-full mx-auto space-y-6 relative"
     >
       <div>
-        <h2 className="text-2xl font-bold text-[#2f4fa8]">Attendance Log</h2>
+        <h2 className="text-2xl font-bold text-role">Attendance Log</h2>
         <p className="text-gray-500 text-sm mt-1">View and filter all check-in / check-out records.</p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4">
-        {(['present', 'late', 'absent'] as const).map((s) => {
+      <div className={`grid gap-4 ${showShiftColumn ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        {statusTabs.map((s) => {
           const cfg  = statusConfig[s];
           const Icon = cfg.icon;
           return (
@@ -124,7 +131,7 @@ const AttendanceLogPage = () => {
                 <Icon size={20} className={cfg.color} />
               </div>
               <div>
-                <p className="text-2xl font-black text-[#2f4fa8]">{counts[s]}</p>
+                <p className="text-2xl font-black text-role">{counts[s]}</p>
                 <p className="text-xs text-gray-400 font-medium">{cfg.label}</p>
               </div>
             </div>
@@ -139,14 +146,14 @@ const AttendanceLogPage = () => {
           type="date"
           value={filterDate}
           onChange={e => { setFilterDate(e.target.value); setCurrentPage(1); }}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
+          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-role"
         />
 
         {/* User type */}
         <select
           value={filterType}
           onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
-          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-role"
         >
           <option value="student">Students</option>
           <option value="teacher">Teachers</option>
@@ -157,12 +164,13 @@ const AttendanceLogPage = () => {
         <select
           value={filterStatus}
           onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
+          className="w-[100px] px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-role"
         >
           <option value="">All Status</option>
           <option value="present">Present</option>
           <option value="late">Late</option>
           <option value="absent">Absent</option>
+          {showShiftColumn && <option value="incomplete">Incomplete</option>}
         </select>
 
         {/* Search */}
@@ -173,7 +181,7 @@ const AttendanceLogPage = () => {
             placeholder="Search name or class..."
             value={search}
             onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-[#2f4fa8]"
+            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:outline-none focus:border-role"
           />
         </div>
 
@@ -203,7 +211,7 @@ const AttendanceLogPage = () => {
                 <tr>
                   <td colSpan={columnCount} className="px-6 py-16 text-center text-gray-400 text-sm">
                     <div className="flex justify-center">
-                      <div className="w-6 h-6 border-2 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" />
+                      <div className="w-6 h-6 border-2 border-role border-t-transparent rounded-full animate-spin" />
                     </div>
                   </td>
                 </tr>
@@ -321,7 +329,7 @@ const AttendanceLogPage = () => {
               className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-6 relative"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-[#2f4fa8]">Manual Entry Detail</h3>
+                <h3 className="text-lg font-bold text-role">Manual Entry Detail</h3>
                 <button onClick={() => setSelectedReason(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={20} />
                 </button>
@@ -343,7 +351,7 @@ const AttendanceLogPage = () => {
               <div className="mt-8 flex justify-end">
                 <button 
                   onClick={() => setSelectedReason(null)} 
-                  className="bg-[#2f4fa8] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[#264190] transition-colors w-full"
+                  className="bg-role text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-role-dark transition-colors w-full"
                 >
                   Close
                 </button>

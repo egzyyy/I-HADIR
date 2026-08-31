@@ -56,6 +56,7 @@ const statusBadgeClass = (status: string) => {
     present: 'bg-green-50 text-green-700',
     late: 'bg-yellow-50 text-yellow-700',
     absent: 'bg-red-50 text-red-700',
+    incomplete: 'bg-orange-50 text-orange-700',
   };
   return map[status] ?? 'bg-gray-50 text-gray-600';
 };
@@ -181,7 +182,7 @@ const DashboardHome = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#2f4fa8] to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
+        className="bg-gradient-to-r from-role to-[#2a4595] rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden"
       >
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div>
@@ -205,7 +206,7 @@ const DashboardHome = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
         <StatCard icon={Users} label="Total Users" value={summary ? String(summary.total_users) : '—'} colorClass="bg-[#c53336]" delay={0.1} />
-        <StatCard icon={GraduationCap} label="Total Teachers" value={summary ? String(summary.total_teachers) : '—'} colorClass="bg-[#2f4fa8]" delay={0.2} />
+        <StatCard icon={GraduationCap} label="Total Teachers" value={summary ? String(summary.total_teachers) : '—'} colorClass="bg-role" delay={0.2} />
         <StatCard icon={Users} label="Total Staff" value={summary ? String(summary.total_staff) : '—'} colorClass="bg-[#cec43a]" delay={0.3} />
         <StatCard icon={Users} label="Total Students" value={summary ? String(summary.total_students) : '—'} colorClass="bg-teal-500" delay={0.4} />
         <StatCard icon={Home} label="Total Classes" value={summary ? String(summary.total_classes) : '—'} colorClass="bg-purple-500" delay={0.5} />
@@ -215,7 +216,7 @@ const DashboardHome = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div>
-            <h3 className="text-xl font-bold text-[#2f4fa8]">Attendance List</h3>
+            <h3 className="text-xl font-bold text-role">Attendance List</h3>
             <p className="text-gray-500 text-sm mt-1">Today's records for {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</p>
           </div>
           <div className="flex bg-gray-50 p-1 rounded-lg">
@@ -225,7 +226,7 @@ const DashboardHome = () => {
                 onClick={() => changeTab(tab)}
                 className={`px-4 py-2 rounded-md text-sm font-semibold transition-all capitalize ${
                   activeTab === tab
-                    ? 'bg-white text-[#2f4fa8] shadow-sm'
+                    ? 'bg-white text-role shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -245,7 +246,7 @@ const DashboardHome = () => {
                 placeholder="Search records..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#2f4fa8] focus:ring-1 focus:ring-[#2f4fa8] outline-none transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:border-role focus:ring-1 focus:ring-role outline-none transition-all"
               />
             </div>
           </div>

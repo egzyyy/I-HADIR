@@ -215,9 +215,9 @@ const ManualEntry = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -356,22 +356,22 @@ const ManualEntry = () => {
       </AnimatePresence>
 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-[#2f4fa8]">Manual Entry</h2>
-        <button onClick={() => { setShowModal(true); setError(null); }} className="bg-[#2f4fa8] hover:bg-[#264190] text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-role">Manual Entry</h2>
+        <button onClick={() => { setShowModal(true); setError(null); }} className="bg-role hover:bg-role-dark text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2">
           <Plus size={18} /> Manual Check In
         </button>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50">
-          <p className="text-[#2f4fa8] font-bold text-lg capitalize">{activeTab} Attendance Logs</p>
+          <p className="text-role font-bold text-lg capitalize">{activeTab} Attendance Logs</p>
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-auto">
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] outline-none transition-all text-gray-600 font-medium cursor-pointer" />
+              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:border-role outline-none transition-all text-gray-600 font-medium cursor-pointer" />
             </div>
             <div className="relative w-full sm:w-56">
               <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Search name..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all" />
+              <input type="text" placeholder="Search name..." value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white focus:bg-white border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all" />
             </div>
           </div>
         </div>
@@ -384,7 +384,7 @@ const ManualEntry = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab.toLowerCase() as any)}
-                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${activeTab === tab.toLowerCase() ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${activeTab === tab.toLowerCase() ? 'bg-white text-role shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   {tab}
@@ -426,7 +426,8 @@ const ManualEntry = () => {
                     <td className="px-6 py-4 text-sm capitalize">
                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border tracking-wider uppercase ${entry.status === 'present' ? 'bg-green-50 text-green-700 border-green-200' :
                           entry.status === 'late' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            'bg-red-50 text-red-700 border-red-200'
+                            entry.status === 'incomplete' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                              'bg-red-50 text-red-700 border-red-200'
                         }`}>
                         {entry.status}
                       </span>
@@ -439,7 +440,7 @@ const ManualEntry = () => {
                         <button
                           onClick={() => handleCheckOut(entry.id)}
                           disabled={checkingOut === entry.id}
-                          className="bg-[#2f4fa8] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#264190] transition-colors disabled:opacity-50 shadow-sm"
+                          className="bg-role text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-role-dark transition-colors disabled:opacity-50 shadow-sm"
                         >
                           {checkingOut === entry.id ? '...' : 'Check Out'}
                         </button>
@@ -487,7 +488,7 @@ const ManualEntry = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="bg-white rounded-2xl shadow-xl w-full max-w-2xl relative z-10 overflow-hidden">
               <div className="bg-[#fcfafa] px-8 py-6 border-b border-gray-100 flex justify-between items-center">
-                <div><h3 className="text-xl font-bold text-[#2f4fa8]">Manual Check In</h3><p className="text-gray-500 text-sm">Please select a participant and provide a reason</p></div>
+                <div><h3 className="text-xl font-bold text-role">Manual Check In</h3><p className="text-gray-500 text-sm">Please select a participant and provide a reason</p></div>
                 <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
               </div>
 
@@ -502,12 +503,12 @@ const ManualEntry = () => {
 
                   {/* User Type (Top) */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> User Type</label>
+                    <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> User Type</label>
                     <div className="relative">
                       <select
                         value={formData.user_type}
                         onChange={(e) => setFormData({ ...formData, user_type: e.target.value, classId: '', shiftId: '', ic: '' })}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
                       >
                         <option value="student">Student</option>
                         <option value="teacher">Teacher</option>
@@ -520,9 +521,9 @@ const ManualEntry = () => {
                   {/* Class Selection (Only for Students) */}
                   {formData.user_type === 'student' && (
                     <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Class</label>
+                      <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Class</label>
                       <div className="relative">
-                        <select value={formData.classId} onChange={(e) => setFormData({ ...formData, classId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                        <select value={formData.classId} onChange={(e) => setFormData({ ...formData, classId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                           <option value="">Select a class...</option>
                           {classes.map(c => (<option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>))}
                         </select>
@@ -534,9 +535,9 @@ const ManualEntry = () => {
                   {/* Shift Selection (Only for Staff) */}
                   {formData.user_type === 'staff' && (
                     <div className="space-y-2 md:col-span-2">
-                      <label className="block text-sm font-bold text-[#2f4fa8]">Shift <span className="text-gray-400 font-normal">(Optional)</span></label>
+                      <label className="block text-sm font-bold text-role">Shift <span className="text-gray-400 font-normal">(Optional)</span></label>
                       <div className="relative">
-                        <select value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                        <select value={formData.shiftId} onChange={(e) => setFormData({ ...formData, shiftId: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                           <option value="">Select a shift...</option>
                           {shifts.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
                         </select>
@@ -547,13 +548,13 @@ const ManualEntry = () => {
 
                   {/* Name Selection */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Participant Name</label>
+                    <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Participant Name</label>
                     <div className="relative">
                       <select
                         value={formData.ic}
                         onChange={(e) => setFormData({ ...formData, ic: e.target.value })}
                         disabled={(formData.user_type === 'student' && !formData.classId) || loadingUsers || availableUsers.length === 0}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="">
                           {loadingUsers ? 'Loading participants...' :
@@ -568,8 +569,8 @@ const ManualEntry = () => {
 
                   {/* Reason */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="block text-sm font-bold text-[#2f4fa8]"><span className="text-[#c53336] mr-1">*</span> Reason</label>
-                    <input type="text" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} placeholder="e.g. Forgot ID Card, System Error, etc." className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700" />
+                    <label className="block text-sm font-bold text-role"><span className="text-[#c53336] mr-1">*</span> Reason</label>
+                    <input type="text" value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} placeholder="e.g. Forgot ID Card, System Error, etc." className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
                   </div>
                 </div>
 

@@ -34,6 +34,10 @@ class SchoolProfileController extends Controller
             'organization.*.name'     => 'required|string|max:255',
             'organization.*.position' => 'required|string|max:255',
             'organization.*.level'    => 'required|integer|min:1|max:3',
+            // Optional link to a user account. When set, the landing page uses
+            // that account's photo instead of matching on name, so the photo
+            // survives a rename. Members with no account simply omit it.
+            'organization.*.user_id'  => 'nullable|integer',
         ]);
 
         $profile = SchoolProfile::updateOrCreate(

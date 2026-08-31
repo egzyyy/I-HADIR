@@ -15,8 +15,6 @@ class Shift extends Model
         'start_time',
         'end_time',
         'is_overnight',
-        'late_threshold',
-        'absent_threshold',
         'is_active',
     ];
 

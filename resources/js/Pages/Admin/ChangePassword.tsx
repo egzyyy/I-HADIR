@@ -64,7 +64,7 @@ export default function ChangePassword() {
       {/* Header Section */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#2f4fa8] tracking-tight">Password Setting</h2>
+          <h2 className="text-3xl font-black text-role tracking-tight">Password Setting</h2>
           <p className="text-gray-500 text-sm mt-1">Update your account security credentials.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
@@ -78,7 +78,7 @@ export default function ChangePassword() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Info Card */}
         <div className="lg:col-span-1 space-y-6">
-           <div className="bg-[#2f4fa8] rounded-2xl p-8 text-white relative overflow-hidden shadow-lg shadow-[#2f4fa8]/20">
+           <div className="bg-role rounded-2xl p-8 text-white relative overflow-hidden shadow-lg shadow-role/20">
               <div className="absolute top-0 right-0 p-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
               <div className="absolute bottom-0 left-0 p-20 bg-[#c53336]/20 rounded-full blur-2xl -ml-10 -mb-10"></div>
               
@@ -113,31 +113,31 @@ export default function ChangePassword() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-50 rounded-lg text-[#2f4fa8]">
+                <div className="p-2 bg-blue-50 rounded-lg text-role">
                    <Key size={20} />
                 </div>
                 <div>
-                   <h3 className="text-lg font-bold text-[#2f4fa8]">Change Password</h3>
+                   <h3 className="text-lg font-bold text-role">Change Password</h3>
                    <p className="text-gray-500 text-xs">Please fill in your new password below</p>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6 max-w-xl">
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-[#2f4fa8]">New Password</label>
+                  <label className="block text-sm font-bold text-role">New Password</label>
                   <div className="relative">
                     <input 
                       type={showPassword ? "text" : "password"} 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-medium"
+                      className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium"
                       placeholder="Enter new password"
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2f4fa8] transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-role transition-colors"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -145,20 +145,20 @@ export default function ChangePassword() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-[#2f4fa8]">Confirm Password</label>
+                  <label className="block text-sm font-bold text-role">Confirm Password</label>
                   <div className="relative">
                     <input 
                       type={showConfirmPassword ? "text" : "password"} 
                       value={passwordConfirmation}
                       onChange={(e) => setPasswordConfirmation(e.target.value)}
-                      className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all text-gray-700 font-medium"
+                      className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium"
                       placeholder="Confirm new password"
                       required
                     />
                     <button 
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2f4fa8] transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-role transition-colors"
                     >
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -176,7 +176,7 @@ export default function ChangePassword() {
                   <button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 bg-[#2f4fa8] hover:bg-[#264190] text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
+                    className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
                   >
                     <Save size={18} /> {isSubmitting ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -226,7 +226,7 @@ export default function ChangePassword() {
               <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle size={40} className="text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-[#2f4fa8] mb-2">Success!</h3>
+              <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
               <p className="text-gray-500 mb-8">Your password has been successfully updated.</p>
               <button 
                 onClick={() => setShowSuccessModal(false)}

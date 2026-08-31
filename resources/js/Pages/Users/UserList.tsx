@@ -401,7 +401,7 @@ const UserListUnified = () => {
           {/* Header & Tabs */}
           <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h2 className="text-xl font-bold text-[#2f4fa8] flex items-center gap-2">
+              <h2 className="text-xl font-bold text-role flex items-center gap-2">
                 {isTeacherView ? 'My Class Student List' : 'User List'}
               </h2>
               <p className="text-gray-400 text-xs mt-1">List of registered users as of {today}</p>
@@ -413,7 +413,7 @@ const UserListUnified = () => {
                   <button
                     key={tab}
                     onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
-                    className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-[#2f4fa8] shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-role shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                       }`}
                   >
                     {tab}
@@ -441,7 +441,7 @@ const UserListUnified = () => {
                   <select
                     value={selectedSessionId}
                     onChange={(e) => setSelectedSessionId(e.target.value)}
-                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-[#2f4fa8] font-semibold"
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                   >
                     <option value="all">All Time History</option>
                     {sessions.map(session => (
@@ -492,7 +492,7 @@ const UserListUnified = () => {
                     currentData.map((item: any, index: number) => (
                       <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-4 py-3 text-sm text-gray-500 text-center">{startIndex + index + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-[#2f4fa8]">{item.name}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-role">{item.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.ic_number}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.phone}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-medium">

@@ -24,12 +24,9 @@ class ShiftController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'             => 'required|string|max:255',
-            'start_time'       => 'required|date_format:H:i',
-            'end_time'         => 'required|date_format:H:i',
-            'late_threshold'   => 'nullable|date_format:H:i',
-            'absent_threshold' => 'nullable|date_format:H:i',
-            'is_active'        => 'boolean',
+            'start_time' => 'required|date_format:H:i',
+            'end_time'   => 'required|date_format:H:i',
+            'is_active'  => 'boolean',
         ]);
 
         $schoolId    = auth()->user()->school_id;
@@ -43,14 +40,12 @@ class ShiftController extends Controller
         }
 
         $shift = Shift::create([
-            'school_id'        => $schoolId,
-            'name'             => $request->name,
-            'start_time'       => $request->start_time,
-            'end_time'         => $request->end_time,
-            'is_overnight'     => $isOvernight,
-            'late_threshold'   => $request->late_threshold,
-            'absent_threshold' => $request->absent_threshold,
-            'is_active'        => $request->boolean('is_active', true),
+            'school_id'    => $schoolId,
+            'name'         => $this->formatShiftName($request->start_time, $request->end_time),
+            'start_time'   => $request->start_time,
+            'end_time'     => $request->end_time,
+            'is_overnight' => $isOvernight,
+            'is_active'    => $request->boolean('is_active', true),
         ]);
 
         return response()->json([
@@ -63,12 +58,9 @@ class ShiftController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name'             => 'required|string|max:255',
-            'start_time'       => 'required|date_format:H:i',
-            'end_time'         => 'required|date_format:H:i',
-            'late_threshold'   => 'nullable|date_format:H:i',
-            'absent_threshold' => 'nullable|date_format:H:i',
-            'is_active'        => 'boolean',
+            'start_time' => 'required|date_format:H:i',
+            'end_time'   => 'required|date_format:H:i',
+            'is_active'  => 'boolean',
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -83,13 +75,11 @@ class ShiftController extends Controller
         }
 
         $shift->update([
-            'name'             => $request->name,
-            'start_time'       => $request->start_time,
-            'end_time'         => $request->end_time,
-            'is_overnight'     => $isOvernight,
-            'late_threshold'   => $request->late_threshold,
-            'absent_threshold' => $request->absent_threshold,
-            'is_active'        => $request->boolean('is_active', true),
+            'name'         => $this->formatShiftName($request->start_time, $request->end_time),
+            'start_time'   => $request->start_time,
+            'end_time'     => $request->end_time,
+            'is_overnight' => $isOvernight,
+            'is_active'    => $request->boolean('is_active', true),
         ]);
 
         return response()->json([
@@ -176,17 +166,24 @@ class ShiftController extends Controller
 
     // ─── Formatter ───────────────────────────────────────────────────────────
 
+    // Shift names are derived from their time window, not admin-typed, so the
+    // name can never drift out of sync with what the shift actually is —
+    // e.g. "7:00 PM - 5:00 AM".
+    private function formatShiftName(string $start, string $end): string
+    {
+        $fmt = fn(string $t) => \Illuminate\Support\Carbon::createFromFormat('H:i', $t)->format('g:i A');
+        return "{$fmt($start)} - {$fmt($end)}";
+    }
+
     private function formatShift(Shift $s): array
     {
         return [
-            'id'              => $s->id,
-            'name'            => $s->name,
-            'startTime'       => substr($s->start_time, 0, 5),
-            'endTime'         => substr($s->end_time, 0, 5),
-            'isOvernight'     => $s->is_overnight,
-            'lateThreshold'   => $s->late_threshold ? substr($s->late_threshold, 0, 5) : null,
-            'absentThreshold' => $s->absent_threshold ? substr($s->absent_threshold, 0, 5) : null,
-            'isActive'        => $s->is_active,
+            'id'          => $s->id,
+            'name'        => $s->name,
+            'startTime'   => substr($s->start_time, 0, 5),
+            'endTime'     => substr($s->end_time, 0, 5),
+            'isOvernight' => $s->is_overnight,
+            'isActive'    => $s->is_active,
         ];
     }
 }

@@ -22,6 +22,7 @@ const statusBadgeClass = (status: string) => {
     present: 'bg-green-50 text-green-600 border-green-100',
     late: 'bg-yellow-50 text-yellow-600 border-yellow-100',
     absent: 'bg-red-50 text-red-600 border-red-100',
+    incomplete: 'bg-orange-50 text-orange-600 border-orange-100',
   };
   return map[status] ?? 'bg-gray-50 text-gray-600 border-gray-100';
 };
@@ -85,7 +86,7 @@ function MyAttendanceContent() {
       {/* Header Section */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#2f4fa8] tracking-tight">My Attendance</h2>
+          <h2 className="text-3xl font-black text-role tracking-tight">My Attendance</h2>
           <p className="text-gray-500 text-sm mt-1">View your personal attendance history and logs.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
@@ -102,7 +103,7 @@ function MyAttendanceContent() {
         {/* Helper Text */}
         <div className="p-6 border-b border-gray-100 bg-[#f8f9fa]">
           <div className="flex items-center gap-3 text-sm text-gray-600 bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <div className="w-5 h-5 rounded-full bg-[#2f4fa8] text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">i</div>
+            <div className="w-5 h-5 rounded-full bg-role text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">i</div>
             <p>Click the buttons below to export your attendance data to Copy, CSV, Excel, PDF, or Print format.</p>
           </div>
         </div>
@@ -115,12 +116,12 @@ function MyAttendanceContent() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-sm font-medium text-gray-600" />
+                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-role outline-none transition-all text-sm font-medium text-gray-600" />
               </div>
               <span className="text-gray-400 text-sm">to</span>
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#2f4fa8] outline-none transition-all text-sm font-medium text-gray-600" />
+                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="pl-8 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:border-role outline-none transition-all text-sm font-medium text-gray-600" />
               </div>
               {(from || to) && (
                 <button onClick={clearFilters} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Clear filters">

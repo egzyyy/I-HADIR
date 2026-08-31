@@ -79,7 +79,7 @@ const AddSportModal = ({ onClose, teachers, onSaved }: { onClose: () => void; te
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <div><h3 className="text-xl font-bold text-[#2f4fa8]">Add new sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+          <div><h3 className="text-xl font-bold text-role">Add new sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
         </div>
         <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -147,7 +147,7 @@ const EditSportModal = ({ isOpen, onClose, item, teachers, onSaved }: { isOpen: 
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <div><h3 className="text-xl font-bold text-[#2f4fa8]">Edit sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+            <div><h3 className="text-xl font-bold text-role">Edit sport</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
           <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -267,9 +267,9 @@ const SportList = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -332,8 +332,8 @@ const SportList = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Sport List</h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Sport</button>
+          <h2 className="text-2xl font-bold text-role">Sport List</h2>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-role text-white rounded-lg text-sm font-bold hover:bg-role-dark transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Sport</button>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6">
@@ -352,7 +352,7 @@ const SportList = () => {
                   value={searchTerm}
                   onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   placeholder="Search sports or teachers..."
-                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all"
+                  className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all"
                 />
               </div>
             </div>

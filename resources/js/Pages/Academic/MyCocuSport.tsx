@@ -47,18 +47,18 @@ const ActivityForm = ({ name, setName, capacity, setCapacity, teacherId, setTeac
             <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> {typeLabel} Name</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={`e.g. 'St John'`}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
             </div>
             <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Capacity</label>
                 <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. '30'" min={1}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
             </div>
             <div className="space-y-2 md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Assigned Teacher</label>
                 <div className="relative">
                     <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+                        className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
                         <option value="">— No Teacher Assigned —</option>
                         {teachers.map(t => <option key={t.teacher_id} value={t.teacher_id}>{t.name.toUpperCase()}</option>)}
                         {teachers.length === 0 && <option value="" disabled>No teachers found</option>}
@@ -140,14 +140,14 @@ const EditActivityModal = ({ isOpen, onClose, item, teachers, onSaved, apiBase, 
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
                     <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                        <div><h3 className="text-xl font-bold text-[#2f4fa8]">Edit {typeLabel}</h3><p className="text-gray-500 text-sm mt-1">Update the details for this activity.</p></div>
+                        <div><h3 className="text-xl font-bold text-role">Edit {typeLabel}</h3><p className="text-gray-500 text-sm mt-1">Update the details for this activity.</p></div>
                         <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
                     </div>
                     <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
                         <ActivityForm name={name} setName={setName} capacity={capacity} setCapacity={setCapacity} teacherId={teacherId} setTeacherId={setTeacherId} teachers={teachers} error={error} typeLabel={typeLabel} />
                         <div className="pt-8 flex justify-end gap-3 border-t border-gray-100">
                             <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Cancel</button>
-                            <button type="submit" disabled={saving} className="bg-[#2f4fa8] hover:bg-[#264190] disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all min-w-[120px]">{saving ? 'Saving...' : 'Save Changes'}</button>
+                            <button type="submit" disabled={saving} className="bg-role hover:bg-role-dark disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all min-w-[120px]">{saving ? 'Saving...' : 'Save Changes'}</button>
                         </div>
                     </form></div>
                 </motion.div>
@@ -328,7 +328,7 @@ const MyCocuSportList = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div>
-                        <h2 className="text-2xl font-bold text-[#2f4fa8]">My Co-Curricular & Sports</h2>
+                        <h2 className="text-2xl font-bold text-role">My Co-Curricular & Sports</h2>
                         <p className="text-gray-500 text-sm mt-1">Manage students and details for your assigned activities.</p>
                     </div>
 
@@ -337,7 +337,7 @@ const MyCocuSportList = () => {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
-                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === tab ? 'bg-[#2f4fa8] text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === tab ? 'bg-role text-white shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
                                 {tab === 'cocu' ? 'Co-Curriculars' : 'Sports'}
@@ -364,7 +364,7 @@ const MyCocuSportList = () => {
                                     value={searchTerm}
                                     onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                                     placeholder={`Search ${typeLabel.toLowerCase()}s...`}
-                                    className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all"
+                                    className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all"
                                 />
                             </div>
                         </div>
@@ -381,7 +381,7 @@ const MyCocuSportList = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {loading ? <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-[#2f4fa8] border-t-transparent rounded-full animate-spin" /></div></td></tr>
+                                    {loading ? <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 text-sm"><div className="flex justify-center"><div className="w-6 h-6 border-2 border-role border-t-transparent rounded-full animate-spin" /></div></td></tr>
                                         : currentData.length === 0 ? <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-400 text-sm">You have no assigned {typeLabel.toLowerCase()}s matching your search.</td></tr>
                                             : currentData.map((item, idx) => (
                                                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
@@ -393,7 +393,7 @@ const MyCocuSportList = () => {
                                                         <div className="flex justify-center items-center gap-2">
                                                             <button
                                                                 onClick={() => { setSelected(item); setView('manage_students'); }}
-                                                                className="p-2 bg-blue-50 text-[#2f4fa8] rounded-lg hover:bg-[#2f4fa8] hover:text-white transition-all shadow-sm border border-blue-100"
+                                                                className="p-2 bg-blue-50 text-role rounded-lg hover:bg-role hover:text-white transition-all shadow-sm border border-blue-100"
                                                                 title="Manage Students"
                                                             >
                                                                 <Users size={16} />

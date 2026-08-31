@@ -42,7 +42,7 @@ type SortDirection = 'asc' | 'desc';
 // ── Checkbox ──────────────────────────────────────────────────────────────────
 const Checkbox = ({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) => (
   <label className="flex items-center gap-3 cursor-pointer group" onClick={onChange}>
-    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'border-[#2f4fa8] bg-[#2f4fa8]' : 'border-gray-300 group-hover:border-[#2f4fa8]'}`}>
+    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'border-role bg-role' : 'border-gray-300 group-hover:border-role'}`}>
       {checked && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
     </div>
     <span className="text-gray-600">{label}</span>
@@ -161,7 +161,7 @@ const AddEventModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: (it
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0 z-10">
-          <div><h3 className="text-xl font-bold text-[#2f4fa8]">Add new event</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+          <div><h3 className="text-xl font-bold text-role">Add new event</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
         </div>
         <div className="p-8">
@@ -381,7 +381,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 top-0 z-10">
-            <div><h3 className="text-xl font-bold text-[#2f4fa8]">Manual Registration</h3><p className="text-gray-500 text-sm mt-1">{item.name}</p></div>
+            <div><h3 className="text-xl font-bold text-role">Manual Registration</h3><p className="text-gray-500 text-sm mt-1">{item.name}</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
           <div className="p-8">
@@ -390,7 +390,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Participant Type</label>
                 <div className="relative">
-                  <select value={userType} onChange={e => setUserType(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all appearance-none cursor-pointer uppercase text-sm font-bold text-gray-700">
+                  <select value={userType} onChange={e => setUserType(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all appearance-none cursor-pointer uppercase text-sm font-bold text-gray-700">
                     {(item.participantTypes || []).map(type => <option key={type} value={type}>{type}</option>)}
                     {(item.participantTypes || []).length === 0 && <option value="" disabled>No participant types enabled</option>}
                   </select>
@@ -403,7 +403,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Select Participant</label>
                     <div className="relative">
-                      <select onChange={handleUserSelect} disabled={loadingUsers} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all appearance-none cursor-pointer text-sm text-gray-700">
+                      <select onChange={handleUserSelect} disabled={loadingUsers} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all appearance-none cursor-pointer text-sm text-gray-700">
                         <option value="">{loadingUsers ? 'Loading available participants...' : `— Select a ${userType} —`}</option>
                         {availableUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
@@ -421,15 +421,15 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                 <>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> VIP Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dato' Sri..." className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dato' Sri..." className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Department</label>
-                    <input type="text" value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Kementerian Pendidikan" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                    <input type="text" value={department} onChange={e => setDepartment(e.target.value)} placeholder="e.g. Kementerian Pendidikan" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Position</label>
-                    <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Pengarah" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                    <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Pengarah" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Purpose of Visit</label>
@@ -438,11 +438,11 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Phone <span className="text-gray-400 font-normal">(Optional)</span></label>
-                      <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all font-mono" />
+                      <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vip@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vip@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                     </div>
                   </div>
                 </>
@@ -474,8 +474,8 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                   <div className="space-y-2">
                     <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Parent IC Number</label>
                     <div className="flex gap-3">
-                      <input type="text" value={icNumber} onChange={e => setIcNumber(e.target.value.replace(/\D/g, ''))} maxLength={12} placeholder="e.g. 801010112233" className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all font-mono" />
-                      <button type="button" onClick={handleSearchParent} disabled={searchingParent || icNumber.length < 12} className="bg-[#2f4fa8] hover:bg-[#264190] disabled:opacity-50 text-white px-6 rounded-lg font-bold transition-all shadow-sm">
+                      <input type="text" value={icNumber} onChange={e => setIcNumber(e.target.value.replace(/\D/g, ''))} maxLength={12} placeholder="e.g. 801010112233" className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
+                      <button type="button" onClick={handleSearchParent} disabled={searchingParent || icNumber.length < 12} className="bg-role hover:bg-role-dark disabled:opacity-50 text-white px-6 rounded-lg font-bold transition-all shadow-sm">
                         {searchingParent ? '...' : 'Search'}
                       </button>
                     </div>
@@ -485,17 +485,17 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6">
                       <div className="space-y-2">
                         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Full Name</label>
-                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Parent Name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Parent Name" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="block text-sm font-bold text-gray-700">Phone <span className="text-gray-400 font-normal">(Optional)</span></label>
-                          <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all font-mono" />
+                          <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="01X-XXXXXXX" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all font-mono" />
                         </div>
                         <div className="space-y-2">
                           <label className="block text-sm font-bold text-gray-700">Email <span className="text-gray-400 font-normal">(Optional)</span></label>
-                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="parent@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] outline-none transition-all" />
+                          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="parent@email.com" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role outline-none transition-all" />
                         </div>
                       </div>
 
@@ -505,7 +505,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
                           <div className="space-y-2 border border-gray-200 rounded-xl p-4 bg-gray-50/50">
                             {parentChildren.map(child => (
                               <label key={child.id} className="flex items-center gap-3 cursor-pointer group">
-                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedChildren.has(child.name) ? 'border-[#2f4fa8] bg-[#2f4fa8]' : 'border-gray-300 group-hover:border-[#2f4fa8]'}`}>
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${selectedChildren.has(child.name) ? 'border-role bg-role' : 'border-gray-300 group-hover:border-role'}`}>
                                   {selectedChildren.has(child.name) && <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                 </div>
                                 <div className="flex flex-col">
@@ -549,7 +549,7 @@ const ManualRegistrationModal = ({ isOpen, onClose, item, onSaved }: { isOpen: b
 
               <div className="pt-6 flex justify-end gap-3 border-t border-gray-100">
                 <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all">Cancel</button>
-                <button type="submit" disabled={saving || (!name && isSystemUser)} className="bg-[#2f4fa8] hover:bg-[#264190] disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-[#2f4fa8]/20 transition-all min-w-[120px]">{saving ? 'Registering...' : 'Register'}</button>
+                <button type="submit" disabled={saving || (!name && isSystemUser)} className="bg-role hover:bg-role-dark disabled:opacity-60 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-role/20 transition-all min-w-[120px]">{saving ? 'Registering...' : 'Register'}</button>
               </div>
             </form>
           </div>
@@ -693,9 +693,9 @@ const EventList = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -765,8 +765,8 @@ const EventList = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Event List</h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Event</button>
+          <h2 className="text-2xl font-bold text-role">Event List</h2>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-role text-white rounded-lg text-sm font-bold hover:bg-role-dark transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Event</button>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -847,7 +847,7 @@ const EventList = () => {
                           <td className="px-4 py-3 text-center">
                             <div className="flex flex-wrap justify-center items-center gap-2">
                               <button onClick={() => { setSelected(item); setShowManualModal(true); }} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all shadow-sm border border-purple-100" title="Manual Registration"><UserPlus size={16} /></button>
-                              <button onClick={() => navigate(`/academic/event/${item.id}/scan`)} className="p-2 bg-blue-50 text-[#2f4fa8] rounded-lg hover:bg-[#2f4fa8] hover:text-white transition-all shadow-sm border border-blue-100" title="Scan Attendance"><ScanLine size={16} /></button>
+                              <button onClick={() => navigate(`/academic/event/${item.id}/scan`)} className="p-2 bg-blue-50 text-role rounded-lg hover:bg-role hover:text-white transition-all shadow-sm border border-blue-100" title="Scan Attendance"><ScanLine size={16} /></button>
                               <button onClick={() => { setSelected(item); setView('view_event'); }} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100" title="View Attendance List"><Users size={16} /></button>
                               <button onClick={() => { setSelected(item); setShowEditModal(true); }} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-[#10b981] hover:text-white transition-all shadow-sm border border-emerald-100" title="Edit"><Edit size={16} /></button>
                               <button onClick={() => { setSelected(item); setShowDeleteModal(true); }} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-[#c53336] hover:text-white transition-all shadow-sm border border-red-100" title="Delete"><Trash2 size={16} /></button>

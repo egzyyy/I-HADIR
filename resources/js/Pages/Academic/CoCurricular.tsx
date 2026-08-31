@@ -44,18 +44,18 @@ const CoCurricularForm = ({ name, setName, capacity, setCapacity, teacherId, set
       <div className="space-y-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Club / Uniform Name</label>
         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 'St John'"
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
       </div>
       <div className="space-y-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Capacity</label>
         <input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. '30'" min={1}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all placeholder:text-gray-400" />
+          className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all placeholder:text-gray-400" />
       </div>
       <div className="space-y-2 md:col-span-2">
         <label className="block text-sm font-bold text-gray-700"><span className="text-red-500 mr-1">*</span> Club / Uniform Teacher</label>
         <div className="relative">
           <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-[#2f4fa8] focus:ring-2 focus:ring-[#2f4fa8]/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
             <option value="">— No Teacher Assigned —</option>
             {teachers.map(t => <option key={t.teacher_id} value={t.teacher_id}>{t.name.toUpperCase()}</option>)}
             {teachers.length === 0 && <option value="" disabled>No teachers found</option>}
@@ -79,7 +79,7 @@ const AddCoCurricularModal = ({ onClose, teachers, onSaved }: { onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <div><h3 className="text-xl font-bold text-[#2f4fa8]">Add new Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+          <div><h3 className="text-xl font-bold text-role">Add new Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
         </div>
         <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -147,7 +147,7 @@ const EditCoCurricularModal = ({ isOpen, onClose, item, teachers, onSaved }: { i
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-            <div><h3 className="text-xl font-bold text-[#2f4fa8]">Edit Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
+            <div><h3 className="text-xl font-bold text-role">Edit Co-Curricular</h3><p className="text-gray-500 text-sm mt-1">Please enter all information required.</p></div>
             <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"><X size={24} /></button>
           </div>
           <div className="p-8"><form onSubmit={handleSubmit} className="space-y-8">
@@ -300,9 +300,9 @@ const CoCurricularList = () => {
   const SortIcon = ({ column }: { column: SortColumn }) => {
     if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
     return sortDirection === 'asc' ? (
-      <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowUp size={14} className="text-role ml-1 inline-block" />
     ) : (
-      <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+      <ArrowDown size={14} className="text-role ml-1 inline-block" />
     );
   };
 
@@ -364,8 +364,8 @@ const CoCurricularList = () => {
     <>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-full mx-auto">
         <div className="mb-6 flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-[#2f4fa8]">Cocurricular List</h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-[#2f4fa8] text-white rounded-lg text-sm font-bold hover:bg-[#264190] transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Co-Curricular</button>
+          <h2 className="text-2xl font-bold text-role">Cocurricular List</h2>
+          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-role text-white rounded-lg text-sm font-bold hover:bg-role-dark transition-all shadow-md shadow-blue-900/20 transform hover:-translate-y-0.5"><Plus size={18} /> Add Co-Curricular</button>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
