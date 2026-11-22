@@ -49,6 +49,9 @@ import ManualEntry from './Pages/CheckIn/ManualEntry';
 // Pages — Reports (folder)
 import ParentsReport from './Pages/Reports/ParentsReport';
 
+// Pages — Work Order (teacher)
+import WorkOrder from './Pages/WorkOrder/WorkOrder';
+
 // Pages — Other
 import Visitor from './Pages/Visitor';
 import PublicScan from './Pages/PublicScan';
@@ -117,6 +120,9 @@ root.render(
         {/* Check In */}
         <Route path="/facility-check-in" element={<RequireRole allow={ADMIN_TEACHER}><FacilityCheckIn /></RequireRole>} />
         <Route path="/manual-entry" element={<RequireRole allow={ADMIN_TEACHER}><ManualEntry /></RequireRole>} />
+
+        {/* Work Order — teacher only */}
+        <Route path="/work-order" element={<RequireRole allow={['Teacher']}><WorkOrder /></RequireRole>} />
 
         {/* Reports */}
         <Route path="/attendance-reports" element={<RequireRole allow={ADMIN_TEACHER}><AttendanceReports /></RequireRole>} />

@@ -44,14 +44,10 @@ class AttendanceController extends Controller
 
         $today    = Carbon::today()->toDateString();
 
-        [$userId, $name, $class, $classroomId] = $this->resolveByIc(
-            $request->ic_number,
-            $request->user_type,
-            $schoolId
-        );
+        [$userId, $name, $class, $classroomId] = $this->resolveStaffOrTeacher($request, $schoolId);
 
         if (!$userId) {
-            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+            return response()->json(['message' => $this->notFoundMessage($request->user_type)], 404);
         }
 
         $shift = null;
@@ -120,6 +116,8 @@ class AttendanceController extends Controller
             ->first();
 
         $status = $shift ? $this->resolveShiftStatus($shift, $now) : $this->resolveStatus($schoolId, $now);
+        // Day already credited by a submitted work order — the scan must not downgrade it to late.
+        if ($existing?->work_order_id) $status = 'present';
 
         $log = AttendanceLog::updateOrCreate(
             ['user_type' => $request->user_type, 'user_id' => $userId, 'date' => $today],
@@ -162,17 +160,13 @@ class AttendanceController extends Controller
 
         $today    = Carbon::today()->toDateString();
 
-        [$userId, $name, $class] = $this->resolveByIc(
-            $request->ic_number,
-            $request->user_type,
-            $schoolId
-        );
+        [$userId, $name, $class] = $this->resolveStaffOrTeacher($request, $schoolId);
 
         if (!$userId) {
-            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+            return response()->json(['message' => $this->notFoundMessage($request->user_type)], 404);
         }
 
-        $isSecurity = $request->user_type === 'staff' && $this->isSecurityStaff($userId);
+        $isSecurity =$request->user_type === 'staff' && $this->isSecurityStaff($userId);
 
         if ($isSecurity) {
             $log = AttendanceLog::where('user_type', 'staff')
@@ -246,14 +240,10 @@ class AttendanceController extends Controller
         $today    = Carbon::today()->toDateString();
         $adminId  = auth()->user()->user_id ?? auth()->id();
 
-        [$userId, $name, $class, $classroomId] = $this->resolveByIc(
-            $request->ic_number,
-            $request->user_type,
-            $schoolId
-        );
+        [$userId, $name, $class, $classroomId] = $this->resolveStaffOrTeacher($request, $schoolId);
 
         if (!$userId) {
-            return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+            return response()->json(['message' => $this->notFoundMessage($request->user_type)], 404);
         }
 
         $shift = null;
@@ -284,6 +274,8 @@ class AttendanceController extends Controller
         $session = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
         $now     = Carbon::now();
         $status  = $shift ? $this->resolveShiftStatus($shift, $now) : $this->resolveStatus($schoolId, $now);
+        // Day already credited by a submitted work order — the scan must not downgrade it to late.
+        if ($existing?->work_order_id) $status = 'present';
 
         $log = AttendanceLog::updateOrCreate(
             ['user_type' => $request->user_type, 'user_id' => $userId, 'date' => $today],
@@ -513,6 +505,7 @@ class AttendanceController extends Controller
                 'check_out'   => $log->check_out_time?->format('H:i:s'),
                 'status'      => $log->status,
                 'scan_method' => $log->scan_method,
+                'reason'      => $log->reason_manual,
                 'shift'       => $log->shift?->name,
             ];
         });
@@ -602,6 +595,34 @@ class AttendanceController extends Controller
         $className   = $this->getStudentClassName((int)$s->student_id, $schoolId);
         $classroomId = $this->getStudentClassroomId((int)$s->student_id, $schoolId);
         return [$s->student_id, $s->name, $className, $classroomId];
+    }
+
+    /**
+     * The QR code carries only the IC number, so the kiosk page decides the type.
+     * The kiosk's staff pages double as the teacher check-in point: when an IC isn't
+     * a staff member, fall back to teachers and switch the request to 'teacher' so
+     * everything downstream (duplicate check, log row) records it as a teacher.
+     */
+    private function resolveStaffOrTeacher(Request $request, int $schoolId): array
+    {
+        $resolved = $this->resolveByIc($request->ic_number, $request->user_type, $schoolId);
+
+        if (!$resolved[0] && $request->user_type === 'staff') {
+            $teacher = $this->resolveByIc($request->ic_number, 'teacher', $schoolId);
+            if ($teacher[0]) {
+                $request->merge(['user_type' => 'teacher', 'shift_id' => null]);
+                return $teacher;
+            }
+        }
+
+        return $resolved;
+    }
+
+    private function notFoundMessage(string $type): string
+    {
+        return $type === 'staff'
+            ? 'No teacher or staff found with that IC number.'
+            : "No {$type} found with that IC number.";
     }
 
     private function resolveTeacher(string $ic, int $schoolId): array

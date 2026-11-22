@@ -99,6 +99,7 @@ const AttendanceLogPage = () => {
   const SCAN_METHOD_LABELS: Record<string, string> = {
     manual: 'Manual',
     qr: 'QR',
+    work_order: 'Work Order',
     '-': '-',
   };
 
@@ -252,10 +253,10 @@ const AttendanceLogPage = () => {
                         <td className="px-6 py-4 text-sm text-gray-600">{log.shift ?? '—'}</td>
                       )}
                       <td className="px-6 py-4 text-center">
-                        {log.scan_method === 'manual' ? (
+                        {(log.scan_method === 'manual' || log.scan_method === 'work_order') ? (
                           <button
                             onClick={() => setSelectedReason({ name: log.name, reason: log.reason || 'No reason provided' })}
-                            className="text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100 transition-colors flex items-center gap-1 mx-auto"
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider transition-colors flex items-center gap-1 mx-auto ${log.scan_method === 'work_order' ? 'bg-teal-50 text-teal-700 border-teal-100 hover:bg-teal-100' : 'bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100'}`}
                             title="Click to view reason"
                           >
                             {SCAN_METHOD_LABELS[log.scan_method] || log.scan_method}
