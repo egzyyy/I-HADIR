@@ -158,6 +158,8 @@ Route::get('/api/reports/monthly', [ReportController::class, 'monthlyReport']);
 Route::get('/api/reports/summary', [ReportController::class, 'summaryReport']);
 Route::get('/api/visitors', [VisitorController::class, 'index']);
 Route::post('/api/visitors', [VisitorController::class, 'store']);
+Route::post('/api/visitors/check-ic', [VisitorController::class, 'checkIc']);
+Route::post('/api/visitors/scan', [VisitorController::class, 'scan']);
 Route::get('/api/visitors/all', [VisitorController::class, 'getAllVisitors']); // ADD THIS LINE
 Route::put('/api/visitors/{id}/checkout', [VisitorController::class, 'checkout']);
 // Public IC-number lookup — throttled to slow brute-force enumeration of student ICs

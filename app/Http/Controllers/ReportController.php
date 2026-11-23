@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Models\FacilityLog;
 use App\Models\Visitor;
+use App\Models\VisitorLog;
 use App\Models\Event;
 use App\Models\EventAttendee;
 use Illuminate\Http\Request;
@@ -326,22 +327,25 @@ class ReportController extends Controller
             'date'          => 'required|date',
             'facility_type' => 'required|string',
             'classroom_id'  => 'nullable|integer',
+            'user_type'     => 'nullable|in:all,student,teacher,staff,visitor',
         ]);
 
         $schoolId = auth()->user()->school_id;
         $date     = Carbon::parse($request->date)->toDateString();
         $facility = strtolower($request->facility_type);
-        $session  = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+        $userType = strtolower($request->query('user_type', 'all'));
+        $session  = SchoolSession::where('school_id',$schoolId)->where('is_active', true)->first();
 
-        if ($request->classroom_id) {
-            $enrollments = Enrollment::where('school_session_id', $session?->school_session_id)
+        // Class-level student report (shows Present & Absent for the chosen class)
+        if ($request->classroom_id && in_array($userType, ['all', 'student'])) {
+            $enrollments = Enrollment::where('school_session_id',$session?->school_session_id)
                 ->where('classroom_id', $request->classroom_id)
                 ->with(['student:student_id,name', 'classroom:classroom_id,name'])
                 ->get();
 
-            $studentIds = $enrollments->pluck('student_id')->toArray();
+            $studentIds =$enrollments->pluck('student_id')->toArray();
 
-            $logs = FacilityLog::where('school_id', $schoolId)
+            $logs = FacilityLog::where('school_id',$schoolId)
                 ->where('facility_type', $facility)
                 ->whereDate('date', $date)
                 ->where('user_type', 'student')
@@ -349,101 +353,214 @@ class ReportController extends Controller
                 ->get()
                 ->keyBy('user_id');
 
-            $rows = $enrollments->map(function($e) use ($logs, $date) {
-                $log = $logs->get($e->student_id);
+            $rows =$enrollments->map(function ($e) use ($logs, $date) {$log = $logs->get($e->student_id);
                 return [
                     'name'     => $e->student?->name ?? '-',
                     'class'    => $e->classroom?->name ?? '-',
-                    'date'     => Carbon::parse($date)->format('d-m-Y'),
-                    'time_in'  => $log?->check_in_time?->format('H:i:s A') ?? '-',
-                    'time_out' => $log?->check_out_time?->format('H:i:s A') ?? '-',
+                    'date'     => Carbon::parse($date)->format('d/m/Y'),
+                    'time_in'  => $log?->check_in_time?->format('h:i:s A') ?? '-',
+                    'time_out' => $log?->check_out_time?->format('h:i:s A') ?? '-',
                     'status'   => $log ? 'present' : 'absent',
                 ];
             });
 
-            $present = $rows->where('status', 'present')->count();
-            $absent  = $rows->where('status', 'absent')->count();
+            $present =$rows->where('status', 'present')->count();
+            $absent  =$rows->where('status', 'absent')->count();
 
             return response()->json([
                 'success' => true,
-                'stats'   => ['present' => $present, 'absent' => $absent],
-                'data'    => $rows->values()
-            ]);
-        } 
-        
-        else {
-            $logs = FacilityLog::where('school_id', $schoolId)
-                ->where('facility_type', $facility)
-                ->whereDate('date', $date)
-                ->orderBy('check_in_time', 'desc')
-                ->get();
-
-            $rows = $logs->map(function($log) use ($schoolId) {
-                $name = 'Unknown';
-                $class = '-';
-                if ($log->user_type === 'student') {
-                    $s = Student::where('student_id', $log->user_id)->first();
-                    $name = $s?->name ?? 'Unknown';
-                    $e = Enrollment::where('student_id', $log->user_id)->with('classroom')->first();
-                    $class = $e?->classroom?->name ?? '-';
-                } elseif ($log->user_type === 'teacher') {
-                    $t = User::where('user_id', $log->user_id)->where('user_type', 'teacher')->first();
-                    $name = $t?->full_name ?? 'Unknown';
-                    $class = 'Teacher';
-                } elseif ($log->user_type === 'staff') {
-                    $s = User::where('user_id', $log->user_id)->whereIn('user_type', ['staff', 'security_staff'])->first();
-                    $name = $s?->full_name ?? 'Unknown';
-                    $class = 'Staff';
-                }
-
-                return [
-                    'name'     => $name,
-                    'class'    => $class,
-                    'date'     => Carbon::parse($log->date)->format('d-m-Y'),
-                    'time_in'  => $log->check_in_time?->format('H:i:s A') ?? '-',
-                    'time_out' => $log->check_out_time?->format('H:i:s A') ?? '-',
-                    'status'   => 'present',
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'stats'   => ['present' => $rows->count(), 'absent' => 0],
-                'data'    => $rows
+                'stats'   => ['present' => $present, 'absent' =>$absent],
+                'data'    => $rows->values(),
             ]);
         }
+
+        // General / Filtered-by-User-Type Facility Logs
+        $query = FacilityLog::where('school_id',$schoolId)
+            ->where('facility_type', $facility)
+            ->whereDate('date', $date);
+
+        if ($userType &&$userType !== 'all') {
+            $query->where('user_type',$userType);
+        }
+
+        $logs =$query->orderBy('check_in_time', 'desc')->get();
+
+        $rows = $logs->map(function ($log) {
+            $name  = 'Unknown';$class = '-';
+
+            if ($log->user_type === 'student') {
+                $s     = Student::where('student_id',$log->user_id)->first();
+                $name  =$s?->name ?? 'Unknown';
+                $e     = Enrollment::where('student_id',$log->user_id)->with('classroom')->first();
+                $class =$e?->classroom?->name ?? '-';
+            } elseif ($log->user_type === 'teacher') {
+                $t     = User::where('user_id',$log->user_id)->where('user_type', 'teacher')->first();
+                $name  =$t?->full_name ?? 'Unknown';
+                $class =$t?->position ?: 'Teacher';
+            } elseif ($log->user_type === 'staff') {
+                $s     = User::where('user_id',$log->user_id)->whereIn('user_type', ['staff', 'security_staff'])->first();
+                $name  =$s?->full_name ?? 'Unknown';
+                $class =$s?->position ?: 'Staff';
+            } elseif ($log->user_type === 'visitor') {
+                $v     = Visitor::where('visitor_id',$log->user_id)->first();
+                $name  =$v?->name ?? 'Unknown Visitor';
+                $class = 'Visitor';
+            }
+
+            return [
+                'name'     => $name,
+                'class'    => $class,
+                'date'     => Carbon::parse($log->date)->format('d/m/Y'),
+                'time_in'  => $log->check_in_time?->format('h:i:s A') ?? '-',
+                'time_out' => $log->check_out_time?->format('h:i:s A') ?? '-',
+                'status'   => 'present',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'stats'   => ['present' => $rows->count(), 'absent' => 0], 'data'    =>$rows->values(),
+        ]);
     }
 
     public function visitorReport(Request $request)
     {
         $request->validate([
-            'month' => 'required|integer|min:1|max:12',
-            'year'  => 'nullable|integer'
+            'month'    => 'required|integer|min:1|max:12',
+            'year'     => 'nullable|integer',
+            'location' => 'nullable|in:entrance,prayer,pss,ict',
         ]);
 
-        $schoolId = auth()->user()->school_id;
-        $year = $request->year ?? Carbon::now()->year;
+        $schoolId = auth()->check() ? auth()->user()->school_id : 1;
+        $year     = (int) ($request->year ?? Carbon::now('Asia/Kuala_Lumpur')->year);
+        $month    = (int) $request->month;
+        $location = strtolower($request->query('location', 'entrance'));
 
-        $visitors = Visitor::where('school_id', $schoolId)
-            ->whereYear('created_at', $year)
-            ->whereMonth('created_at', $request->month)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($v) {
+        $appTz       = config('app.timezone', 'UTC');
+        $startMonth  = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Kuala_Lumpur')->timezone($appTz);
+        $endMonth    = Carbon::create($year, $month, 1, 0, 0, 0, 'Asia/Kuala_Lumpur')->endOfMonth()->timezone($appTz);
+        $daysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+        $dayCounts   = array_fill(1, $daysInMonth, 0);
+
+        // Facility Visitor Report (Surau / Prayer, PSS, ICT)
+        if (in_array($location, ['prayer', 'pss', 'ict'])) {
+            $facilityLogs = FacilityLog::where('school_id', $schoolId)
+                ->where('user_type', 'visitor')
+                ->where('facility_type', $location)
+                ->whereYear('date', $year)
+                ->whereMonth('date', $month)
+                ->orderByDesc('check_in_time')
+                ->get();
+
+            $visitorIds = $facilityLogs->pluck('user_id')->unique()->values();
+
+            $visitorsMap = Visitor::whereIn('visitor_id', $visitorIds)
+                ->get()
+                ->keyBy('visitor_id');
+
+            $visitLogsByVisitor = VisitorLog::where('school_id', $schoolId)
+                ->whereIn('visitor_id', $visitorIds)
+                ->orderByDesc('check_in_time')
+                ->get()
+                ->groupBy('visitor_id');
+
+            $visitors = $facilityLogs->map(function ($log) use ($visitorsMap, $visitLogsByVisitor, &$dayCounts) {
+                $visitor = $visitorsMap->get($log->user_id);
+                $rawIn   = $log->check_in_time ?? $log->created_at;
+                $timeIn  = $rawIn ? Carbon::parse($rawIn)->timezone('Asia/Kuala_Lumpur') : null;
+                $timeOut = $log->check_out_time ? Carbon::parse($log->check_out_time)->timezone('Asia/Kuala_Lumpur') : null;
+
+                if ($timeIn && isset($dayCounts[$timeIn->day])) {
+                    $dayCounts[$timeIn->day]++;
+                }
+
+                $candidateLogs = $visitLogsByVisitor->get($log->user_id, collect());
+                $matchedVisit  = $candidateLogs->first(function ($vLog) use ($timeIn) {
+                    $vRaw  = $vLog->check_in_time ?? $vLog->created_at;
+                    $vDate = $vRaw ? Carbon::parse($vRaw)->timezone('Asia/Kuala_Lumpur')->toDateString() : null;
+                    return $timeIn && $vDate === $timeIn->toDateString();
+                }) ?? $candidateLogs->first();
+
                 return [
-                    'id'    => $v->visitor_id,
-                    'name'  => $v->name,
-                    'phone' => $v->phone_number,
-                    'dept'  => $v->person_to_meet,
-                    'note'  => $v->notes ?? '-',
-                    'date'  => $v->created_at->format('d/m/Y'),
-                    'time'  => $v->created_at->format('h:i:s A'),
+                    'id'        => $log->id,
+                    'ic_number' => $visitor?->ic_number ?? '-',
+                    'name'      => $visitor?->name ?? 'Unknown Visitor',
+                    'phone'     => $matchedVisit?->phone_number ?? '-',
+                    'category'  => $matchedVisit?->category ?? '-', // <-- ADD THIS
+                    'dept'      => '-',
+                    'note'      => $matchedVisit?->notes ?? '-',
+                    'date_in'   => $timeIn ? $timeIn->format('d/m/Y') : '-',
+                    'time_in'   => $timeIn ? $timeIn->format('h:i:s A') : '-',
+                    'date_out'  => $timeOut ? $timeOut->format('d/m/Y') : '-',
+                    'time_out'  => $timeOut ? $timeOut->format('h:i:s A') : '-',
                 ];
             });
 
+            $chartData = [];
+            for ($d = 1; $d <= $daysInMonth; $d++) {
+                $chartData[] = [
+                    'day'    => $d,
+                    'visits' => $dayCounts[$d],
+                ];
+            }
+
+            return response()->json([
+                'success'   => true,
+                'data'      => $visitors->values(),
+                'chartData' => $chartData,
+            ]);
+        }
+
+        // Default: School Entrance Visitor Report
+        $visitors = VisitorLog::with('visitor')
+            ->where('school_id', $schoolId)
+            ->where(function ($q) use ($startMonth, $endMonth) {
+                $q->whereBetween('check_in_time', [$startMonth, $endMonth])
+                  ->orWhere(function ($q2) use ($startMonth, $endMonth) {
+                      $q2->whereNull('check_in_time')
+                         ->whereBetween('created_at', [$startMonth, $endMonth]);
+                  });
+            })
+            ->orderByDesc('check_in_time')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($log) use (&$dayCounts) {
+                $rawIn   = $log->check_in_time ?? $log->created_at;
+                $timeIn  = $rawIn ? Carbon::parse($rawIn)->timezone('Asia/Kuala_Lumpur') : null;
+                $timeOut = $log->check_out_time ? Carbon::parse($log->check_out_time)->timezone('Asia/Kuala_Lumpur') : null;
+
+                if ($timeIn && isset($dayCounts[$timeIn->day])) {
+                    $dayCounts[$timeIn->day]++;
+                }
+
+                return [
+                    'id'        => $log->id,
+                    'ic_number' => $log->visitor?->ic_number ?? '-',
+                    'name'      => $log->visitor?->name ?? 'Unknown',
+                    'phone'     => $log->phone_number ?? '-',
+                    'category'  => $log->category ?? '-',
+                    'dept'      => $log->person_to_meet ?? '-',
+                    'purpose'   => $log->purpose ?? '-', 
+                    'note'      => $log->notes ?? '-',
+                    'date_in'   => $timeIn ? $timeIn->format('d/m/Y') : '-',
+                    'time_in'   => $timeIn ? $timeIn->format('h:i:s A') : '-',
+                    'date_out'  => $timeOut ? $timeOut->format('d/m/Y') : '-',
+                    'time_out'  => $timeOut ? $timeOut->format('h:i:s A') : '-',
+                ];
+            });
+
+        $chartData = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $chartData[] = [
+                'day'    => $d,
+                'visits' => $dayCounts[$d],
+            ];
+        }
+
         return response()->json([
-            'success' => true,
-            'data'    => $visitors
+            'success'   => true,
+            'data'      => $visitors->values(),
+            'chartData' => $chartData,
         ]);
     }
 
@@ -524,16 +641,51 @@ class ReportController extends Controller
     // ========================================================================
     public function parentStudentReport(Request $request)
     {
+        $requireParentVerification = !auth()->check() || $request->exists('parent_ic');
+
         $request->validate([
             'ic_number' => 'required|string',
-            'month' => 'required|integer|min:1|max:12',
-            'year' => 'required|integer',
+            'parent_ic' => $requireParentVerification ? 'required|string' : 'nullable|string',
+            'month'     => 'required|integer|min:1|max:12',
+            'year'      => 'required|integer',
         ]);
 
-        $student = Student::where('ic_number', $request->ic_number)->first();
+        // Normalize Student IC (supports both dashed and non-dashed formats in DB)
+        $cleanStudentIc = preg_replace('/[^0-9]/', '', $request->ic_number);
+        $dashedStudentIc = strlen($cleanStudentIc) === 12
+            ? substr($cleanStudentIc, 0, 6) . '-' . substr($cleanStudentIc, 6, 2) . '-' . substr($cleanStudentIc, 8, 4)
+            : null;
+
+        $student = Student::where(function ($q) use ($request, $cleanStudentIc, $dashedStudentIc) {
+            $q->where('ic_number', $request->ic_number)
+              ->orWhere('ic_number', $cleanStudentIc);
+            if ($dashedStudentIc) {
+                $q->orWhere('ic_number', $dashedStudentIc);
+            }
+        })->first();
 
         if (!$student) {
-            return response()->json(['success' => false, 'message' => 'No student found with this IC Number.'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'No student found with this IC number.',
+            ], 404);
+        }
+
+        // Verify Parent IC alignment against father_ic or mother_ic
+        if ($requireParentVerification) {
+            $cleanParentIc = preg_replace('/[^0-9]/', '', (string) $request->parent_ic);
+            $cleanFatherIc = preg_replace('/[^0-9]/', '', (string) $student->father_ic);
+            $cleanMotherIc = preg_replace('/[^0-9]/', '', (string) $student->mother_ic);
+
+            if (
+                empty($cleanParentIc) ||
+                ($cleanParentIc !== $cleanFatherIc && $cleanParentIc !== $cleanMotherIc)
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parent IC and Student IC are not aligned. Please check both IC numbers.',
+                ], 403);
+            }
         }
 
         $schoolId = $student->school_id;

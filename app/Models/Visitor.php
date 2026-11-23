@@ -15,24 +15,17 @@ class Visitor extends Model
 
     protected $fillable = [
         'school_id',
+        'ic_number',
         'name',
-        'phone_number', // IC Number removed here
-        'plate_number',
-        'category',
-        'person_to_meet',
-        'pass_badge_no',
-        'purpose',
-        'notes',
-        'status',
-        'check_out_time',
-    ];
-
-    protected $casts = [
-        'check_out_time' => 'datetime',
     ];
 
     public function school()
     {
         return $this->belongsTo(School::class, 'school_id', 'school_id');
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(VisitorLog::class, 'visitor_id', 'visitor_id');
     }
 }
