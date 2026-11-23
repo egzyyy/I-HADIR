@@ -6,7 +6,7 @@ import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { DeleteConfirmationModal } from '../../Components/modals/DeleteConfirmationModal';
 import { formatStandardDate } from '@/utils/dateFormatters';
-import { ManageStudents } from '../../Components/views/ManageStudents';
+import { ManageStudents } from '../../Components/views/ManageStudentsCocuSports';
 
 // IMPORT PAGINATION
 import { usePagination } from '../../utils/usePagination';

@@ -5,7 +5,7 @@ import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { formatStandardDate } from '@/utils/dateFormatters';
-import { ManageStudents } from '../../Components/views/ManageStudents';
+import { ManageStudents } from '../../Components/views/ManageStudentsCocuSports';
 import { useAuth } from '../../contexts/AuthContext';
 
 // IMPORT PAGINATION
@@ -319,6 +319,7 @@ const MyCocuSportList = () => {
                 itemName={selected.name}
                 apiBase={apiBase}
                 moduleName={typeLabel}
+                readOnly
             />
         );
     }
@@ -394,7 +395,7 @@ const MyCocuSportList = () => {
                                                             <button
                                                                 onClick={() => { setSelected(item); setView('manage_students'); }}
                                                                 className="p-2 bg-blue-50 text-role rounded-lg hover:bg-role hover:text-white transition-all shadow-sm border border-blue-100"
-                                                                title="Manage Students"
+                                                                title="View Student List"
                                                             >
                                                                 <Users size={16} />
                                                             </button>

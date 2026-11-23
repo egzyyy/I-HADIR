@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Info, Trash2, ChevronDown, QrCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Info, Trash2, ChevronDown, QrCode, ArrowUpDown, ArrowUp, ArrowDown, Trophy } from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
 import { UserInfoModal } from '../../Components/modals/UserInfoModal';
@@ -15,6 +16,23 @@ import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+type SortColumn = 'name' | 'role' | 'sport_house' | 'co_curricular' | null;
+type SortDirection = 'asc' | 'desc';
+
+const formatRoleLabel = (role: string, type: string) => {
+  if (!role) return '-';
+  if (type === 'staff') {
+    return role
+      .split(',')
+      .map(part => part.trim().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+      .join(', ');
+  }
+  if (type === 'student') {
+    return role.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }
+  return role;
+};
+
 const UserListUnified = () => {
   const { role } = useAuth();
   const isTeacherView = role === 'Teacher';
@@ -23,11 +41,17 @@ const UserListUnified = () => {
     ? (['student'] as const)
     : (['student', 'teacher', 'staff'] as const);
 
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('student');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 100;
+
+  // Sort States
+  const [sortColumn, setSortColumn] = useState<SortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Session States
   const [sessions, setSessions] = useState<any[]>([]);
@@ -87,16 +111,78 @@ const UserListUnified = () => {
 
   // Filter Data based on Active Tab and Search Query
   const activeData = allUsers[activeTab] || [];
-  const filteredData = activeData.filter((user: any) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.phone.includes(searchQuery)
-  );
+  const filteredData = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return activeData.filter((user: any) =>
+      user.name.toLowerCase().includes(q) ||
+      user.phone.includes(searchQuery) ||
+      (isTeacherView && (user.sport_house || '').toLowerCase().includes(q)) ||
+      (isTeacherView && (user.co_curricular || '').toLowerCase().includes(q))
+    );
+  }, [activeData, searchQuery, isTeacherView]);
+
+  // Sort Data
+  const sortedData = useMemo(() => {
+    if (!sortColumn) return filteredData;
+
+    return [...filteredData].sort((a: any, b: any) => {
+      let aVal = '';
+      let bVal = '';
+
+      if (sortColumn === 'name') {
+        aVal = a.name || '';
+        bVal = b.name || '';
+      } else if (sortColumn === 'role') {
+        aVal = formatRoleLabel(a.role, a.type);
+        bVal = formatRoleLabel(b.role, b.type);
+      } else if (sortColumn === 'sport_house') {
+        aVal = a.sport_house || '-';
+        bVal = b.sport_house || '-';
+      } else if (sortColumn === 'co_curricular') {
+        aVal = a.co_curricular || '-';
+        bVal = b.co_curricular || '-';
+      }
+
+      if (sortColumn === 'sport_house' || sortColumn === 'co_curricular') {
+        const aEmpty = !aVal || aVal === '-';
+        const bEmpty = !bVal || bVal === '-';
+        if (aEmpty && bEmpty) return 0;
+        if (aEmpty) return 1;
+        if (bEmpty) return -1;
+      }
+
+      const cmp = aVal.localeCompare(bVal, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      return sortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredData, sortColumn, sortDirection]);
+
+  const handleSort = (column: Exclude<SortColumn, null>) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: Exclude<SortColumn, null> }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp size={14} className="text-role ml-1 inline-block" />
+      : <ArrowDown size={14} className="text-role ml-1 inline-block" />;
+  };
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, sortedData.length);
+  const currentData = sortedData.slice(startIndex, endIndex);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -129,25 +215,11 @@ const UserListUnified = () => {
     }
   };
 
-  const formatRoleLabel = (role: string, type: string) => {
-    if (!role) return '-';
-    if (type === 'staff') {
-      return role
-        .split(',')
-        .map(part => part.trim().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
-        .join(', ');
-    }
-    if (type === 'student') {
-      return role.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    }
-    return role;
-  };
-
   // --- EXPORT FUNCTIONS --- //
 
   // 1. Copy to Clipboard
   const handleCopy = async () => {
-    if (filteredData.length === 0) {
+    if (sortedData.length === 0) {
       alert("No data to copy!");
       return;
     }
@@ -156,17 +228,18 @@ const UserListUnified = () => {
       <table border="1" style="border-collapse: collapse;">
         <thead>
           <tr>
-            <th>No</th><th>Name</th><th>IC Number</th><th>Phone No</th><th>Role/Class</th><th>Gender</th><th>Registered Date</th>
+            <th>No</th><th>Name</th><th>IC Number</th><th>Phone No</th><th>Role/Class</th>${isTeacherView ? '<th>Sport</th><th>Co-Curricular</th>' : ''}<th>Gender</th><th>Registered Date</th>
           </tr>
         </thead>
         <tbody>
-          ${filteredData.map((item: any, index: number) => `
+          ${sortedData.map((item: any, index: number) => `
             <tr>
               <td>${index + 1}</td>
               <td>${item.name}</td>
               <td>${item.ic_number}</td>
               <td>${item.phone}</td>
               <td>${formatRoleLabel(item.role, item.type)}</td>
+              ${isTeacherView ? `<td>${item.sport_house || '-'}</td><td>${item.co_curricular || '-'}</td>` : ''}
               <td>${item.gender || '-'}</td>
               <td>${item.registeredDate}</td>
             </tr>
@@ -175,25 +248,22 @@ const UserListUnified = () => {
       </table>
     `;
 
-    try {
-      const blobHtml = new Blob([tableHtml], { type: 'text/html' });
-      const textFallback = filteredData.map((item: any, i: number) =>
-        `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
-      ).join('\n');
-      const blobText = new Blob([textFallback], { type: 'text/plain' });
+    const textFallback = sortedData.map((item: any, i: number) =>
+      isTeacherView
+        ? `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.sport_house || '-'}\t${item.co_curricular || '-'}\t${item.gender || '-'}\t${item.registeredDate}`
+        : `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
+    ).join('\n');
 
+    try {
       const clipboardItem = new ClipboardItem({
-        'text/html': blobHtml,
-        'text/plain': blobText
+        'text/html': new Blob([tableHtml], { type: 'text/html' }),
+        'text/plain': new Blob([textFallback], { type: 'text/plain' })
       });
 
       await navigator.clipboard.write([clipboardItem]);
       alert("Table copied to clipboard! You can now paste it into Word, Excel, or Google Docs.");
     } catch (error) {
       console.error("Clipboard API failed, trying fallback:", error);
-      const textFallback = filteredData.map((item: any, i: number) =>
-        `${i + 1}\t${item.name}\t${item.ic_number}\t${item.phone}\t${formatRoleLabel(item.role, item.type)}\t${item.gender || '-'}\t${item.registeredDate}`
-      ).join('\n');
       navigator.clipboard.writeText(textFallback);
       alert("Text copied to clipboard!");
     }
@@ -201,21 +271,35 @@ const UserListUnified = () => {
 
   // 2. Export to CSV
   const handleExportCSV = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
-    const headers = ['No', 'Name', 'IC Number', 'Phone No', 'Role/Class', 'Gender', 'Registered Date'];
+    const headers = isTeacherView
+      ? ['No', 'Name', 'IC Number', 'Phone No', 'Class', 'Sport', 'Co-Curricular', 'Gender', 'Registered Date']
+      : ['No', 'Name', 'IC Number', 'Phone No', 'Role/Class', 'Gender', 'Registered Date'];
     const csvRows = [headers.join(',')];
 
-    filteredData.forEach((item: any, index: number) => {
-      const row = [
-        index + 1,
-        `"${item.name}"`,
-        `"=""${item.ic_number}"""`,
-        `"=""${item.phone}"""`,
-        `"${formatRoleLabel(item.role, item.type)}"`,
-        `"${item.gender || '-'}"`,
-        `"${item.registeredDate}"`
-      ];
+    sortedData.forEach((item: any, index: number) => {
+      const row = isTeacherView
+        ? [
+          index + 1,
+          `"${item.name}"`,
+          `"=""${item.ic_number}"""`,
+          `"=""${item.phone}"""`,
+          `"${formatRoleLabel(item.role, item.type)}"`,
+          `"${item.sport_house || '-'}"`,
+          `"${item.co_curricular || '-'}"`,
+          `"${item.gender || '-'}"`,
+          `"${item.registeredDate}"`
+        ]
+        : [
+          index + 1,
+          `"${item.name}"`,
+          `"=""${item.ic_number}"""`,
+          `"=""${item.phone}"""`,
+          `"${formatRoleLabel(item.role, item.type)}"`,
+          `"${item.gender || '-'}"`,
+          `"${item.registeredDate}"`
+        ];
       csvRows.push(row.join(','));
     });
 
@@ -231,7 +315,7 @@ const UserListUnified = () => {
 
   // 3. Export to Excel (.xls)
   const handleExportExcel = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
     const tableHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -244,19 +328,21 @@ const UserListUnified = () => {
               <th>Name</th>
               <th>IC Number</th>
               <th>Phone No</th>
-              <th>Role/Class</th>
+              <th>${isTeacherView ? 'Class' : 'Role/Class'}</th>
+              ${isTeacherView ? '<th>Sport</th><th>Co-Curricular</th>' : ''}
               <th>Gender</th>
               <th>Registered Date</th>
             </tr>
           </thead>
           <tbody>
-            ${filteredData.map((item: any, index: number) => `
+            ${sortedData.map((item: any, index: number) => `
               <tr>
                 <td>${index + 1}</td>
                 <td>${item.name}</td>
                 <td style="mso-number-format:'\\@';">${item.ic_number}</td>
                 <td style="mso-number-format:'\\@';">${item.phone}</td>
                 <td>${formatRoleLabel(item.role, item.type)}</td>
+                ${isTeacherView ? `<td>${item.sport_house || '-'}</td><td>${item.co_curricular || '-'}</td>` : ''}
                 <td>${item.gender || '-'}</td>
                 <td>${item.registeredDate}</td>
               </tr>
@@ -278,7 +364,7 @@ const UserListUnified = () => {
 
   // 4. Export to PDF / Print (Standardized Format)
   const handleExportPDF = () => {
-    if (filteredData.length === 0) return;
+    if (sortedData.length === 0) return;
 
     const titleMap = {
       'student': 'Student List Report',
@@ -295,13 +381,14 @@ const UserListUnified = () => {
     const title = titleMap[activeTab];
     const roleHeader = roleHeaderMap[activeTab];
 
-    const rows = filteredData.map((item: any, index: number) => `
+    const rows = sortedData.map((item: any, index: number) => `
       <tr>
         <td style="text-align:center">${index + 1}</td>
         <td style="font-weight:bold">${item.name}</td>
         <td style="text-align:center; font-family:monospace">${item.ic_number}</td>
         <td style="text-align:center; font-family:monospace">${item.phone}</td>
         <td style="text-align:center">${formatRoleLabel(item.role, item.type)}</td>
+        ${isTeacherView ? `<td style="text-align:center">${item.sport_house || '-'}</td><td style="text-align:center">${item.co_curricular || '-'}</td>` : ''}
         <td style="text-align:center">${item.gender || '-'}</td>
         <td style="text-align:center">${item.registeredDate}</td>
       </tr>
@@ -347,13 +434,14 @@ const UserListUnified = () => {
         <table>
           <thead>
             <tr>
-              <th style="width:5%">No</th>
-              <th style="width:30%">Name</th>
-              <th style="width:15%">IC Number</th>
-              <th style="width:15%">Phone No</th>
-              <th style="width:15%">${roleHeader}</th>
-              <th style="width:10%">Gender</th>
-              <th style="width:10%">Registered</th>
+              <th style="width:4%">No</th>
+              <th style="width:${isTeacherView ? '22%' : '30%'}">Name</th>
+              <th style="width:13%">IC Number</th>
+              <th style="width:12%">Phone No</th>
+              <th style="width:11%">${roleHeader}</th>
+              ${isTeacherView ? '<th style="width:11%">Sport</th><th style="width:13%">Co-Curricular</th>' : ''}
+              <th style="width:7%">Gender</th>
+              <th style="width:7%">Registered</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -396,7 +484,12 @@ const UserListUnified = () => {
                 {visibleTabs.map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => { setActiveTab(tab); setCurrentPage(1); setSearchQuery(''); }}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      setCurrentPage(1);
+                      setSearchQuery('');
+                      setSortColumn(null);
+                    }}
                     className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-role shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                       }`}
                   >
@@ -442,7 +535,7 @@ const UserListUnified = () => {
                   <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search names or phones..."
+                    placeholder={isTeacherView ? "Search name, phone, sport, club..." : "Search names or phones..."}
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all"
@@ -456,19 +549,45 @@ const UserListUnified = () => {
                 <thead className="sticky top-0 z-10 shadow-sm">
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center whitespace-nowrap bg-gray-50">#</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Name</th>
+                    <th
+                      onClick={() => handleSort('name')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50 cursor-pointer hover:bg-gray-100 select-none transition-colors"
+                    >
+                      Name <SortIcon column="name" />
+                    </th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider font-mono whitespace-nowrap bg-gray-50">IC Number</th>
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Phone No</th>
-                    <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50">Role/Class</th>
+                    <th
+                      onClick={() => handleSort('role')}
+                      className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50 cursor-pointer hover:bg-gray-100 select-none transition-colors"
+                    >
+                      {isTeacherView ? 'Class' : 'Role/Class'} <SortIcon column="role" />
+                    </th>
+                    {isTeacherView && (
+                      <>
+                        <th
+                          onClick={() => handleSort('sport_house')}
+                          className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50 cursor-pointer hover:bg-gray-100 select-none transition-colors"
+                        >
+                          Sport <SortIcon column="sport_house" />
+                        </th>
+                        <th
+                          onClick={() => handleSort('co_curricular')}
+                          className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50 cursor-pointer hover:bg-gray-100 select-none transition-colors"
+                        >
+                          Co-Curricular <SortIcon column="co_curricular" />
+                        </th>
+                      </>
+                    )}
                     <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider text-center whitespace-nowrap bg-gray-50">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {isLoading ? (
-                    <tr><td colSpan={6} className="text-center py-8 text-gray-500">Loading data...</td></tr>
+                    <tr><td colSpan={isTeacherView ? 8 : 6} className="text-center py-8 text-gray-500">Loading data...</td></tr>
                   ) : currentData.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-500">
+                      <td colSpan={isTeacherView ? 8 : 6} className="text-center py-8 text-gray-500">
                         {isTeacherView ? 'No students found for your assigned class in this session.' : 'No records found for this session.'}
                       </td>
                     </tr>
@@ -495,11 +614,35 @@ const UserListUnified = () => {
                             formatRoleLabel(item.role, item.type)
                           )}
                         </td>
+                        {isTeacherView && (
+                          <>
+                            <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
+                              {item.sport_house || '-'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 font-medium whitespace-nowrap">
+                              {item.co_curricular || '-'}
+                            </td>
+                          </>
+                        )}
                         <td className="px-4 py-3 text-center">
-                          <div className="flex justify-center items-center gap-2">
+                          <div className="flex   justify-center items-center gap-2">
                             <button onClick={() => { setQrUser(item); setIsQrModalOpen(true); }} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100" title="View QR Code">
                               <QrCode size={16} />
                             </button>
+                            {item.type === 'student' && (
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/users/students/${item.id}/activities${selectedSessionId && selectedSessionId !== 'all' ? `?session_id=${selectedSessionId}` : ''
+                                    }`
+                                  )
+                                }
+                                className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm border border-emerald-100"
+                                title="Assign Sports & Co-Curricular"
+                              >
+                                <Trophy size={16} />
+                              </button>
+                            )}
                             <button onClick={() => handleInfoClick(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100" title="View Info">
                               <Info size={16} />
                             </button>
@@ -522,9 +665,9 @@ const UserListUnified = () => {
               </table>
             </div>
 
-            {!isLoading && filteredData.length > 0 && (
+            {!isLoading && sortedData.length > 0 && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-6 text-sm text-gray-500 gap-4">
-                <p>Showing {startIndex + 1} to {endIndex} of {filteredData.length} entries</p>
+                <p>Showing {startIndex + 1} to {endIndex} of {sortedData.length} entries</p>
                 <div className="flex gap-1">
                   <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-200 rounded hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (

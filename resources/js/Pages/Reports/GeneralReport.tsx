@@ -1,7 +1,7 @@
 ﻿import axios from 'axios';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, ChevronDown, ChevronRight, Users, Trash2, Phone, Clock, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Building2 } from 'lucide-react';
+import { Search, Calendar, ChevronRight, Users, Trash2, Phone, Clock, ArrowUpDown, ArrowUp, ArrowDown, MapPin, Building2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -301,7 +301,6 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
                         <option value="pss">PSS</option>
                         <option value="ict">ICT</option>
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </>
                   )}
                 </div>
@@ -327,7 +326,6 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
                       <option value="staff">Staff</option>
                       <option value="visitor">Visitor</option>
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
               )}
@@ -340,7 +338,6 @@ const FacilityReport = ({ fixedFacility }: { fixedFacility?: string }) => {
                       <option value="">All Scanned Students</option>
                       {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
               )}
@@ -574,7 +571,6 @@ const ActivityReport = () => {
                     <option value="">Select Event...</option>
                     {events.map(e => <option key={e.id} value={e.id}>{e.name} ({e.date})</option>)}
                   </select>
-                  <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -856,7 +852,6 @@ const VisitorReport = () => {
                 </option>
               ))}
             </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
         </div>
 
