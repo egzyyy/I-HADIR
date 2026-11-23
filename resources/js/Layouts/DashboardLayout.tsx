@@ -6,7 +6,7 @@ import {
   LayoutDashboard, School, Users, GraduationCap,
   CheckSquare, ClipboardList, Keyboard, BarChart3, FileText,
   HelpCircle, LogOut, Menu, Bell, ChevronDown, Calendar,
-  UserCheck, Globe, QrCodeIcon
+  UserCheck, Globe, QrCodeIcon, Briefcase
 } from 'lucide-react';
 import BrandLogos from '../Components/common/BrandLogos';
 import { defaultSchoolLogo } from '../lib/branding';
@@ -197,6 +197,12 @@ const TEACHER_MENU: MenuSection[] = [
       { id: 'student-qr-scan', label: 'Student QR Scanner', icon: QrCodeIcon },
       { id: 'facility-check-in', label: 'Facility Check In', icon: ClipboardList },
       { id: 'manual-entry', label: 'Manual Student Check-In', icon: Keyboard }
+    ]
+  },
+  {
+    category: "WORK ORDER",
+    items: [
+      { id: 'work-order', label: 'Work Order', icon: Briefcase }
     ]
   },
   {
@@ -444,6 +450,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'attendance-log-list': '/attendance-log',
       'facility-check-in': '/facility-check-in',
       'manual-entry': '/manual-entry',
+      'work-order': '/work-order',
       'attendance-reports': '/attendance-reports',
       'general-report': '/general-report',
       'faqs': '/faqs',

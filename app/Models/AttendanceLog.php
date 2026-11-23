@@ -22,6 +22,7 @@ class AttendanceLog extends Model
         'scanned_by',
         'reason_manual',
         'shift_id',
+        'work_order_id',
     ];
 
     protected $casts = [

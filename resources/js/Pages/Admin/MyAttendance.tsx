@@ -180,7 +180,11 @@ function MyAttendanceContent() {
                       {showShiftColumn && (
                         <td className="px-6 py-4 text-sm text-gray-500 text-center">{l.shift ?? '—'}</td>
                       )}
-                      <td className="px-6 py-4 text-sm text-gray-500 text-center capitalize">{l.scan_method}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500 text-center capitalize" title={(l as any).reason || undefined}>
+                        {l.scan_method === 'work_order'
+                          ? <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-teal-50 text-teal-700 border-teal-100 uppercase">Work Order</span>
+                          : l.scan_method}
+                      </td>
                     </tr>
                   ))
                 )}

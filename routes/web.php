@@ -21,6 +21,7 @@ use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SchoolProfileController;
 use App\Http\Controllers\BrandingController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WorkOrderController;
 
 // Public landing-page endpoints (no auth — consumed by logged-out visitors)
 Route::get('/api/public/schools', [PublicController::class, 'schools']);
@@ -41,6 +42,8 @@ Route::post('/password/reset-by-code', [NewPasswordController::class, 'resetBySc
 // Registration Route
 Route::post('/users/register', [RegistrationController::class, 'store'])->name('users.register');
 Route::post('/api/apdm/import', [ApdmController::class, 'import']);
+Route::post('/api/apdm/preview', [ApdmController::class, 'preview']);
+Route::get('/api/apdm/template', [ApdmController::class, 'downloadTemplate']);
 Route::get('/api/users', [UserController::class, 'index']);
 Route::delete('/api/users/{type}/{id}', [UserController::class, 'destroy']);
 Route::put('/api/users/{id}', [UserController::class, 'update']);
@@ -175,6 +178,17 @@ Route::get('/api/reports/facility', [ReportController::class, 'facilityReport'])
 Route::get('/api/reports/visitors', [ReportController::class, 'visitorReport']);
 Route::get('/api/reports/events', [ReportController::class, 'getEvents']); // To populate the dropdown
 Route::get('/api/reports/event-attendance', [ReportController::class, 'eventReport']); // Placeholder
+
+// Work Orders (teacher only)
+Route::middleware('auth')->group(function () {
+    Route::get('/api/work-orders', [WorkOrderController::class, 'index']);
+    Route::get('/api/work-orders/participants', [WorkOrderController::class, 'participants']);
+    Route::post('/api/work-orders', [WorkOrderController::class, 'store']);
+    // POST (not PUT) so multipart file uploads are parsed by PHP
+    Route::post('/api/work-orders/{id}', [WorkOrderController::class, 'update'])->whereNumber('id');
+    Route::delete('/api/work-orders/{id}', [WorkOrderController::class, 'destroy'])->whereNumber('id');
+    Route::get('/api/work-orders/{id}/document', [WorkOrderController::class, 'document'])->whereNumber('id');
+});
 
 /*
 |--------------------------------------------------------------------------

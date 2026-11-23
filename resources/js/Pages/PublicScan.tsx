@@ -14,7 +14,7 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // navbar. Params decide what a scan records:
 //   /scan?mode=check-in&type=student          → daily attendance
 //   /scan?mode=check-out&type=staff           → daily attendance (security staff, shift picker)
-//   /scan?mode=check-out&type=general-staff   → daily attendance (non-security staff, no shift picker)
+//   /scan?mode=check-out&type=general-staff   → daily attendance (teachers + non-security staff, no shift picker)
 //   /scan?facility=pss&mode=check-in          → facility log (students)
 
 type ScanMode = 'check-in' | 'check-out';
@@ -133,7 +133,7 @@ export default function PublicScan() {
 
   const title = isFacility
     ? `${FACILITY_LABELS[facility!]} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`
-    : `${isGeneralStaff ? 'Staff' : userType === 'staff' ? 'Security Staff' : 'Student'} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`;
+    : `${isGeneralStaff ? 'Teacher & Staff' : userType === 'staff' ? 'Security Staff' : 'Student'} ${mode === 'check-out' ? 'Check Out' : 'Check In'}`;
 
   // Anti-fraud: when the school has a geofence, the camera stays locked until
   // the browser gives us a position. The server re-checks it on every scan.
