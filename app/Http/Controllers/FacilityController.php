@@ -10,6 +10,8 @@ use App\Models\SchoolSession;
 use App\Http\Controllers\Concerns\ChecksGeofence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Models\Visitor;
+use App\Models\VisitorLog;
 
 class FacilityController extends Controller
 {
@@ -19,7 +21,7 @@ class FacilityController extends Controller
     {
         $request->validate([
             'ic_number'     => 'required|string',
-            'user_type'     => 'required|in:student,teacher,staff',
+            'user_type'     => 'required|in:student,teacher,staff,visitor',
             // Replaced 'activity' with 'rmt'
             'facility_type' => 'required|in:prayer,pss,ict,rmt', 
             'latitude'      => 'nullable|numeric|between:-90,90',
@@ -52,6 +54,20 @@ class FacilityController extends Controller
 
         if (!$userId) {
             return response()->json(['message' => "No {$request->user_type} found with that IC number."], 404);
+        }
+
+        // Visitors must be checked in at the school entrance first
+        if ($request->user_type === 'visitor') {
+            $inPremise = VisitorLog::where('school_id', $schoolId)
+                ->where('visitor_id', $userId)
+                ->where('status', 'In Premise')
+                ->exists();
+
+            if (!$inPremise) {
+                return response()->json([
+                    'message' => 'Visitor is not in the school premise. Please check in at the school entrance first.',
+                ], 403);
+            }
         }
 
         // Allow multiple facility visits per day — only block if already checked in but not yet out
@@ -95,7 +111,7 @@ class FacilityController extends Controller
     {
         $request->validate([
             'ic_number'     => 'required|string',
-            'user_type'     => 'required|in:student,teacher,staff',
+            'user_type'     => 'required|in:student,teacher,staff,visitor',
             'facility_type' => 'required|in:prayer,pss,ict,rmt',
             'latitude'      => 'nullable|numeric|between:-90,90',
             'longitude'     => 'nullable|numeric|between:-180,180',
@@ -183,12 +199,13 @@ class FacilityController extends Controller
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private function resolveByIc(string $ic, string $type, int $schoolId): array
+    private function resolveByIc(string $ic, string $type, int$schoolId): array
     {
         return match ($type) {
-            'student' => $this->resolveStudent($ic, $schoolId),
-            'teacher' => $this->resolveTeacher($ic, $schoolId),
-            'staff'   => $this->resolveStaff($ic, $schoolId),
+            'student' => $this->resolveStudent($ic,$schoolId),
+            'teacher' => $this->resolveTeacher($ic,$schoolId),
+            'staff'   => $this->resolveStaff($ic,$schoolId),
+            'visitor' => $this->resolveVisitor($ic,$schoolId),
             default   => [null, null, null],
         };
     }
@@ -240,7 +257,21 @@ class FacilityController extends Controller
                 $s = User::where('user_id', $userId)->whereIn('user_type', ['staff', 'security_staff'])->first();
                 return [$s?->full_name ?? 'Unknown', 'Staff'];
             })(),
+            'visitor' => (function () use ($userId) {
+                $v = Visitor::where('visitor_id', $userId)->first();
+                return [$v?->name ?? 'Unknown Visitor', 'Visitor'];
+            })(),
             default => ['Unknown', '-'],
         };
+    }
+
+    private function resolveVisitor(string $ic, int $schoolId): array
+    {
+        $cleanIc = preg_replace('/[^0-9]/', '', $ic);
+        $v = Visitor::where('school_id', $schoolId)
+            ->where('ic_number', $cleanIc)
+            ->first();
+
+        return $v ? [$v->visitor_id, $v->name, 'Visitor'] : [null, null, null];
     }
 }

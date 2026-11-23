@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\Visitor;
 
 class QrController extends Controller
 {
@@ -37,7 +38,7 @@ class QrController extends Controller
     {
         $request->validate([
             'ic_number' => 'required|string',
-            'user_type' => 'required|in:student,teacher,staff',
+            'user_type' => 'required|in:student,teacher,staff,visitor',
         ]);
 
         $schoolId = auth()->user()->school_id;
@@ -94,6 +95,7 @@ class QrController extends Controller
             'student' => Student::where('school_id', $schoolId)->where('student_id', $id)->first(),
             'teacher' => User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('user_id', $id)->first(),
             'staff'   => User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('user_id', $id)->first(),
+            'visitor' => Visitor::where('school_id', $schoolId)->where('visitor_id', $id)->first(),
             default   => null,
         };
     }
@@ -104,6 +106,7 @@ class QrController extends Controller
             'student' => Student::where('school_id', $schoolId)->where('ic_number', $ic)->first(),
             'teacher' => User::where('school_id', $schoolId)->where('user_type', 'teacher')->where('ic_number', $ic)->first(),
             'staff'   => User::where('school_id', $schoolId)->whereIn('user_type', ['staff', 'security_staff'])->where('ic_number', $ic)->first(),
+            'visitor' => Visitor::where('school_id', $schoolId)->where('ic_number', preg_replace('/[^0-9]/', '', $ic))->first(),
             default   => null,
         };
     }

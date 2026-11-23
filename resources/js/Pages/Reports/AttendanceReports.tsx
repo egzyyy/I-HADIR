@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, ChevronDown, Download, Filter, Users, FileText, BarChart3, Eye, AlertCircle } from 'lucide-react';
+import { Search, Calendar, ChevronDown, Download, Filter, Users, FileText, BarChart3, Eye, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -30,6 +30,47 @@ type Classroom = { classroom_id: number; name: string };
 type ReportRow = { student_id: number; name: string; class: string; date: string; status: string; check_in: string; check_out: string };
 type Stats = { present: number; late: number; absent: number; total: number };
 type SummaryRow = { classroom_id: number; class_name: string; teacher: string; total_students: number; present: number; present_pct: number; absent: number; absent_pct: number };
+type SortDirection = 'asc' | 'desc';
+type AttendanceSortColumn = 'name' | 'date' | 'check_in' | 'check_out' | null;
+type InfographicSortColumn = 'name' | 'date' | 'check_in' | 'check_out' | 'present' | 'late' | 'absent' | 'rate' | null;
+type SummarySortColumn = 'class_name' | 'teacher' | 'total_students' | 'present' | 'present_pct' | 'absent' | 'absent_pct' | null;
+
+// ─── Shared sort helpers ──────────────────────────────────────────────────────
+function parseDateValue(d: string | null | undefined): number {
+  if (!d || d === '-') return -1;
+  const trimmed = d.trim();
+  const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])).getTime();
+  const parsed = Date.parse(trimmed);
+  return isNaN(parsed) ? -1 : parsed;
+}
+
+function parseTimeValue(t: string | null | undefined): number {
+  if (!t || t === '-') return -1;
+  const match = t.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return -1;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = match[3] ? parseInt(match[3], 10) : 0;
+  const period = match[4]?.toUpperCase();
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function compareNullableNumbers(a: number, b: number, dir: SortDirection): number {
+  if (a === -1 && b === -1) return 0;
+  if (a === -1) return 1;
+  if (b === -1) return -1;
+  return dir === 'asc' ? a - b : b - a;
+}
+
+const SortIcon = ({ active, direction }: { active: boolean; direction: SortDirection }) => {
+  if (!active) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+  return direction === 'asc'
+    ? <ArrowUp size={14} className="text-[#2f4fa8] ml-1 inline-block" />
+    : <ArrowDown size={14} className="text-[#2f4fa8] ml-1 inline-block" />;
+};
 
 // ─── Shared hooks / helpers ───────────────────────────────────────────────────
 function useClasses() {
@@ -165,6 +206,8 @@ const AttendanceReport = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sortColumn, setSortColumn] = useState<AttendanceSortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { role } = useAuth();
   const canSeeStaffAndTeacher = role === 'Admin' || role === 'Security';
 
@@ -173,6 +216,7 @@ const AttendanceReport = () => {
     setRows([]);
     setStats(null);
     setSubmitted(false);
+    setSortColumn(null);
   }, [activeTab]);
 
   const handleSubmit = async () => {
@@ -181,7 +225,7 @@ const AttendanceReport = () => {
     try {
       const params: any = {
         date: selectedDate,
-        type: activeTab // Passed to backend
+        type: activeTab
       };
       if (activeTab === 'student' && selectedClass) params.classroom_id = selectedClass;
 
@@ -198,10 +242,40 @@ const AttendanceReport = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(filtered, 20);
+  const sorted = useMemo(() => {
+    if (!sortColumn) return filtered;
+    return [...filtered].sort((a, b) => {
+      if (sortColumn === 'name') {
+        const cmp = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      if (sortColumn === 'date') {
+        return compareNullableNumbers(parseDateValue(a.date), parseDateValue(b.date), sortDirection);
+      }
+      if (sortColumn === 'check_in') {
+        return compareNullableNumbers(parseTimeValue(a.check_in), parseTimeValue(b.check_in), sortDirection);
+      }
+      if (sortColumn === 'check_out') {
+        return compareNullableNumbers(parseTimeValue(a.check_out), parseTimeValue(b.check_out), sortDirection);
+      }
+      return 0;
+    });
+  }, [filtered, sortColumn, sortDirection]);
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sorted, 20);
+
+  const handleSort = (column: Exclude<AttendanceSortColumn, null>) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
 
   const handleExportPDF = () => {
-    if (filtered.length === 0) return;
+    if (sorted.length === 0) return;
     const isStudent = activeTab === 'student';
     const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
     const title = `${activeTab} Daily Attendance (${selectedDate})`;
@@ -219,7 +293,7 @@ const AttendanceReport = () => {
       </tr>
     `;
 
-    const tbodyHtml = filtered.map((row, i) => `
+    const tbodyHtml = sorted.map((row, i) => `
       <tr>
         <td style="text-align:center">${i + 1}</td>
         <td style="font-weight:bold">${row.name}</td>
@@ -322,9 +396,9 @@ const AttendanceReport = () => {
         <div className="p-6">
           <div className="flex flex-col xl:flex-row justify-between items-center gap-4 mb-6">
             <ExportButtons
-              onCopy={() => exportCopy(filtered)}
-              onExportCSV={() => exportCSV(filtered, 'attendance')}
-              onExportExcel={() => exportCSV(filtered, 'attendance')}
+              onCopy={() => exportCopy(sorted)}
+              onExportCSV={() => exportCSV(sorted, 'attendance')}
+              onExportExcel={() => exportCSV(sorted, 'attendance')}
               onExportPDF={handleExportPDF}
               onPrint={handleExportPDF}
             />
@@ -364,12 +438,20 @@ const AttendanceReport = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
+                  <th onClick={() => handleSort('name')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Name <SortIcon active={sortColumn === 'name'} direction={sortDirection} />
+                  </th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">{activeTab === 'student' ? 'Class' : 'Role'}</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
+                  <th onClick={() => handleSort('date')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Date <SortIcon active={sortColumn === 'date'} direction={sortDirection} />
+                  </th>
                   <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time Out</th>
+                  <th onClick={() => handleSort('check_in')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Time In <SortIcon active={sortColumn === 'check_in'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('check_out')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Time Out <SortIcon active={sortColumn === 'check_out'} direction={sortDirection} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -431,6 +513,8 @@ const InfographicReport = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sortColumn, setSortColumn] = useState<InfographicSortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { role } = useAuth();
   const canSeeStaffAndTeacher = role === 'Admin' || role === 'Security';
 
@@ -438,6 +522,10 @@ const InfographicReport = () => {
     const timer = setTimeout(() => setIsMounted(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    setSortColumn(null);
+  }, [viewType, activeTab]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -462,25 +550,57 @@ const InfographicReport = () => {
     return matchStatus && r.name?.toLowerCase().includes(search.toLowerCase());
   });
 
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(filteredList, 20);
+  const sortedList = useMemo(() => {
+    if (!sortColumn) return filteredList;
+    return [...filteredList].sort((a: any, b: any) => {
+      if (sortColumn === 'name') {
+        const cmp = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      if (sortColumn === 'date') {
+        return compareNullableNumbers(parseDateValue(a.date), parseDateValue(b.date), sortDirection);
+      }
+      if (sortColumn === 'check_in') {
+        return compareNullableNumbers(parseTimeValue(a.check_in), parseTimeValue(b.check_in), sortDirection);
+      }
+      if (sortColumn === 'check_out') {
+        return compareNullableNumbers(parseTimeValue(a.check_out), parseTimeValue(b.check_out), sortDirection);
+      }
+      if (['present', 'late', 'absent', 'rate'].includes(sortColumn)) {
+        const aNum = Number(a[sortColumn] ?? 0);
+        const bNum = Number(b[sortColumn] ?? 0);
+        return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+      }
+      return 0;
+    });
+  }, [filteredList, sortColumn, sortDirection]);
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sortedList, 20);
+
+  const handleSort = (column: Exclude<InfographicSortColumn, null>) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
 
   const totalPresent = stats ? stats.present : 0;
   const totalLate = stats ? stats.late : 0;
   const totalAbsent = stats ? stats.absent : 0;
   const total = stats ? stats.total : 0;
 
-  // PCT math includes LATE as technically "Present" for the volume ring, but UI shows them distinct
   const pct = total > 0 ? Math.round(((totalPresent + totalLate) / total) * 1000) / 10 : 0;
-  const absentPct = total > 0 ? Math.round((totalAbsent / total) * 1000) / 10 : 0;
 
   const displayData = chartData.length > 0
     ? chartData.map(d => ({ name: String(d.day), present: d.present, absent: d.absent }))
     : [];
 
   const handleExportPDF = () => {
-    if (filteredList.length === 0) return;
+    if (sortedList.length === 0) return;
     const isStudent = activeTab === 'student';
-    const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
     const title = `${activeTab} ${activeStatusTab} List (${viewType === 'month' ? selectedMonth : selectedDate})`;
 
     let theadHtml = `<tr><th style="width:5%">No</th><th style="width:25%">Name</th>`;
@@ -491,7 +611,7 @@ const InfographicReport = () => {
     }
     theadHtml += `</tr>`;
 
-    const tbodyHtml = filteredList.map((row, i) => {
+    const tbodyHtml = sortedList.map((row, i) => {
       let tr = `<tr><td style="text-align:center">${i + 1}</td><td style="font-weight:bold">${row.name}</td>`;
       if (isStudent) tr += `<td style="text-align:center">${row.class ?? '-'}</td>`;
       tr += `<td style="text-align:center">${formatStandardDate(row.date) ?? '-'}</td>`;
@@ -634,9 +754,9 @@ const InfographicReport = () => {
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <ExportButtons
-              onCopy={() => exportCopy(filteredList)}
-              onExportCSV={() => exportCSV(filteredList, 'infographic')}
-              onExportExcel={() => exportCSV(filteredList, 'infographic')}
+              onCopy={() => exportCopy(sortedList)}
+              onExportCSV={() => exportCSV(sortedList, 'infographic')}
+              onExportExcel={() => exportCSV(sortedList, 'infographic')}
               onExportPDF={handleExportPDF}
               onPrint={handleExportPDF}
             />
@@ -651,20 +771,47 @@ const InfographicReport = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider w-12 text-center">#</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Name</th>
+                  <th onClick={() => handleSort('name')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Name <SortIcon active={sortColumn === 'name'} direction={sortDirection} />
+                  </th>
                   {activeTab === 'student' && (
                     <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Class</th>
                   )}
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">{viewType === 'month' ? 'Present' : 'Date'}</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">{viewType === 'month' ? 'Late' : 'Attendance'}</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">{viewType === 'month' ? 'Absent' : 'Time In'}</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">{viewType === 'month' ? 'Rate' : 'Time Out'}</th>
+                  {viewType === 'month' ? (
+                    <>
+                      <th onClick={() => handleSort('present')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                        Present <SortIcon active={sortColumn === 'present'} direction={sortDirection} />
+                      </th>
+                      <th onClick={() => handleSort('late')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                        Late <SortIcon active={sortColumn === 'late'} direction={sortDirection} />
+                      </th>
+                      <th onClick={() => handleSort('absent')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                        Absent <SortIcon active={sortColumn === 'absent'} direction={sortDirection} />
+                      </th>
+                      <th onClick={() => handleSort('rate')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Rate <SortIcon active={sortColumn === 'rate'} direction={sortDirection} />
+                      </th>
+                    </>
+                  ) : (
+                    <>
+                      <th onClick={() => handleSort('date')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                        Date <SortIcon active={sortColumn === 'date'} direction={sortDirection} />
+                      </th>
+                      <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
+                      <th onClick={() => handleSort('check_in')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                        Time In <SortIcon active={sortColumn === 'check_in'} direction={sortDirection} />
+                      </th>
+                      <th onClick={() => handleSort('check_out')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                        Time Out <SortIcon active={sortColumn === 'check_out'} direction={sortDirection} />
+                      </th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {currentData.length === 0 ? (
                   <tr>
-                    <td colSpan={activeStatusTab === 'present' ? (activeTab === 'student' ? 8 : 7) : (activeTab === 'student' ? 6 : 5)} className="px-6 py-8 text-center text-gray-500 text-sm">
+                    <td colSpan={activeTab === 'student' ? 7 : 6} className="px-6 py-8 text-center text-gray-500 text-sm">
                       No data available in table
                     </td>
                   </tr>
@@ -707,6 +854,7 @@ const InfographicReport = () => {
 };
 
 // ─── 3. Summary Report (Classes only) ────────────────────────────────────────
+// ─── 3. Summary Report (Classes only) ────────────────────────────────────────
 const SummaryReport = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [tableData, setTableData] = useState<SummaryRow[]>([]);
@@ -714,6 +862,8 @@ const SummaryReport = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SummarySortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const handleSubmit = async () => {
     if (!selectedDate) return;
@@ -731,10 +881,36 @@ const SummaryReport = () => {
     r.teacher.toLowerCase().includes(search.toLowerCase())
   );
 
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(filtered, 20);
+  const sorted = useMemo(() => {
+    if (!sortColumn) return filtered;
+    return [...filtered].sort((a, b) => {
+      if (sortColumn === 'class_name' || sortColumn === 'teacher') {
+        const cmp = (a[sortColumn] || '').localeCompare(b[sortColumn] || '', undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      const aNum = Number(a[sortColumn] ?? 0);
+      const bNum = Number(b[sortColumn] ?? 0);
+      return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+  }, [filtered, sortColumn, sortDirection]);
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sorted, 20);
+
+  const handleSort = (column: Exclude<SummarySortColumn, null>) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
 
   const handleExportPDF = () => {
-    if (filtered.length === 0) return;
+    if (sorted.length === 0) return;
     const title = `Summary Report (${selectedDate})`;
 
     const theadHtml = `
@@ -750,7 +926,7 @@ const SummaryReport = () => {
       </tr>
     `;
 
-    const tbodyHtml = filtered.map((row, i) => `
+    const tbodyHtml = sorted.map((row, i) => `
       <tr>
         <td style="text-align:center">${i + 1}</td>
         <td style="font-weight:bold; color:#c53336">${row.class_name}</td>
@@ -826,9 +1002,9 @@ const SummaryReport = () => {
         <div className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <ExportButtons
-              onCopy={() => exportCopy(filtered)}
-              onExportCSV={() => exportCSV(filtered, 'summary')}
-              onExportExcel={() => exportCSV(filtered, 'summary')}
+              onCopy={() => exportCopy(sorted)}
+              onExportCSV={() => exportCSV(sorted, 'summary')}
+              onExportExcel={() => exportCSV(sorted, 'summary')}
               onExportPDF={handleExportPDF}
               onPrint={handleExportPDF}
             />
@@ -843,13 +1019,27 @@ const SummaryReport = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider w-12 text-center">#</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Class Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Classroom Teacher</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Total Number of Students</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Present</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Present %</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Absent</th>
-                  <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">Absent %</th>
+                  <th onClick={() => handleSort('class_name')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Class Name <SortIcon active={sortColumn === 'class_name'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('teacher')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Classroom Teacher <SortIcon active={sortColumn === 'teacher'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('total_students')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Total Number of Students <SortIcon active={sortColumn === 'total_students'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('present')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Present <SortIcon active={sortColumn === 'present'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('present_pct')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Present % <SortIcon active={sortColumn === 'present_pct'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('absent')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                    Absent <SortIcon active={sortColumn === 'absent'} direction={sortDirection} />
+                  </th>
+                  <th onClick={() => handleSort('absent_pct')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none">
+                    Absent % <SortIcon active={sortColumn === 'absent_pct'} direction={sortDirection} />
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -903,12 +1093,43 @@ const SummaryReport = () => {
 const IndividualStudentReport = () => {
   const [studentIc, setStudentIc] = useState('');
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth() + 1);
-  const [activeYear, setActiveYear] = useState(new Date().getFullYear());
+  const [activeYear] = useState(new Date().getFullYear());
+  const [sortColumn, setSortColumn] = useState<'date' | 'timeIn' | 'timeOut' | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // API State
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const sortedLogs = useMemo(() => {
+    const logs = reportData?.logs || [];
+    if (!sortColumn) return logs;
+    return [...logs].sort((a: any, b: any) => {
+      if (sortColumn === 'date') {
+        return compareNullableNumbers(parseDateValue(a.date), parseDateValue(b.date), sortDirection);
+      }
+      if (sortColumn === 'timeIn') {
+        return compareNullableNumbers(parseTimeValue(a.timeIn), parseTimeValue(b.timeIn), sortDirection);
+      }
+      if (sortColumn === 'timeOut') {
+        return compareNullableNumbers(parseTimeValue(a.timeOut), parseTimeValue(b.timeOut), sortDirection);
+      }
+      return 0;
+    });
+  }, [reportData, sortColumn, sortDirection]);
+
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sortedLogs, 10);
+
+  const handleSort = (column: 'date' | 'timeIn' | 'timeOut') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
 
   const fetchReport = async (icToFetch: string, monthToFetch: number) => {
     if (!icToFetch) return;
@@ -922,6 +1143,7 @@ const IndividualStudentReport = () => {
       });
       if (response.data.success) {
         setReportData(response.data);
+        setCurrentPage(1);
       }
     } catch (error: any) {
       setReportData(null);
@@ -943,20 +1165,18 @@ const IndividualStudentReport = () => {
     }
   };
 
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(reportData?.logs || [], 10);
-
   // --- EXPORT TRIGGERS ---
   const handleCopy = () => {
-    if (!reportData || reportData.logs.length === 0) return;
-    const text = ['Date\tAttendance\tTime In\tTime Out\tReason', ...reportData.logs.map((r: any) => `${r.date}\t${r.attendance}\t${r.timeIn}\t${r.timeOut}\t${r.reason}`)].join('\n');
+    if (!sortedLogs.length) return;
+    const text = ['Date\tAttendance\tTime In\tTime Out\tReason', ...sortedLogs.map((r: any) => `${r.date}\t${r.attendance}\t${r.timeIn}\t${r.timeOut}\t${r.reason}`)].join('\n');
     navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => { });
   };
 
   const handleExportPDF = () => {
-    if (!reportData || reportData.logs.length === 0) return;
+    if (!reportData || !sortedLogs.length) return;
     const title = `${reportData.student.name} - Attendance Report (${activeMonth}/${activeYear})`;
     const thead = `<tr><th style="width:5%">No</th><th style="width:20%">Date</th><th style="width:20%">Attendance</th><th style="width:15%">Time In</th><th style="width:15%">Time Out</th><th style="width:25%">Reason</th></tr>`;
-    const tbody = reportData.logs.map((r: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${r.date}</td><td style="text-align:center; text-transform:capitalize">${r.attendance}</td><td style="text-align:center">${r.timeIn}</td><td style="text-align:center">${r.timeOut}</td><td>${r.reason}</td></tr>`).join('');
+    const tbody = sortedLogs.map((r: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${r.date}</td><td style="text-align:center; text-transform:capitalize">${r.attendance}</td><td style="text-align:center">${r.timeIn}</td><td style="text-align:center">${r.timeOut}</td><td>${r.reason}</td></tr>`).join('');
     generateStandardPDF(title, thead, tbody, null);
   };
 
@@ -1069,8 +1289,8 @@ const IndividualStudentReport = () => {
                   </h3>
                   <ExportButtons
                     onCopy={handleCopy}
-                    onExportCSV={() => exportCSV(reportData.logs, 'individual_student_report')}
-                    onExportExcel={() => exportCSV(reportData.logs, 'individual_student_report')}
+                    onExportCSV={() => exportCSV(sortedLogs, 'individual_student_report')}
+                    onExportExcel={() => exportCSV(sortedLogs, 'individual_student_report')}
                     onExportPDF={handleExportPDF}
                     onPrint={handleExportPDF}
                   />
@@ -1080,10 +1300,16 @@ const IndividualStudentReport = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
+                        <th onClick={() => handleSort('date')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                          Date <SortIcon active={sortColumn === 'date'} direction={sortDirection} />
+                        </th>
                         <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
-                        <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
-                        <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time Out</th>
+                        <th onClick={() => handleSort('timeIn')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                          Time In <SortIcon active={sortColumn === 'timeIn'} direction={sortDirection} />
+                        </th>
+                        <th onClick={() => handleSort('timeOut')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                          Time Out <SortIcon active={sortColumn === 'timeOut'} direction={sortDirection} />
+                        </th>
                         <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">Reason / Notes</th>
                       </tr>
                     </thead>

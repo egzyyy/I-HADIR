@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, AlertCircle, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowLeft, AlertCircle, Users, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -21,11 +21,44 @@ import { printLogoHeader, printLogoCss } from '../../lib/branding';
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
+type SortDirection = 'asc' | 'desc';
+type ParentSortColumn = 'date' | 'timeIn' | 'timeOut' | null;
+
+// --- Shared Sort Helpers ---
+function parseDateValue(d: string | null | undefined): number {
+  if (!d || d === '-') return -1;
+  const trimmed = d.trim();
+  const dmy = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])).getTime();
+  const parsed = Date.parse(trimmed);
+  return isNaN(parsed) ? -1 : parsed;
+}
+
+function parseTimeValue(t: string | null | undefined): number {
+  if (!t || t === '-') return -1;
+  const match = t.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return -1;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = match[3] ? parseInt(match[3], 10) : 0;
+  const period = match[4]?.toUpperCase();
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function compareNullableNumbers(a: number, b: number, dir: SortDirection): number {
+  if (a === -1 && b === -1) return 0;
+  if (a === -1) return 1;
+  if (b === -1) return -1;
+  return dir === 'asc' ? a - b : b - a;
+}
+
 // --- Shared Export Helpers ---
 function exportCSV(rows: any[], filename: string) {
   if (!rows.length) return;
   const keys = Object.keys(rows[0]);
-  const csv  = [keys.join(','), ...rows.map(r => keys.map(k => `"${r[k] ?? ''}"`).join(','))].join('\n');
+  const csv = [keys.join(','), ...rows.map(r => keys.map(k => `"${r[k] ?? ''}"`).join(','))].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
   a.download = filename + '.csv';
@@ -33,7 +66,7 @@ function exportCSV(rows: any[], filename: string) {
 }
 
 function exportCopy(text: string) {
-  navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => {});
+  navigator.clipboard.writeText(text).then(() => alert("Table copied to clipboard!")).catch(() => { });
 }
 
 function generateStandardPDF(title: string, theadHtml: string, tbodyHtml: string, logoSrc: string | null) {
@@ -80,11 +113,10 @@ const MonthTabs = ({ activeMonth, onMonthChange }: { activeMonth: number, onMont
       <button
         key={month}
         onClick={() => onMonthChange(month)}
-        className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all flex-shrink-0 ${
-          activeMonth === month 
-            ? 'bg-[#1c3068] text-white shadow-md transform scale-110' 
-            : 'bg-white text-gray-400 hover:bg-gray-100 border border-gray-100'
-        }`}
+        className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all flex-shrink-0 ${activeMonth === month
+          ? 'bg-[#1c3068] text-white shadow-md transform scale-110'
+          : 'bg-white text-gray-400 hover:bg-gray-100 border border-gray-100'
+          }`}
       >
         {month}
       </button>
@@ -100,62 +132,129 @@ export default function ParentsReport() {
   };
 
   const [studentIc, setStudentIc] = useState('');
+  const [parentIc, setParentIc] = useState('');
+  const [showParentStep, setShowParentStep] = useState(false);
+
   const [activeMonth, setActiveMonth] = useState(new Date().getMonth() + 1);
-  const [activeYear, setActiveYear] = useState(new Date().getFullYear());
-  
+  const [activeYear] = useState(new Date().getFullYear());
+
+  // Sort State
+  const [sortColumn, setSortColumn] = useState<ParentSortColumn>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
   // API State
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const fetchReport = async (icToFetch: string, monthToFetch: number) => {
-    if (!icToFetch) return;
+  const sortedLogs = useMemo(() => {
+    const logs = reportData?.logs || [];
+    if (!sortColumn) return logs;
+    return [...logs].sort((a: any, b: any) => {
+      if (sortColumn === 'date') {
+        return compareNullableNumbers(parseDateValue(a.date), parseDateValue(b.date), sortDirection);
+      }
+      if (sortColumn === 'timeIn') {
+        return compareNullableNumbers(parseTimeValue(a.timeIn), parseTimeValue(b.timeIn), sortDirection);
+      }
+      if (sortColumn === 'timeOut') {
+        return compareNullableNumbers(parseTimeValue(a.timeOut), parseTimeValue(b.timeOut), sortDirection);
+      }
+      return 0;
+    });
+  }, [reportData, sortColumn, sortDirection]);
+
+  // Pagination hook on sorted logs
+  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(sortedLogs, 10);
+
+  const handleSort = (column: Exclude<ParentSortColumn, null>) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ column }: { column: Exclude<ParentSortColumn, null> }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="text-gray-300 ml-1 inline-block" />;
+    return sortDirection === 'asc'
+      ? <ArrowUp size={14} className="text-[#1c3068] ml-1 inline-block" />
+      : <ArrowDown size={14} className="text-[#1c3068] ml-1 inline-block" />;
+  };
+
+  const fetchReport = async (icToFetch: string, parentIcToFetch: string, monthToFetch: number) => {
+    if (!icToFetch || !parentIcToFetch) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
       const response = await axios.post('/api/reports/parent-student', {
         ic_number: icToFetch,
+        parent_ic: parentIcToFetch,
         month: monthToFetch,
         year: activeYear
       });
       if (response.data.success) {
         setReportData(response.data);
+        setCurrentPage(1);
       }
     } catch (error: any) {
       setReportData(null);
-      setErrorMsg(error.response?.data?.message || "Failed to fetch attendance data.");
+      setErrorMsg(error.response?.data?.message || "Parent IC and Student IC are not aligned.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleStudentCheck = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchReport(studentIc, activeMonth);
+    if (studentIc.length < 12) {
+      setErrorMsg('Please enter a valid 12-digit Student IC number.');
+      return;
+    }
+    setErrorMsg(null);
+    setShowParentStep(true);
+  };
+
+  const handleParentVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (parentIc.length < 12) {
+      setErrorMsg('Please enter a valid 12-digit Parent IC number.');
+      return;
+    }
+    fetchReport(studentIc, parentIc, activeMonth);
+  };
+
+  const handleStudentIcChange = (val: string) => {
+    setStudentIc(val.replace(/\D/g, ''));
+    if (showParentStep) {
+      setShowParentStep(false);
+      setParentIc('');
+      setReportData(null);
+      setErrorMsg(null);
+    }
   };
 
   const handleMonthChange = (month: number) => {
     setActiveMonth(month);
-    if (reportData?.student?.ic_number) {
-      fetchReport(reportData.student.ic_number, month);
+    if (reportData?.student?.ic_number && parentIc) {
+      fetchReport(reportData.student.ic_number, parentIc, month);
     }
   };
 
-  // Pagination hook on retrieved logs
-  const { currentPage, setCurrentPage, totalPages, startIndex, endIndex, currentData, totalItems } = usePagination(reportData?.logs || [], 10);
-
   // --- EXPORT TRIGGERS ---
   const handleCopy = () => {
-    if (!reportData || reportData.logs.length === 0) return;
-    const text = ['Date\tAttendance\tTime In\tTime Out\tReason', ...reportData.logs.map((r: any) => `${r.date}\t${r.attendance}\t${r.timeIn}\t${r.timeOut}\t${r.reason}`)].join('\n');
+    if (!sortedLogs.length) return;
+    const text = ['Date\tAttendance\tTime In\tTime Out\tReason', ...sortedLogs.map((r: any) => `${r.date}\t${r.attendance}\t${r.timeIn}\t${r.timeOut}\t${r.reason}`)].join('\n');
     exportCopy(text);
   };
 
   const handleExportPDF = () => {
-    if (!reportData || reportData.logs.length === 0) return;
+    if (!reportData || !sortedLogs.length) return;
     const title = `${reportData.student.name} - Attendance Report (${activeMonth}/${activeYear})`;
     const thead = `<tr><th style="width:5%">No</th><th style="width:20%">Date</th><th style="width:20%">Attendance</th><th style="width:15%">Time In</th><th style="width:15%">Time Out</th><th style="width:25%">Reason</th></tr>`;
-    const tbody = reportData.logs.map((r: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${r.date}</td><td style="text-align:center; text-transform:capitalize">${r.attendance}</td><td style="text-align:center">${r.timeIn}</td><td style="text-align:center">${r.timeOut}</td><td>${r.reason}</td></tr>`).join('');
+    const tbody = sortedLogs.map((r: any, i: number) => `<tr><td style="text-align:center">${i + 1}</td><td style="text-align:center">${r.date}</td><td style="text-align:center; text-transform:capitalize">${r.attendance}</td><td style="text-align:center">${r.timeIn}</td><td style="text-align:center">${r.timeOut}</td><td>${r.reason}</td></tr>`).join('');
     generateStandardPDF(title, thead, tbody, null);
   };
 
@@ -174,40 +273,85 @@ export default function ParentsReport() {
               </div>
             </div>
             <div className="flex items-center text-xs text-gray-500 font-medium bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-               <span className="text-[#1c3068] font-bold">I-HADIR</span>
+              <span className="text-[#1c3068] font-bold">I-HADIR</span>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* Search Section */}
+
+        {/* Search & Verification Section */}
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-[#1c3068] mb-6 border-b border-gray-100 pb-4">Check Student Record</h2>
-          <form onSubmit={handleSearch} className="max-w-xl">
-             <div className="space-y-2">
-               <label className="block text-sm font-bold text-[#1c3068]"><span className="text-[#c7393b] mr-1">*</span> Student IC Number</label>
-               <div className="flex flex-col sm:flex-row gap-4">
-                 <input 
-                   type="text" 
-                   value={studentIc}
-                   onChange={(e) => setStudentIc(e.target.value.replace(/\D/g, ''))}
-                   maxLength={12}
-                   placeholder="e.g. 080101112233"
-                   className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068] font-mono font-bold"
-                 />
-                 <button 
-                   type="submit"
-                   disabled={isLoading || studentIc.length < 12}
-                   className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all uppercase tracking-wider text-sm disabled:opacity-50"
-                 >
-                   {isLoading ? 'Checking...' : 'Check'}
-                 </button>
-               </div>
-               <p className="text-xs text-gray-400 mt-1">Enter the 12-digit MyKad/MyKid number without dashes or spaces.</p>
-             </div>
-          </form>
+
+          <div className="max-w-xl space-y-6">
+            {/* Step 1: Student IC */}
+            <form onSubmit={handleStudentCheck}>
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-[#1c3068]">
+                  <span className="text-[#c7393b] mr-1">*</span> Student IC Number
+                </label>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <input
+                    type="text"
+                    value={studentIc}
+                    onChange={(e) => handleStudentIcChange(e.target.value)}
+                    maxLength={12}
+                    placeholder="e.g. 080101112233"
+                    className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068] font-mono font-bold"
+                  />
+                  {!showParentStep && (
+                    <button
+                      type="submit"
+                      disabled={studentIc.length < 12}
+                      className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all uppercase tracking-wider text-sm disabled:opacity-50"
+                    >
+                      Check
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Enter the 12-digit MyKad/MyKid number without dashes or spaces.</p>
+              </div>
+            </form>
+
+            {/* Step 2: Parent IC Verification */}
+            <AnimatePresence>
+              {showParentStep && (
+                <motion.form
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  onSubmit={handleParentVerify}
+                  className="pt-4 border-t border-gray-100 space-y-2 overflow-hidden"
+                >
+                  <label className="flex items-center gap-1.5 text-sm font-bold text-[#1c3068]">
+                    <ShieldCheck size={16} className="text-[#1c3068]" />
+                    <span><span className="text-[#c7393b] mr-1">*</span> Parent IC Number (Verification)</span>
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <input
+                      type="text"
+                      value={parentIc}
+                      onChange={(e) => setParentIc(e.target.value.replace(/\D/g, ''))}
+                      maxLength={12}
+                      placeholder="e.g. 801010112233"
+                      autoFocus
+                      className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#1c3068] focus:ring-2 focus:ring-[#1c3068]/10 outline-none transition-all text-[#1c3068] font-mono font-bold"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading || parentIc.length < 12}
+                      className="bg-[#1c3068] hover:bg-[#152450] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-[#1c3068]/20 transition-all uppercase tracking-wider text-sm disabled:opacity-50"
+                    >
+                      {isLoading ? 'Verifying...' : 'Verify & Check'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Enter the father's or mother's 12-digit IC number registered with the school.</p>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
 
           {errorMsg && (
             <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-600 text-sm">
@@ -221,7 +365,7 @@ export default function ParentsReport() {
         {reportData && (
           <AnimatePresence>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-              
+
               {/* Header Info */}
               <div className="bg-[#1c3068] rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
@@ -238,52 +382,52 @@ export default function ParentsReport() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-32 md:col-span-2">
                   <div className="bg-white h-full flex">
-                     <div className="flex-1 border-r border-gray-100 flex flex-col items-center justify-center p-4">
-                       <Users size={24} className="text-[#1c3068] mb-2" />
-                       <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Monthly Record</span>
-                     </div>
-                     <div className="flex-[2] flex flex-col justify-center px-6 bg-gray-50">
-                        <div className="flex justify-between items-center mb-2">
-                           <span className="text-xs font-bold text-gray-500 uppercase">Present Rate</span>
-                           <span className="text-sm font-black text-[#1c3068]">
-                             {reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0 
-                               ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100) 
-                               : 0}%
-                           </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                           <div className="bg-[#1c3068] h-2 rounded-full" style={{ width: `${reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0 ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100) : 0}%` }}></div>
-                        </div>
-                     </div>
+                    <div className="flex-1 border-r border-gray-100 flex flex-col items-center justify-center p-4">
+                      <Users size={24} className="text-[#1c3068] mb-2" />
+                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider text-center">Monthly Record</span>
+                    </div>
+                    <div className="flex-[2] flex flex-col justify-center px-6 bg-gray-50">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Present Rate</span>
+                        <span className="text-sm font-black text-[#1c3068]">
+                          {reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0
+                            ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100)
+                            : 0}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-[#1c3068] h-2 rounded-full" style={{ width: `${reportData.stats.present + reportData.stats.late + reportData.stats.absent > 0 ? Math.round(((reportData.stats.present + reportData.stats.late) / (reportData.stats.present + reportData.stats.late + reportData.stats.absent)) * 100) : 0}%` }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="bg-[#1c3068] rounded-2xl p-6 text-white shadow-lg flex flex-col items-center justify-center h-32">
-                   <h3 className="text-4xl font-black mb-1">{reportData.stats.present + reportData.stats.late}</h3>
-                   <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Present</p>
+                  <h3 className="text-4xl font-black mb-1">{reportData.stats.present + reportData.stats.late}</h3>
+                  <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Present</p>
                 </div>
 
                 <div className="bg-[#c7393b] rounded-2xl p-6 text-white shadow-lg flex flex-col items-center justify-center h-32">
-                   <h3 className="text-4xl font-black mb-1">{reportData.stats.absent}</h3>
-                   <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Absent</p>
+                  <h3 className="text-4xl font-black mb-1">{reportData.stats.absent}</h3>
+                  <p className="text-xs font-bold opacity-90 uppercase tracking-wider">Days Absent</p>
                 </div>
               </div>
 
               {/* Monthly Log Table */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col min-w-0">
                 <MonthTabs activeMonth={activeMonth} onMonthChange={handleMonthChange} />
-                
+
                 <div className="flex-1 w-full overflow-hidden mt-4">
                   <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
                       Attendance Log: {new Date(activeYear, activeMonth - 1).toLocaleString('default', { month: 'long' })}
                     </h3>
-                    <ExportButtons 
-                       onCopy={handleCopy} 
-                       onExportCSV={() => exportCSV(reportData.logs, 'parent_report')} 
-                       onExportExcel={() => exportCSV(reportData.logs, 'parent_report')} 
-                       onExportPDF={handleExportPDF} 
-                       onPrint={handleExportPDF} 
+                    <ExportButtons
+                      onCopy={handleCopy}
+                      onExportCSV={() => exportCSV(sortedLogs, 'parent_report')}
+                      onExportExcel={() => exportCSV(sortedLogs, 'parent_report')}
+                      onExportPDF={handleExportPDF}
+                      onPrint={handleExportPDF}
                     />
                   </div>
 
@@ -291,10 +435,16 @@ export default function ParentsReport() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Date</th>
+                          <th onClick={() => handleSort('date')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                            Date <SortIcon column="date" />
+                          </th>
                           <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Attendance</th>
-                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time In</th>
-                          <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100">Time Out</th>
+                          <th onClick={() => handleSort('timeIn')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                            Time In <SortIcon column="timeIn" />
+                          </th>
+                          <th onClick={() => handleSort('timeOut')} className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider border-r border-gray-100 cursor-pointer hover:bg-gray-100 select-none">
+                            Time Out <SortIcon column="timeOut" />
+                          </th>
                           <th className="px-6 py-3 text-xs font-bold text-gray-800 uppercase tracking-wider">Reason / Notes</th>
                         </tr>
                       </thead>
@@ -304,11 +454,10 @@ export default function ParentsReport() {
                             <tr key={index} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0">
                               <td className="px-6 py-4 text-sm font-semibold text-gray-800 border-r border-gray-100">{row.date}</td>
                               <td className="px-6 py-4 text-sm border-r border-gray-100">
-                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                                  row.attendance === 'Present' ? 'bg-green-50 text-green-700 border-green-200' :
+                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${row.attendance === 'Present' ? 'bg-green-50 text-green-700 border-green-200' :
                                   row.attendance === 'Late' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                  'bg-red-50 text-red-700 border-red-200'
-                                }`}>
+                                    'bg-red-50 text-red-700 border-red-200'
+                                  }`}>
                                   {row.attendance}
                                 </span>
                               </td>
