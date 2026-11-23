@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  User, Phone, Home, Image as ImageIcon, Settings, Camera, Save, MapPin, 
-  Mail, Check, Calendar, Shield, Briefcase, Globe, X, CheckCircle, AlertCircle 
+import {
+  User, Phone, Home, Image as ImageIcon, Settings, Camera, Save, MapPin,
+  Mail, Check, Calendar, Shield, Briefcase, Globe, X, CheckCircle, AlertCircle, Crop
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ImageCropperModal } from '../../Components/modals/ImageCropperModal';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import axios from 'axios';
 
@@ -23,6 +24,8 @@ export default function MyProfile() {
   // File Upload State
   const [profilePic, setProfilePic] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('profile-photo.jpg');
 
   // Controlled Form State
   const [formData, setFormData] = useState({
@@ -47,7 +50,7 @@ export default function MyProfile() {
         if (response.data.success) {
           const data = response.data.data;
           setAdminData(data);
-          
+
           // Pre-fill the form with database data
           setFormData({
             first_name: data.first_name || '',
@@ -88,18 +91,19 @@ export default function MyProfile() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProfilePic(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      setCropFileName(file.name);
+      setCropImageSrc(URL.createObjectURL(file));
+      e.target.value = '';
     }
   };
 
   // Handle Save (Used for all tabs)
   const handleSave = async () => {
     setIsSaving(true);
-    
+
     // We MUST use FormData to send files
     const submitData = new FormData();
-    
+
     // Append all text fields
     Object.keys(formData).forEach((key) => {
       const value = formData[key as keyof typeof formData];
@@ -133,16 +137,15 @@ export default function MyProfile() {
   const TabButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`relative flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all duration-300 ${
-        activeTab === id 
-          ? 'text-role' 
-          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-      }`}
+      className={`relative flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all duration-300 ${activeTab === id
+        ? 'text-role'
+        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+        }`}
     >
       <Icon size={18} className={activeTab === id ? 'text-[#c53336]' : 'text-gray-400'} />
       {label}
       {activeTab === id && (
-        <motion.div 
+        <motion.div
           layoutId="activeTab"
           className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#c53336]"
         />
@@ -165,7 +168,7 @@ export default function MyProfile() {
     if (adminData?.first_name || adminData?.last_name) {
       return `${adminData.first_name || ''} ${adminData.last_name || ''}`.trim();
     }
-    return adminData?.name || 'Admin User'; 
+    return adminData?.name || 'Admin User';
   };
 
   const fullName = getFullName();
@@ -174,37 +177,37 @@ export default function MyProfile() {
 
   return (
     <DashboardLayout activePageId="my-profile">
-      <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-full mx-auto"
-    >
-      {/* Header Section with Breadcrumbs */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-role tracking-tight">My Profile</h2>
-          <p className="text-gray-500 text-sm mt-1">Manage your personal information and account settings.</p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-full mx-auto"
+      >
+        {/* Header Section with Breadcrumbs */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-role tracking-tight">My Profile</h2>
+            <p className="text-gray-500 text-sm mt-1">Manage your personal information and account settings.</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
+            <Home size={14} />
+            <span>Dashboard</span>
+            <span className="text-gray-300">/</span>
+            <span className="text-[#c53336]">Profile</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-gray-500">
-           <Home size={14} />
-           <span>Dashboard</span>
-           <span className="text-gray-300">/</span>
-           <span className="text-[#c53336]">Profile</span>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column - Profile Card */}
-        <div className="xl:col-span-4 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative group">
-             {/* Decorative Background */}
-             <div className="h-32 bg-gradient-to-r from-role to-[#2a4595] relative overflow-hidden">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+
+          {/* Left Column - Profile Card */}
+          <div className="xl:col-span-4 space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative group">
+              {/* Decorative Background */}
+              <div className="h-32 bg-gradient-to-r from-role to-[#2a4595] relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 pattern-dots"></div>
                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-             </div>
+              </div>
 
-             <div className="px-8 pb-8 flex flex-col items-center -mt-12 relative z-10">
+              <div className="px-8 pb-8 flex flex-col items-center -mt-12 relative z-10">
                 <div className="relative mb-4">
                   <div className="w-28 h-28 rounded-full bg-white p-1.5 shadow-xl">
                     <div className="w-full h-full rounded-full bg-[#f0f2f5] flex items-center justify-center overflow-hidden border border-gray-100 relative">
@@ -215,7 +218,7 @@ export default function MyProfile() {
                       )}
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setActiveTab('picture')}
                     className="absolute bottom-1 right-1 bg-[#c53336] text-white p-2 rounded-full shadow-lg border-2 border-white hover:bg-[#a02224] transition-colors cursor-pointer"
                     title="Change Profile Picture"
@@ -223,7 +226,7 @@ export default function MyProfile() {
                     <Camera size={14} />
                   </button>
                 </div>
-                
+
                 <h3 className="text-2xl font-bold text-role">{fullName}</h3>
                 <span className="bg-blue-50 text-role px-3 py-1 rounded-full text-xs font-bold mt-2 uppercase tracking-wide border border-blue-100">
                   {adminData?.position || 'Administrator'}
@@ -262,7 +265,7 @@ export default function MyProfile() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* <div className="mt-8 pt-6 w-full border-t border-gray-100">
                   <div className="grid grid-cols-2 gap-4 text-center">
                      <div>
@@ -275,194 +278,194 @@ export default function MyProfile() {
                      </div>
                   </div>
                 </div> */}
-             </div>
-          </div>
-        </div>
-
-        {/* Right Column - Tabs & Content */}
-        <div className="xl:col-span-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px] flex flex-col">
-            {/* Tabs Header */}
-            <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
-              <TabButton id="profile" icon={User} label="Overview" />
-              <TabButton id="e-contact" icon={Shield} label="Emergency" />
-              <TabButton id="address" icon={Home} label="Address" />
-              <TabButton id="picture" icon={ImageIcon} label="Picture" />
-              <TabButton id="settings" icon={Settings} label="Settings" />
+              </div>
             </div>
+          </div>
 
-            {/* Tab Content */}
-            <div className="p-8 md:p-10 flex-1">
-              
-              {/* PROFILE TAB */}
-              {activeTab === 'profile' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-role">Personal Information</h3>
-                    <button className="text-sm text-[#c53336] font-bold hover:underline" onClick={() => setActiveTab('settings')}>
-                      Edit Info
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <User className="text-[#c53336]" size={20} />
-                        <span className="text-sm font-bold text-gray-500 uppercase">Full Name</span>
-                      </div>
-                      <p className="text-lg font-bold text-role pl-8">{fullName}</p>
-                    </div>
+          {/* Right Column - Tabs & Content */}
+          <div className="xl:col-span-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px] flex flex-col">
+              {/* Tabs Header */}
+              <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
+                <TabButton id="profile" icon={User} label="Overview" />
+                <TabButton id="e-contact" icon={Shield} label="Emergency" />
+                <TabButton id="address" icon={Home} label="Address" />
+                <TabButton id="picture" icon={ImageIcon} label="Picture" />
+                <TabButton id="settings" icon={Settings} label="Settings" />
+              </div>
 
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Briefcase className="text-[#c53336]" size={20} />
-                        <span className="text-sm font-bold text-gray-500 uppercase">Role / Position</span>
-                      </div>
-                      <p className="text-lg font-bold text-role pl-8">{adminData?.position || 'Administrator'}</p>
-                    </div>
+              {/* Tab Content */}
+              <div className="p-8 md:p-10 flex-1">
 
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Calendar className="text-[#c53336]" size={20} />
-                        <span className="text-sm font-bold text-gray-500 uppercase">Join Date</span>
-                      </div>
-                      <p className="text-lg font-bold text-role pl-8">{joinDate}</p>
-                    </div>
-
-                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Globe className="text-[#c53336]" size={20} />
-                        <span className="text-sm font-bold text-gray-500 uppercase">Language</span>
-                      </div>
-                      <p className="text-lg font-bold text-role pl-8">English (US)</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <h3 className="text-xl font-bold text-role mb-6">Bio</h3>
-                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 text-gray-600 leading-relaxed italic">
-                      "{adminData?.bio_desc || 'No bio provided. Go to Settings to add one!'}"
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* E-CONTACT TAB */}
-              {activeTab === 'e-contact' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-role">Emergency Contact</h3>
-                    <p className="text-gray-500 text-sm mt-1">Who should we contact in case of emergency?</p>
-                  </div>
-
-                  <form className="max-w-2xl space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2 col-span-2">
-                         <label className="block text-sm font-bold text-role">Contact Name</label>
-                         <input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium" placeholder="e.g. Spouse, Parent" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                         <label className="block text-sm font-bold text-role">Relationship</label>
-                         <select name="emergency_relationship" value={formData.emergency_relationship} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700">
-                           <option value="Parent">Parent</option>
-                           <option value="Spouse">Spouse</option>
-                           <option value="Sibling">Sibling</option>
-                           <option value="Friend">Friend</option>
-                           <option value="Other">Other</option>
-                         </select>
-                      </div>
-
-                      <div className="space-y-2">
-                         <label className="block text-sm font-bold text-role">Phone Number</label>
-                         <input type="tel" name="emergency_phone_num" value={formData.emergency_phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium" placeholder="01X-XXXXXXX" />
-                      </div>
-                    </div>
-                    
-                    <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
-                        <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                {/* PROFILE TAB */}
+                {activeTab === 'profile' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-bold text-role">Personal Information</h3>
+                      <button className="text-sm text-[#c53336] font-bold hover:underline" onClick={() => setActiveTab('settings')}>
+                        Edit Info
                       </button>
                     </div>
-                  </form>
-                </motion.div>
-              )}
 
-              {/* ADDRESS TAB */}
-              {activeTab === 'address' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-role">Residential Address</h3>
-                    <p className="text-gray-500 text-sm mt-1">Your permanent residential address.</p>
-                  </div>
-
-                  <form className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-role">Street Address</label>
-                      <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="House number and street" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
-                    </div>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">City</label>
-                        <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                      <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <User className="text-[#c53336]" size={20} />
+                          <span className="text-sm font-bold text-gray-500 uppercase">Full Name</span>
+                        </div>
+                        <p className="text-lg font-bold text-role pl-8">{fullName}</p>
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">State</label>
-                        <div className="relative">
-                          <select name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 appearance-none">
-                            <option value="Terengganu">Terengganu</option>
-                            <option value="Selangor">Selangor</option>
-                            <option value="W.P Kuala Lumpur">W.P Kuala Lumpur</option>
-                            <option value="W.P Putrajaya">W.P Putrajaya</option>
-                            <option value="W.P Labuan">W.P Labuan</option>
-                            <option value="Sarawak">Sarawak</option>
-                            <option value="Sabah">Sabah</option>
-                            <option value="Johor">Johor</option>
-                            <option value="Pahang">Pahang</option>
-                            <option value="Melaka">Melaka</option>
-                            <option value="Kedah">Kedah</option>
-                            <option value="Perak">Perak</option>
-                            <option value="Penang">Penang</option>
-                            <option value="Perlis">Perlis</option>
-                            <option value="Negeri Sembilan">Negeri Sembilan</option>
+
+                      <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Briefcase className="text-[#c53336]" size={20} />
+                          <span className="text-sm font-bold text-gray-500 uppercase">Role / Position</span>
+                        </div>
+                        <p className="text-lg font-bold text-role pl-8">{adminData?.position || 'Administrator'}</p>
+                      </div>
+
+                      <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Calendar className="text-[#c53336]" size={20} />
+                          <span className="text-sm font-bold text-gray-500 uppercase">Join Date</span>
+                        </div>
+                        <p className="text-lg font-bold text-role pl-8">{joinDate}</p>
+                      </div>
+
+                      <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Globe className="text-[#c53336]" size={20} />
+                          <span className="text-sm font-bold text-gray-500 uppercase">Language</span>
+                        </div>
+                        <p className="text-lg font-bold text-role pl-8">English (US)</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-8">
+                      <h3 className="text-xl font-bold text-role mb-6">Bio</h3>
+                      <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100 text-gray-600 leading-relaxed italic">
+                        "{adminData?.bio_desc || 'No bio provided. Go to Settings to add one!'}"
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* E-CONTACT TAB */}
+                {activeTab === 'e-contact' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold text-role">Emergency Contact</h3>
+                      <p className="text-gray-500 text-sm mt-1">Who should we contact in case of emergency?</p>
+                    </div>
+
+                    <form className="max-w-2xl space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2 col-span-2">
+                          <label className="block text-sm font-bold text-role">Contact Name</label>
+                          <input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium" placeholder="e.g. Spouse, Parent" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">Relationship</label>
+                          <select name="emergency_relationship" value={formData.emergency_relationship} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700">
+                            <option value="Parent">Parent</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Sibling">Sibling</option>
+                            <option value="Friend">Friend</option>
+                            <option value="Other">Other</option>
                           </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                             <MapPin size={16} />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">Phone Number</label>
+                          <input type="tel" name="emergency_phone_num" value={formData.emergency_phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-medium" placeholder="01X-XXXXXXX" />
+                        </div>
+                      </div>
+
+                      <div className="pt-6 flex justify-end">
+                        <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                          <Save size={18} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+
+                {/* ADDRESS TAB */}
+                {activeTab === 'address' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold text-role">Residential Address</h3>
+                      <p className="text-gray-500 text-sm mt-1">Your permanent residential address.</p>
+                    </div>
+
+                    <form className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-role">Street Address</label>
+                        <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="House number and street" className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">City</label>
+                          <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">State</label>
+                          <div className="relative">
+                            <select name="state" value={formData.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 appearance-none">
+                              <option value="Terengganu">Terengganu</option>
+                              <option value="Selangor">Selangor</option>
+                              <option value="W.P Kuala Lumpur">W.P Kuala Lumpur</option>
+                              <option value="W.P Putrajaya">W.P Putrajaya</option>
+                              <option value="W.P Labuan">W.P Labuan</option>
+                              <option value="Sarawak">Sarawak</option>
+                              <option value="Sabah">Sabah</option>
+                              <option value="Johor">Johor</option>
+                              <option value="Pahang">Pahang</option>
+                              <option value="Melaka">Melaka</option>
+                              <option value="Kedah">Kedah</option>
+                              <option value="Perak">Perak</option>
+                              <option value="Penang">Penang</option>
+                              <option value="Perlis">Perlis</option>
+                              <option value="Negeri Sembilan">Negeri Sembilan</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                              <MapPin size={16} />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">Postcode</label>
-                        <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-mono" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">Postcode</label>
+                          <input type="text" name="postcode" value={formData.postcode} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 font-mono" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">Country</label>
+                          <input type="text" value="Malaysia" disabled className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed" />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">Country</label>
-                        <input type="text" value="Malaysia" disabled className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed" />
+
+                      <div className="pt-6 flex justify-end">
+                        <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                          <Save size={18} /> {isSaving ? 'Saving...' : 'Update Address'}
+                        </button>
                       </div>
-                    </div>
+                    </form>
+                  </motion.div>
+                )}
 
-                    <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
-                        <Save size={18} /> {isSaving ? 'Saving...' : 'Update Address'}
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* PROFILE PICTURE TAB */}
-              {activeTab === 'picture' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="h-full flex flex-col items-center justify-center py-8">
-                   <div className="text-center mb-8">
+                {/* PROFILE PICTURE TAB */}
+                {activeTab === 'picture' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="h-full flex flex-col items-center justify-center py-8">
+                    <div className="text-center mb-8">
                       <h3 className="text-xl font-bold text-role">Profile Picture</h3>
                       <p className="text-gray-500 text-sm mt-1">Upload a new photo to update your profile.</p>
-                   </div>
+                    </div>
 
-                   <label className="w-64 h-64 rounded-full bg-gray-50 flex flex-col items-center justify-center border-4 border-dashed border-gray-300 relative group cursor-pointer hover:border-[#c53336] hover:bg-red-50/10 transition-all duration-300 overflow-hidden">
+                    <label className="w-64 h-64 rounded-full bg-gray-50 flex flex-col items-center justify-center border-4 border-dashed border-gray-300 relative group cursor-pointer hover:border-[#c53336] hover:bg-red-50/10 transition-all duration-300 overflow-hidden">
                       {previewUrl ? (
                         <div className="w-full h-full relative">
                           <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -474,143 +477,171 @@ export default function MyProfile() {
                       ) : (
                         <div className="flex flex-col items-center gap-4 text-gray-400 group-hover:text-[#c53336] transition-colors">
                           <div className="p-4 rounded-full bg-white shadow-sm group-hover:shadow-md transition-shadow">
-                             <Camera size={48} strokeWidth={1.5} />
+                            <Camera size={48} strokeWidth={1.5} />
                           </div>
                           <span className="text-sm font-bold uppercase tracking-wider">Click to Upload</span>
                         </div>
                       )}
-                      
-                      <input type="file" onChange={handleFileChange} className="hidden" accept="image/*" />
-                   </label>
 
-                   <div className="mt-8 flex gap-4 text-sm text-gray-400">
+                      <input type="file" onChange={handleFileChange} className="hidden" accept="image/*" />
+                    </label>
+
+                    {previewUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCropImageSrc(previewUrl)}
+                        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-role bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-colors"
+                      >
+                        <Crop size={14} /> Adjust / Crop Photo
+                      </button>
+                    )}
+
+                    <div className="mt-6 flex gap-4 text-sm text-gray-400">
                       <span className="flex items-center gap-1"><Check size={14} className="text-green-500" /> JPG, PNG or GIF</span>
                       <span className="flex items-center gap-1"><Check size={14} className="text-green-500" /> Max 2MB</span>
-                   </div>
+                    </div>
 
-                   {/* Show Save Button when a new image is selected */}
-                   {profilePic && (
-                     <div className="mt-8">
-                        <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-[#c53336] hover:bg-[#a02224] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-red-900/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                    {/* Show Save Button when a new image is selected */}
+                    {profilePic && (
+                      <div className="mt-8">
+                        <button
+                          type="button"
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="flex items-center gap-2 bg-[#c53336] hover:bg-[#a02224] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-red-900/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0"
+                        >
                           <Save size={18} /> {isSaving ? 'Uploading...' : 'Save Picture'}
                         </button>
-                     </div>
-                   )}
-                </motion.div>
-              )}
-
-              {/* SETTINGS TAB */}
-              {activeTab === 'settings' && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-role">Account Settings</h3>
-                    <p className="text-gray-500 text-sm mt-1">Update your basic account details.</p>
-                  </div>
-
-                  <form className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">First Name</label>
-                        <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-role">Last Name</label>
-                        <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                    )}
+                  </motion.div>
+                )}
+
+                {/* SETTINGS TAB */}
+                {activeTab === 'settings' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+                    <div className="mb-6">
+                      <h3 className="text-xl font-bold text-role">Account Settings</h3>
+                      <p className="text-gray-500 text-sm mt-1">Update your basic account details.</p>
+                    </div>
+
+                    <form className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">First Name</label>
+                          <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-role">Last Name</label>
+                          <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-role">Identification No.</label>
-                      <input type="text" value={adminData?.ic_number || '-'} className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed font-mono" disabled />
-                      <p className="text-xs text-gray-400 flex items-center gap-1"><Shield size={10} /> Identification number cannot be changed</p>
-                    </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-role">Identification No.</label>
+                        <input type="text" value={adminData?.ic_number || '-'} className="w-full px-4 py-3 rounded-xl bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed font-mono" disabled />
+                        <p className="text-xs text-gray-400 flex items-center gap-1"><Shield size={10} /> Identification number cannot be changed</p>
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-role">Email Address</label>
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
-                    </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-role">Email Address</label>
+                        <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-role">Phone Number</label>
-                      <input type="tel" name="phone_num" value={formData.phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
-                    </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-role">Phone Number</label>
+                        <input type="tel" name="phone_num" value={formData.phone_num} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700" />
+                      </div>
 
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-role">Bio</label>
-                      <textarea 
-                        rows={4} 
-                        name="bio_desc"
-                        value={formData.bio_desc}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 leading-relaxed resize-none"
-                        placeholder="Tell us a little about yourself..."
-                      ></textarea>
-                    </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-role">Bio</label>
+                        <textarea
+                          rows={4}
+                          name="bio_desc"
+                          value={formData.bio_desc}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-role focus:ring-2 focus:ring-role/10 outline-none transition-all text-gray-700 leading-relaxed resize-none"
+                          placeholder="Tell us a little about yourself..."
+                        ></textarea>
+                      </div>
 
-                    <div className="pt-6 flex justify-end">
-                      <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
-                        <Save size={18} /> {isSaving ? 'Saving...' : 'Update Profile'}
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              )}
+                      <div className="pt-6 flex justify-end">
+                        <button type="button" onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-role hover:bg-role-dark text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-role/20 transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:translate-y-0">
+                          <Save size={18} /> {isSaving ? 'Saving...' : 'Update Profile'}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ERROR MODAL */}
-      <AnimatePresence>
-        {errorModalMsg && (
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
-            >
-              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <AlertCircle size={40} className="text-red-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Update Failed</h3>
-              <p className="text-gray-500 mb-8">{errorModalMsg}</p>
-              <button 
-                onClick={() => setErrorModalMsg(null)}
-                className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+        {/* ERROR MODAL */}
+        <AnimatePresence>
+          {errorModalMsg && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
               >
-                Go Back & Fix
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertCircle size={40} className="text-red-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Update Failed</h3>
+                <p className="text-gray-500 mb-8">{errorModalMsg}</p>
+                <button
+                  onClick={() => setErrorModalMsg(null)}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+                >
+                  Go Back & Fix
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-      {/* SUCCESS MODAL */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
-            >
-              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle size={40} className="text-green-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
-              <p className="text-gray-500 mb-8">Your profile has been successfully updated.</p>
-              <button 
-                onClick={() => setShowSuccessModal(false)}
-                className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+        {/* SUCCESS MODAL */}
+        <AnimatePresence>
+          {showSuccessModal && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
               >
-                Done
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle size={40} className="text-green-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
+                <p className="text-gray-500 mb-8">Your profile has been successfully updated.</p>
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+                >
+                  Done
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <ImageCropperModal
+          isOpen={Boolean(cropImageSrc)}
+          imageSrc={cropImageSrc}
+          fileName={cropFileName}
+          onClose={() => setCropImageSrc(null)}
+          onCropComplete={(croppedFile, croppedUrl) => {
+            setProfilePic(croppedFile);
+            setPreviewUrl(croppedUrl);
+            setCropImageSrc(null);
+          }}
+        />
+
 
       </motion.div>
     </DashboardLayout>

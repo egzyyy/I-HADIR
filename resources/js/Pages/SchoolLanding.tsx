@@ -12,15 +12,13 @@ import { Hero } from '../Components/landing/Hero';
 import { Footer } from '../Components/landing/Footer';
 
 // --- Live data from GET /api/public/schools/{slug} ---
+// 1. Update interfaces at the top of SchoolLanding.tsx:
 interface OrgMember {
+  id?: string;
+  parent_id?: string | null;
   name: string;
   position: string;
-  level: number; // 1 = head, 2 = deputies, 3 = other staff
-  /**
-   * Resolved server-side from the matching user account's uploaded photo.
-   * Null when the member has no account or hasn't uploaded one — the card
-   * falls back to a placeholder icon.
-   */
+  level?: number;
   photo?: string | null;
 }
 
@@ -30,6 +28,8 @@ interface LiveProfile {
   about: string | null;
   vision: string | null;
   mission: string | null;
+  organization_mode?: 'builder' | 'image';
+  organization_image?: string | null;
   organization: OrgMember[];
 }
 
@@ -347,39 +347,84 @@ const SchoolVisionMission = ({
   );
 };
 
-// Section 4b — Organization hierarchy (admin-managed; hidden when empty)
-const SchoolOrganization = ({ school, members }: { school: School; members: OrgMember[] }) => {
-  if (members.length === 0) return null;
+// 2. Replace SchoolOrganization in SchoolLanding.tsx:
+const SchoolOrganization = ({
+  school,
+  profile,
+}: {
+  school: School;
+  profile?: LiveProfile | null;
+}) => {
+  const orgImage = profile?.organization_image ?? null;
+  const members = profile?.organization ?? [];
 
-  // Group into the three tiers; unknown levels land in tier 3.
-  const tiers: OrgMember[][] = [1, 2, 3].map((lvl) =>
-    members.filter((m) => (lvl === 3 ? m.level >= 3 || m.level < 1 : m.level === lvl))
-  );
+  if (!orgImage && members.length === 0) return null;
+
+  const hasTreeStructure = members.some((m) => m.id);
 
   const MemberCard = ({ member, large = false }: { member: OrgMember; large?: boolean }) => (
     <div
       className={`rounded-2xl bg-white border border-gray-100 shadow-sm text-center transition-shadow hover:shadow-md ${
-        large ? 'p-8 min-w-[16rem]' : 'p-6 min-w-[13rem]'
+        large ? 'p-6 w-56' : 'p-5 w-48'
       }`}
     >
       <div
-        className={`mx-auto rounded-full flex items-center justify-center mb-4 overflow-hidden ${
-          large ? 'w-20 h-20' : 'w-16 h-16'
+        className={`mx-auto rounded-full flex items-center justify-center mb-3 overflow-hidden ${
+          large ? 'w-18 h-18' : 'w-14 h-14'
         }`}
         style={{ backgroundColor: `${school.themeColor}14`, color: school.themeColor }}
       >
         {member.photo ? (
           <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
         ) : (
-          <UserRound size={large ? 32 : 26} />
+          <UserRound size={large ? 30 : 24} />
         )}
       </div>
-      <p className={`font-bold leading-snug ${large ? 'text-lg' : 'text-sm'}`} style={{ color: school.themeColor }}>
+      <p className={`font-bold leading-snug ${large ? 'text-base' : 'text-sm'}`} style={{ color: school.themeColor }}>
         {member.name}
       </p>
-      <p className={`text-gray-500 mt-1 ${large ? 'text-sm' : 'text-xs'}`}>{member.position}</p>
+      {member.position && (
+        <p className={`text-gray-500 mt-1 ${large ? 'text-xs' : 'text-[11px]'}`}>{member.position}</p>
+      )}
     </div>
   );
+
+  const renderTree = (node: OrgMember, depth = 0) => {
+    const children = members.filter((m) => m.parent_id === node.id);
+    return (
+      <div key={node.id} className="flex flex-col items-center">
+        <MemberCard member={node} large={depth === 0} />
+        {children.length > 0 && (
+          <div className="flex flex-col items-center">
+            <div className="w-0.5 h-6 bg-gray-300" />
+            <div className="flex items-start justify-center">
+              {children.map((child, idx) => {
+                const isFirst = idx === 0;
+                const isLast = idx === children.length - 1;
+                const isOnly = children.length === 1;
+                return (
+                  <div key={child.id} className="relative flex flex-col items-center px-3 pt-6">
+                    {!isOnly && (
+                      <>
+                        {!isFirst && <div className="absolute top-0 left-0 right-1/2 h-0.5 bg-gray-300" />}
+                        {!isLast && <div className="absolute top-0 left-1/2 right-0 h-0.5 bg-gray-300" />}
+                      </>
+                    )}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-6 bg-gray-300" />
+                    {renderTree(child, depth + 1)}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const rootNodes = hasTreeStructure
+    ? members.filter((m) => !m.parent_id || !members.some((p) => p.id === m.parent_id))
+    : [];
 
   return (
     <section className="py-20 lg:py-28" style={{ backgroundColor: `${school.themeColor}08` }}>
@@ -393,22 +438,28 @@ const SchoolOrganization = ({ school, members }: { school: School; members: OrgM
           </h2>
         </motion.div>
 
-        <div className="space-y-8">
-          {tiers.map((tier, i) =>
-            tier.length === 0 ? null : (
-              <motion.div
-                key={i}
-                {...sectionReveal}
-                transition={{ ...sectionReveal.transition, delay: i * 0.1 }}
-                className="flex flex-wrap justify-center gap-5"
-              >
-                {tier.map((member, j) => (
-                  <MemberCard key={`${member.name}-${j}`} member={member} large={i === 0} />
-                ))}
-              </motion.div>
-            )
-          )}
-        </div>
+        {orgImage ? (
+          <motion.div {...sectionReveal} className="flex justify-center">
+            <a
+              href={orgImage}
+              target="_blank"
+              rel="noreferrer"
+              className="block max-w-5xl w-full rounded-3xl overflow-hidden bg-white border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow"
+            >
+              <img
+                src={orgImage}
+                alt={`${school.name} Organization Chart`}
+                className="w-full h-auto object-contain rounded-2xl"
+              />
+            </a>
+          </motion.div>
+        ) : (
+          <div className="overflow-x-auto pb-4">
+            <div className="inline-flex min-w-full justify-center gap-8">
+              {rootNodes.map((root) => renderTree(root, 0))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -539,7 +590,7 @@ export default function SchoolLanding() {
         vision={live?.profile.vision}
         mission={live?.profile.mission}
       />
-      <SchoolOrganization school={school} members={live?.profile.organization ?? []} />
+      <SchoolOrganization school={school} profile={live?.profile} />
       <SchoolLife school={school} />
       <Footer />
     </div>

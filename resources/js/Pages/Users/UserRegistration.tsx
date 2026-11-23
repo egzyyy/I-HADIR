@@ -1,7 +1,21 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, GraduationCap, Book, ChevronRight, ChevronDown, CheckCircle, Upload, X, AlertCircle } from 'lucide-react';
+import {
+  Users,
+  GraduationCap,
+  Book,
+  ChevronRight,
+  ChevronDown,
+  CheckCircle,
+  Upload,
+  X,
+  AlertCircle,
+  Plus,
+  Trash2,
+  Crop
+} from 'lucide-react';
 import DashboardLayout from '../../Layouts/DashboardLayout';
+import { ImageCropperModal } from '../../Components/modals/ImageCropperModal';
 import axios from 'axios';
 
 // Ensure Axios acts as an XHR request for Laravel
@@ -15,6 +29,14 @@ interface ClassroomOption {
   capacity?: number | null;
   isActive?: boolean;
 }
+
+const STAFF_POSITIONS = [
+  'Security Staff',
+  'Store Staff',
+  'Cleaning Staff',
+  'Temporary Staff',
+  'Admin Clerk',
+];
 
 const UserRegistration = () => {
   const [selectedType, setSelectedType] = useState<'staff' | 'teacher' | 'student' | null>(null);
@@ -33,7 +55,7 @@ const UserRegistration = () => {
     phone: '',
     gender: '',
     specificType: '',
-    position: '',
+    positions: [''] as string[],
     streetAddress: '',
     city: '',
     state: '',
@@ -50,12 +72,19 @@ const UserRegistration = () => {
     type: '',
     profilePic: null as File | null,
   });
-  
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropFileName, setCropFileName] = useState<string>('profile-photo.jpg');
 
   useEffect(() => {
     if (selectedType) {
-      setData(prev => ({ ...prev, type: selectedType }));
+      setData(prev => ({
+        ...prev,
+        type: selectedType,
+        specificType: '',
+        positions: [''],
+      }));
     }
   }, [selectedType]);
 
@@ -111,7 +140,7 @@ const UserRegistration = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     // Restrict specific fields to NUMBERS ONLY
     const numberOnlyFields = ['icNumber', 'phone', 'emergencyPhone', 'fatherIc', 'motherIc', 'postcode'];
     if (numberOnlyFields.includes(name)) {
@@ -123,11 +152,31 @@ const UserRegistration = () => {
     setData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePositionChange = (index: number, value: string) => {
+    setData(prev => {
+      const updated = [...prev.positions];
+      updated[index] = value;
+      return { ...prev, positions: updated };
+    });
+  };
+
+  const addPositionField = () => {
+    setData(prev => ({ ...prev, positions: [...prev.positions, ''] }));
+  };
+
+  const removePositionField = (index: number) => {
+    setData(prev => {
+      if (prev.positions.length <= 1) return prev;
+      return { ...prev, positions: prev.positions.filter((_, i) => i !== index) };
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setData(prev => ({ ...prev, profilePic: file }));
-      setPreviewUrl(URL.createObjectURL(file));
+      setCropFileName(file.name);
+      setCropImageSrc(URL.createObjectURL(file));
+      e.target.value = '';
     }
   };
 
@@ -137,31 +186,48 @@ const UserRegistration = () => {
   };
 
   const handleSubmit = async () => {
-    // Check if password is required (for teacher and Security Staff)
-    const isSecurityStaff = selectedType === 'staff' && data.specificType === 'Security Staff';
+    const cleanedPositions = Array.from(
+      new Set(data.positions.map(p => p.trim()).filter(Boolean))
+    );
+
+    const isSecurityStaff = selectedType === 'staff' && cleanedPositions.includes('Security Staff');
     const isTeacher = selectedType === 'teacher';
     const requiresPassword = isSecurityStaff || isTeacher;
 
     // 1. Check Required Fields
-    const baseRequired = ['name', 'icNumber', 'phone', 'gender', 'streetAddress', 'city', 'state', 'postcode', 'emergencyName', 'emergencyRelation', 'emergencyPhone'];
+    const baseRequired = [
+      'name',
+      'icNumber',
+      'phone',
+      'gender',
+      'streetAddress',
+      'city',
+      'state',
+      'postcode',
+      'emergencyName',
+      'emergencyRelation',
+      'emergencyPhone',
+    ];
     let requiredFields = [...baseRequired];
-    
+
     if (selectedType === 'student') {
       requiredFields.push('specificType', 'fatherName', 'fatherIc', 'motherName', 'motherIc');
     } else if (selectedType === 'teacher') {
-      requiredFields.push('position', 'email', 'password');
-    } else if (selectedType === 'staff') {
-      requiredFields.push('specificType');
-      if (isSecurityStaff) {
-        requiredFields.push('email', 'password');
-      }
+      requiredFields.push('email', 'password');
+    } else if (selectedType === 'staff' && isSecurityStaff) {
+      requiredFields.push('email', 'password');
     }
 
     for (const field of requiredFields) {
       if (!data[field as keyof typeof data]) {
         setErrorModalMsg("Please ensure all required fields (*) are filled out completely.");
-        return; 
+        return;
       }
+    }
+
+    if ((selectedType === 'teacher' || selectedType === 'staff') && cleanedPositions.length === 0) {
+      setErrorModalMsg("Please fill in at least one position.");
+      return;
     }
 
     // 2. Validate Specific Formats
@@ -191,17 +257,23 @@ const UserRegistration = () => {
     setIsProcessing(true);
     const formData = new FormData();
     Object.keys(data).forEach((key) => {
+      if (key === 'positions') return;
       const value = data[key as keyof typeof data];
       if (value !== null && value !== '') {
         formData.append(key, value as string | Blob);
       }
     });
 
+    if (selectedType === 'teacher' || selectedType === 'staff') {
+      cleanedPositions.forEach((pos) => formData.append('positions[]', pos));
+      formData.append('position', cleanedPositions.join(', '));
+    }
+
     try {
       const response = await axios.post('/users/register', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       if (response.data.success) {
         setShowSuccessModal(true);
       }
@@ -217,9 +289,28 @@ const UserRegistration = () => {
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
     setData({
-      name: '', icNumber: '', email: '', phone: '', gender: '', specificType: '', position: '',
-      streetAddress: '', city: '', state: '', postcode: '', country: 'Malaysia', password: '',
-      fatherName: '', fatherIc: '', motherName: '', motherIc: '', emergencyName: '', emergencyRelation: '', emergencyPhone: '', type: '', profilePic: null
+      name: '',
+      icNumber: '',
+      email: '',
+      phone: '',
+      gender: '',
+      specificType: '',
+      positions: [''],
+      streetAddress: '',
+      city: '',
+      state: '',
+      postcode: '',
+      country: 'Malaysia',
+      password: '',
+      fatherName: '',
+      fatherIc: '',
+      motherName: '',
+      motherIc: '',
+      emergencyName: '',
+      emergencyRelation: '',
+      emergencyPhone: '',
+      type: '',
+      profilePic: null,
     });
     setPreviewUrl(null);
     setSelectedType(null);
@@ -235,29 +326,9 @@ const UserRegistration = () => {
     return `${classroom.name}, Classroom Teacher: ${teacherName}${enrollmentCount}`;
   };
 
-  const getTypeOptions = () => {
-    switch (selectedType) {
-      case 'staff':
-        return [
-          { value: 'Security Staff', label: 'Security Staff' },
-          { value: 'Store Staff', label: 'Store Staff' },
-          { value: 'Cleaning Staff', label: 'Cleaning Staff' },
-          { value: 'Temporary Staff', label: 'Temporary Staff' },
-          { value: 'Admin Clerk', label: 'Admin Clerk' },
-        ];
-      case 'student':
-        return classroomOptions.map((classroom) => ({
-          value: classroom.name,
-          label: formatClassroomLabel(classroom),
-        }));
-      default:
-        return [];
-    }
-  };
-
   if (!selectedType) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[500px]"
@@ -297,48 +368,42 @@ const UserRegistration = () => {
   }
 
   const title = selectedType.charAt(0).toUpperCase() + selectedType.slice(1) + " Registration";
-  const shouldShowTypeDropdown = selectedType === 'staff' || selectedType === 'student';
-  const typeOptions = getTypeOptions();
+  const isSecurityStaffSelected = selectedType === 'staff' && data.positions.includes('Security Staff');
+  const requiresLogin = selectedType === 'teacher' || isSecurityStaffSelected;
 
-  const getTypeLabel = () => {
-    switch(selectedType) {
-      case 'staff': return 'Position';
-      case 'student': return 'Class';
-      default: return 'Type';
-    }
+  const studentClassOptions = classroomOptions.map((classroom) => ({
+    value: classroom.name,
+    label: formatClassroomLabel(classroom),
+  }));
+
+  const getStudentClassPlaceholder = () => {
+    if (isClassroomsLoading) return 'Loading classrooms...';
+    if (classroomsError) return classroomsError;
+    if (studentClassOptions.length === 0) return 'No classrooms found';
+    return 'Select Class';
   };
 
-  const getTypePlaceholder = () => {
-    if (selectedType === 'student') {
-      if (isClassroomsLoading) return 'Loading classrooms...';
-      if (classroomsError) return classroomsError;
-      if (typeOptions.length === 0) return 'No classrooms found';
-    }
-
-    return `Select ${getTypeLabel()}`;
-  };
-
-  const steps = selectedType === 'student' 
+  const steps = selectedType === 'student'
     ? [
-        { id: 1, label: 'Personal info' },
-        { id: 2, label: 'Profile picture' },
-        { id: 3, label: 'Parent Info' },
-        { id: 4, label: 'Emergency contact' }
-      ]
+      { id: 1, label: 'Personal info' },
+      { id: 2, label: 'Profile picture' },
+      { id: 3, label: 'Parent Info' },
+      { id: 4, label: 'Emergency contact' }
+    ]
     : [
-        { id: 1, label: 'Personal info' },
-        { id: 2, label: 'Profile picture' },
-        { id: 3, label: 'Emergency contact' }
-      ];
+      { id: 1, label: 'Personal info' },
+      { id: 2, label: 'Profile picture' },
+      { id: 3, label: 'Emergency contact' }
+    ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-7xl mx-auto"
     >
       <div className="mb-6 flex items-center gap-4">
-        <button 
+        <button
           onClick={() => {
             setSelectedType(null);
             setCurrentStep(1);
@@ -359,32 +424,31 @@ const UserRegistration = () => {
           </div>
 
           <div className="flex items-center justify-between max-w-3xl mx-auto mb-16 relative">
-             <div className="absolute top-[20px] left-0 w-full h-[2px] bg-gray-100 -z-10"></div>
-             <div 
-               className="absolute top-[20px] left-0 h-[2px] bg-blue-500 -z-10 transition-all duration-500 ease-in-out"
-               style={{ width: currentStep === 1 ? '0%' : ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }}
-             ></div>
+            <div className="absolute top-[20px] left-0 w-full h-[2px] bg-gray-100 -z-10"></div>
+            <div
+              className="absolute top-[20px] left-0 h-[2px] bg-blue-500 -z-10 transition-all duration-500 ease-in-out"
+              style={{ width: currentStep === 1 ? '0%' : ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }}
+            ></div>
 
-             {steps.map((step) => (
-               <div key={step.id} className="flex flex-col items-center group cursor-pointer" onClick={() => step.id < currentStep && setCurrentStep(step.id)}>
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg mb-3 transition-all duration-300 border-2 ${
-                    currentStep >= step.id 
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' 
-                      : 'bg-white border-gray-200 text-gray-400'
+            {steps.map((step) => (
+              <div key={step.id} className="flex flex-col items-center group cursor-pointer" onClick={() => step.id < currentStep && setCurrentStep(step.id)}>
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg mb-3 transition-all duration-300 border-2 ${currentStep >= step.id
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200'
+                    : 'bg-white border-gray-200 text-gray-400'
                   }`}>
-                    {step.id}
-                  </div>
-                  <span className={`text-sm font-medium tracking-wide ${currentStep >= step.id ? 'text-gray-800' : 'text-gray-400'}`}>
-                    {step.label}
-                  </span>
-               </div>
-             ))}
+                  {step.id}
+                </div>
+                <span className={`text-sm font-medium tracking-wide ${currentStep >= step.id ? 'text-gray-800' : 'text-gray-400'}`}>
+                  {step.label}
+                </span>
+              </div>
+            ))}
           </div>
 
           <div className="max-w-6xl mx-auto flex-1">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
-                <motion.div 
+                <motion.div
                   key="step1"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -404,13 +468,11 @@ const UserRegistration = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">
-                        Email Address : 
-                        {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
-                          <span className="text-red-500"> *</span>
-                        )}
+                        Email Address :
+                        {requiresLogin && <span className="text-red-500"> *</span>}
                       </label>
                       <input type="email" name="email" value={data.email} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
+                      {requiresLogin && (
                         <p className="text-xs text-gray-400 mt-1">Required for login access</p>
                       )}
                     </div>
@@ -429,14 +491,15 @@ const UserRegistration = () => {
                         <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
-                    
-                    {shouldShowTypeDropdown && (
+
+                    {/* STUDENT CLASS DROPDOWN */}
+                    {selectedType === 'student' && (
                       <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">{getTypeLabel()} : <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-bold text-gray-700">Class : <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <select name="specificType" value={data.specificType} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer">
-                            <option value="">{getTypePlaceholder()}</option>
-                            {typeOptions.map((opt) => (
+                            <option value="">{getStudentClassPlaceholder()}</option>
+                            {studentClassOptions.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
@@ -445,54 +508,143 @@ const UserRegistration = () => {
                       </div>
                     )}
 
+                    {/* TEACHER MULTIPLE POSITIONS */}
                     {selectedType === 'teacher' && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Teacher Position : <span className="text-red-500">*</span></label>
-                        <input type="text" name="position" value={data.position} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                      <div className="space-y-3 md:col-span-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-bold text-gray-700">
+                            Teacher Position(s) : <span className="text-red-500">*</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addPositionField}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-role hover:text-[#c53336] transition-colors"
+                          >
+                            <Plus size={14} /> Add Position
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {data.positions.map((pos, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={pos}
+                                onChange={(e) => handlePositionChange(idx, e.target.value)}
+                                placeholder={`Position ${idx + 1} (e.g. Guru Matematik, PK HEM)`}
+                                className="flex-1 px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                              />
+                              {data.positions.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removePositionField(idx)}
+                                  className="p-3 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-100 transition-colors"
+                                  title="Remove position"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    
+
+                    {/* STAFF MULTIPLE POSITIONS */}
+                    {selectedType === 'staff' && (
+                      <div className="space-y-3 md:col-span-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-bold text-gray-700">
+                            Staff Position(s) : <span className="text-red-500">*</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={addPositionField}
+                            disabled={data.positions.length >= STAFF_POSITIONS.length}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-role hover:text-[#c53336] transition-colors disabled:opacity-40"
+                          >
+                            <Plus size={14} /> Add Position
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {data.positions.map((pos, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <select
+                                  value={pos}
+                                  onChange={(e) => handlePositionChange(idx, e.target.value)}
+                                  className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
+                                >
+                                  <option value="">Select Position</option>
+                                  {STAFF_POSITIONS.map((opt) => (
+                                    <option
+                                      key={opt}
+                                      value={opt}
+                                      disabled={data.positions.includes(opt) && pos !== opt}
+                                    >
+                                      {opt}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                              </div>
+                              {data.positions.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removePositionField(idx)}
+                                  className="p-3 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-100 transition-colors"
+                                  title="Remove position"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* SEPARATED ADDRESS FIELDS */}
                     <div className="space-y-2 md:col-span-2">
                       <label className="block text-sm font-bold text-gray-700">Street Address : <span className="text-red-500">*</span></label>
                       <input type="text" name="streetAddress" value={data.streetAddress} onChange={handleInputChange} placeholder="e.g. No. 123, Jalan ABC" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">City : <span className="text-red-500">*</span></label>
                       <input type="text" name="city" value={data.city} onChange={handleInputChange} placeholder="e.g. Kuala Lumpur" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">State : <span className="text-red-500">*</span></label>
                       <input type="text" name="state" value={data.state} onChange={handleInputChange} placeholder="e.g. Selangor" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Postcode : <span className="text-red-500">*</span></label>
                       <input type="text" name="postcode" value={data.postcode} onChange={handleInputChange} maxLength={5} placeholder="e.g. 50000" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Country :</label>
                       <input type="text" name="country" value={data.country} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
 
                     {/* PASSWORD FIELD - Only for Teacher and Security Staff */}
-                    {(selectedType === 'teacher' || (selectedType === 'staff' && data.specificType === 'Security Staff')) && (
+                    {requiresLogin && (
                       <div className="space-y-2 md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700">Password : <span className="text-red-500">*</span></label>
                         <input type="password" name="password" value={data.password} onChange={handleInputChange} placeholder="Minimum 8 characters" className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                         <p className="text-xs text-gray-400 mt-1">This password will be used to log in to the system</p>
                       </div>
                     )}
-                    
                   </div>
                 </motion.div>
               )}
 
               {currentStep === 2 && (
-                <motion.div 
+                <motion.div
                   key="step2"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -504,14 +656,29 @@ const UserRegistration = () => {
 
                   <div className="w-full h-80 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors relative group">
                     {previewUrl ? (
-                      <div className="relative w-full h-full flex items-center justify-center p-4">
-                        <img src={previewUrl} alt="Preview" className="max-h-full max-w-full object-contain rounded-lg shadow-sm" />
-                        <button onClick={handleRemoveFile} className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"><X size={20} /></button>
+                      <div className="relative w-full h-full flex flex-col items-center justify-center p-4 gap-3">
+                        <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white shadow-md">
+                          <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCropImageSrc(previewUrl)}
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold text-role bg-white border border-gray-200 hover:bg-gray-50 shadow-sm"
+                        >
+                          <Crop size={14} /> Re-crop Photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                        >
+                          <X size={20} />
+                        </button>
                       </div>
                     ) : (
                       <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
                         <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                           <Upload size={32} className="text-blue-600" />
+                          <Upload size={32} className="text-blue-600" />
                         </div>
                         <p className="text-gray-600 font-medium">Click to upload image</p>
                         <p className="text-xs text-gray-400 mt-2">SVG, PNG, JPG or GIF</p>
@@ -523,7 +690,7 @@ const UserRegistration = () => {
               )}
 
               {currentStep === 3 && selectedType === 'student' && (
-                <motion.div 
+                <motion.div
                   key="step3-parent"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -531,29 +698,29 @@ const UserRegistration = () => {
                   transition={{ duration: 0.3 }}
                   className="space-y-8"
                 >
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Father's/Guardian's Name : <span className="text-red-500">*</span></label>
-                        <input type="text" name="fatherName" value={data.fatherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Identification Number (IC) : <span className="text-red-500">*</span></label>
-                        <input type="text" name="fatherIc" value={data.fatherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Mother's Name : <span className="text-red-500">*</span></label>
-                        <input type="text" name="motherName" value={data.motherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-gray-700">Identification Number : <span className="text-red-500">*</span></label>
-                        <input type="text" name="motherIc" value={data.motherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
-                      </div>
-                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Father's/Guardian's Name : <span className="text-red-500">*</span></label>
+                      <input type="text" name="fatherName" value={data.fatherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Identification Number (IC) : <span className="text-red-500">*</span></label>
+                      <input type="text" name="fatherIc" value={data.fatherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Mother's Name : <span className="text-red-500">*</span></label>
+                      <input type="text" name="motherName" value={data.motherName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-bold text-gray-700">Identification Number : <span className="text-red-500">*</span></label>
+                      <input type="text" name="motherIc" value={data.motherIc} onChange={handleInputChange} maxLength={12} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
+                    </div>
+                  </div>
                 </motion.div>
               )}
 
               {((currentStep === 3 && selectedType !== 'student') || (currentStep === 4 && selectedType === 'student')) && (
-                <motion.div 
+                <motion.div
                   key="step-emergency"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -562,7 +729,7 @@ const UserRegistration = () => {
                   className="space-y-8"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-8">
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                       <label className="block text-sm font-bold text-gray-700">Emergency Contact Name : <span className="text-red-500">*</span></label>
                       <input type="text" name="emergencyName" value={data.emergencyName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all" />
                     </div>
@@ -580,30 +747,30 @@ const UserRegistration = () => {
             </AnimatePresence>
 
             <div className="flex justify-end gap-3 mt-16">
-               {currentStep > 1 && (
-                 <button onClick={() => setCurrentStep(curr => curr - 1)} disabled={isProcessing} className="px-6 py-2 rounded border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors bg-white disabled:opacity-50">
-                   Previous
-                 </button>
-               )}
-               {currentStep < steps.length ? (
-                 <button onClick={() => setCurrentStep(curr => curr + 1)} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all">
-                   Next
-                 </button>
-               ) : (
-                 <button onClick={handleSubmit} disabled={isProcessing} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
-                   {isProcessing ? 'Submitting...' : 'Submit'}
-                 </button>
-               )}
+              {currentStep > 1 && (
+                <button onClick={() => setCurrentStep(curr => curr - 1)} disabled={isProcessing} className="px-6 py-2 rounded border border-gray-200 text-gray-500 font-medium hover:bg-gray-50 transition-colors bg-white disabled:opacity-50">
+                  Previous
+                </button>
+              )}
+              {currentStep < steps.length ? (
+                <button onClick={() => setCurrentStep(curr => curr + 1)} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all">
+                  Next
+                </button>
+              ) : (
+                <button onClick={handleSubmit} disabled={isProcessing} className="px-8 py-2 rounded bg-[#2563EB] text-white font-medium hover:bg-blue-700 shadow-sm transition-all disabled:opacity-50">
+                  {isProcessing ? 'Submitting...' : 'Submit'}
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* ERROR MODAL */}
       <AnimatePresence>
         {errorModalMsg && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -614,8 +781,8 @@ const UserRegistration = () => {
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Wait a moment</h3>
               <p className="text-gray-500 mb-8">{errorModalMsg}</p>
-              
-              <button 
+
+              <button
                 onClick={() => setErrorModalMsg(null)}
                 className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-red-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
@@ -630,7 +797,7 @@ const UserRegistration = () => {
       <AnimatePresence>
         {showSuccessModal && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -643,7 +810,7 @@ const UserRegistration = () => {
               <p className="text-gray-500 mb-8">
                 New <span className="font-bold text-gray-700 capitalize">{selectedType}</span> has been successfully registered.
               </p>
-              <button 
+              <button
                 onClick={handleCloseSuccessModal}
                 className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
               >
@@ -653,9 +820,26 @@ const UserRegistration = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ImageCropperModal
+        isOpen={Boolean(cropImageSrc)}
+        imageSrc={cropImageSrc}
+        fileName={cropFileName}
+        onClose={() => setCropImageSrc(null)}
+        onCropComplete={(croppedFile, croppedUrl) => {
+          setData((prev) => ({ ...prev, profilePic: croppedFile }));
+          setPreviewUrl(croppedUrl);
+          setCropImageSrc(null);
+        }}
+      />
+      
     </motion.div>
+    
   );
+  
 };
+
+
 
 export default function UserRegistrationPage() {
   return (

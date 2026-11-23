@@ -73,7 +73,6 @@ const UserListUnified = () => {
       try {
         const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
         setAllUsers(response.data);
-        console.log(response);
       } catch (error) {
         console.error("Failed to fetch users", error);
       } finally {
@@ -116,21 +115,6 @@ const UserListUnified = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedUser) return;
-    try {
-      await axios.delete(`/api/users/${selectedUser.type}/${selectedUser.id}`);
-      const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
-      setAllUsers(response.data);
-    } catch (error) {
-      console.error("Failed to delete user", error);
-      alert("Failed to delete user. Please try again.");
-    } finally {
-      setIsDeleteModalOpen(false);
-      setSelectedUser(null);
-    }
-  };
-
   const handleEditSuccess = async () => {
     setIsEditModalOpen(false);
     setSelectedUser(null);
@@ -147,8 +131,15 @@ const UserListUnified = () => {
 
   const formatRoleLabel = (role: string, type: string) => {
     if (!role) return '-';
-    if (type === 'staff') return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    if (type === 'student') return role.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    if (type === 'staff') {
+      return role
+        .split(',')
+        .map(part => part.trim().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+        .join(', ');
+    }
+    if (type === 'student') {
+      return role.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
     return role;
   };
 
@@ -324,32 +315,25 @@ const UserListUnified = () => {
         <style>
           @page { margin: 15mm; size: A4 landscape; }
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 0; }
-          
-          /* Standard Header Styling */
           .header-container { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #2f4fa8; }
           ${printLogoCss}
           .report-title { color: #2f4fa8; font-size: 24px; font-weight: 900; margin: 0; text-transform: uppercase; letter-spacing: 1.5px; }
           .report-meta { color: #6b7280; font-size: 11px; margin-top: 8px; font-weight: bold; text-transform: uppercase; }
-          
-          /* Table Styling */
           table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
           th, td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; }
-          
-          /* Enforce colors in print */
-          th { 
-            background-color: #2f4fa8 !important; 
-            color: white !important; 
-            font-weight: bold; 
-            text-align: center; 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
+          th {
+            background-color: #2f4fa8 !important;
+            color: white !important;
+            font-weight: bold;
+            text-align: center;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          th:nth-child(2) { text-align: left; } /* Align Name to left */
-          
-          tr:nth-child(even) { 
-            background-color: #f9fafb !important; 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
+          th:nth-child(2) { text-align: left; }
+          tr:nth-child(even) {
+            background-color: #f9fafb !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         </style>
       </head>
@@ -359,7 +343,7 @@ const UserListUnified = () => {
           <h1 class="report-title">${title}</h1>
           <p class="report-meta">Generated on: ${new Date().toLocaleString('en-MY')} &nbsp;&bull;&nbsp; I-HADIR System</p>
         </div>
-        
+
         <table>
           <thead>
             <tr>
@@ -431,7 +415,7 @@ const UserListUnified = () => {
                 onExportCSV={handleExportCSV}
                 onExportExcel={handleExportExcel}
                 onExportPDF={handleExportPDF}
-                onPrint={handleExportPDF} // Print acts the same as PDF opening 
+                onPrint={handleExportPDF}
               />
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
@@ -496,7 +480,20 @@ const UserListUnified = () => {
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.ic_number}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-mono">{item.phone}</td>
                         <td className="px-4 py-3 text-sm text-gray-600 font-medium">
-                          {formatRoleLabel(item.role, item.type)}
+                          {item.type !== 'student' && item.role && item.role.includes(',') ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {item.role.split(',').map((pos: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="inline-block px-2 py-0.5 text-sm font-semibold rounded-md bg-blue-50 text-role border border-blue-100"
+                                >
+                                  {formatRoleLabel(pos.trim(), item.type)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            formatRoleLabel(item.role, item.type)
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex justify-center items-center gap-2">
@@ -560,12 +557,9 @@ const UserListUnified = () => {
             isOpen={isDeleteModalOpen}
             onClose={() => setIsDeleteModalOpen(false)}
             itemName={selectedUser.name}
-            itemType={selectedUser.type} // Automatically displays 'student', 'teacher', or 'staff'
+            itemType={selectedUser.type}
             onConfirm={async () => {
-              // 1. Delete using the correct endpoint structure
               await axios.delete(`/api/users/${selectedUser.type}/${selectedUser.id}`);
-
-              // 2. Fetch the updated list to refresh the table
               const response = await axios.get(`/api/users?session_id=${selectedSessionId}`);
               setAllUsers(response.data);
             }}

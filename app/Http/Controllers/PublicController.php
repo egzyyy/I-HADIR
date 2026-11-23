@@ -97,12 +97,14 @@ class PublicController extends Controller
                 'logo'    => $school->logo_path ? Storage::url($school->logo_path) : null,
                 // Admin-managed landing copy; nulls mean "use the frontend default".
                 'profile' => [
-                    'tagline'          => $profile?->tagline,
-                    'established_year' => $profile?->established_year,
-                    'about'            => $profile?->about,
-                    'vision'           => $profile?->vision,
-                    'mission'          => $profile?->mission,
-                    'organization'     => $this->organizationWithPhotos($profile, $school->school_id),
+                    'tagline'            => $profile?->tagline,
+                    'established_year'   => $profile?->established_year,
+                    'about'              => $profile?->about,
+                    'vision'             => $profile?->vision,
+                    'mission'            => $profile?->mission,
+                    'organization_mode'  => $profile?->organization_mode ?? 'builder',
+                    'organization_image' => $profile?->organization_image ? Storage::url($profile->organization_image) : null,
+                    'organization'       => $this->organizationWithPhotos($profile, $school->school_id),
                 ],
                 'stats' => [
                     'students'       => Student::where('school_id', $school->school_id)

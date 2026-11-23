@@ -259,55 +259,100 @@ class UserController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request,$id)
     {
-        $type = $request->type;
+        $type =$request->type;
         $schoolId = auth()->check() ? auth()->user()->school_id : 1;
-
-        $user = User::where('user_id', $id)->where('school_id', $schoolId)->first();
 
         // Common validation rules for all types
         $rules = [
-            'gender' => 'nullable|in:Male,Female',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'streetAddress' => 'nullable|string',
-            'city' => 'nullable|string',
-            'state' => 'nullable|string',
-            'postcode' => 'nullable|string|max:10',
-            'country' => 'nullable|string',
-            'emergencyName' => 'nullable|string|max:255',
-            'emergencyRelation' => 'nullable|string|max:50',
-            'emergencyPhone' => 'nullable|string|max:20',
-            'profilePic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:3072',
+            'gender'            => ['nullable', 'in:Male,Female'],
+            'phone'             => ['nullable', 'string', 'max:20'],
+            'email'             => ['nullable', 'email'],
+            'streetAddress'     => ['nullable', 'string'],
+            'city'              => ['nullable', 'string'],
+            'state'             => ['nullable', 'string'],
+            'postcode'          => ['nullable', 'string', 'max:10'],
+            'country'           => ['nullable', 'string'],
+            'emergencyName'     => ['nullable', 'string', 'max:255'],
+            'emergencyRelation' => ['nullable', 'string', 'max:50'],
+            'emergencyPhone'    => ['nullable', 'string', 'max:20'],
+            'profilePic'        => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:3072'],
         ];
 
-        // Type-specific validation
         if ($type === 'student') {
-            $rules['fatherPhone'] = 'nullable|string|max:20';
-            $rules['motherPhone'] = 'nullable|string|max:20';
-        } else if ($type === 'staff') {
-            $rules['position'] = 'nullable|string|max:255';
-            $rules['user_type'] = 'nullable|string|max:255';
-            $rules['newPassword'] = 'nullable|string|min:8';
-        }
-        else {
-            $rules['position'] = 'nullable|string|max:255';
-            $rules['newPassword'] = 'nullable|string|min:8';
+            $rules['fatherPhone'] = ['nullable', 'string', 'max:20'];
+            $rules['motherPhone'] = ['nullable', 'string', 'max:20'];
+        } elseif ($type === 'staff') {
+            $rules['position']    = ['nullable', 'string', 'max:255'];
+            $rules['positions']   = ['nullable', 'array'];
+            $rules['positions.*'] = ['nullable', 'string', 'max:100'];
+            $rules['user_type']   = ['nullable', 'string', 'max:255'];
+            $rules['newPassword'] = ['nullable', 'string', 'min:8'];
+        } else {
+            $rules['position']    = ['nullable', 'string', 'max:255'];
+            $rules['positions']   = ['nullable', 'array'];
+            $rules['positions.*'] = ['nullable', 'string', 'max:100'];
+            $rules['newPassword'] = ['nullable', 'string', 'min:8'];
         }
 
+        // // Type-specific validation
+        // if ($type === 'student') {
+        //     $rules['fatherPhone'] = 'nullable\vert{}string\vert{}max:20';$rules['motherPhone'] = 'nullable|string|max:20';
+        // } elseif ($type === 'staff') {$rules['position'] = 'nullable|string|max:255';
+        //     $rules['positions'] = 'nullable\vert{}array';$rules['positions.*'] = 'nullable|string|max:100';
+        //     $rules['user_type'] = 'nullable\vert{}string\vert{}max:255';$rules['newPassword'] = 'nullable|string|min:8';
+        // } else {
+        //     $rules['position'] = 'nullable\vert{}string\vert{}max:255';$rules['positions'] = 'nullable|array';
+        //     $rules['positions.*'] = 'nullable\vert{}string\vert{}max:100';$rules['newPassword'] = 'nullable|string|min:8';
+        // }
+
         $validated = $request->validate($rules);
+
+        // Normalize multiple positions (accepts positions[] or comma-separated position)
+        $hasPositionPayload =$request->has('positions') || $request->has('position');$positions = [];
+        if ($hasPositionPayload && in_array($type, ['teacher', 'staff'], true)) {
+            $rawPositions =$request->input('positions', []);
+            if (!is_array($rawPositions)) {
+                $rawPositions = [$rawPositions];
+            }
+
+            $positions = collect($rawPositions)
+                ->map(fn ($p) => trim((string)$p))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if (empty($positions) && !empty($validated['position'])) {
+                $positions = collect(explode(',', (string)$validated['position']))
+                    ->map(fn ($p) => trim($p))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+
+            if (empty($positions)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please provide at least one position.',
+                ], 422);
+            }
+        }
+
+        $positionString = !empty($positions) ? implode(', ', $positions) : null;
 
         // Handle File Upload
         $photoPath = null;
         if ($request->hasFile('profilePic')) {
-            $photoPath = $request->file('profilePic')->store('profile-photos', 'public');
+            $photoPath =$request->file('profilePic')->store('profile-photos', 'public');
         }
 
         // --- UPDATE LOGIC ---
         if ($type === 'student') {
             $studentUser = Student::findOrFail($id);
-            
+
             $updateData = [
                 'gender' => $validated['gender'] ?? $studentUser->gender,
                 'phone_num' => $validated['phone'] ?? $studentUser->phone_num,
@@ -324,7 +369,7 @@ class UserController extends Controller
                 'emergency_phone_num' => $validated['emergencyPhone'] ?? $studentUser->emergency_phone_num,
             ];
 
-            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            if ($photoPath) $updateData['profile_pic_path'] =$photoPath;
             $studentUser->update($updateData);
 
         } elseif ($type === 'teacher') {
@@ -344,15 +389,15 @@ class UserController extends Controller
                 'emergency_phone_num' => $validated['emergencyPhone'] ?? $teacherUser->emergency_phone_num,
             ];
 
-            // Update position AND track in history table
-            if (isset($validated['position'])) {
-                $updateData['position'] = $validated['position'];
-                
-                $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+            // Update position(s) AND track in history table
+            if ($positionString !== null) {
+                $updateData['position'] =$positionString;
+
+                $activeSession = SchoolSession::where('school_id',$schoolId)->where('is_active', true)->first();
                 if ($activeSession) {
                     DB::table('teacher_employments')->updateOrInsert(
-                        ['teacher_id' => $teacherUser->user_id, 'school_session_id' => $activeSession->school_session_id],
-                        ['position' => $validated['position'], 'updated_at' => now()]
+                        ['teacher_id' => $teacherUser->user_id, 'school_session_id' =>$activeSession->school_session_id],
+                        ['position' => $positionString, 'updated_at' => now()]
                     );
                 }
             }
@@ -370,7 +415,7 @@ class UserController extends Controller
                 $updateData['password'] = Hash::make($validated['newPassword']);
             }
 
-            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            if ($photoPath) $updateData['profile_pic_path'] =$photoPath;
             $teacherUser->update($updateData);
 
         } else {
@@ -390,14 +435,14 @@ class UserController extends Controller
                 'emergency_phone_num' => $validated['emergencyPhone'] ?? $staffUser->emergency_phone_num,
             ];
 
-            // Update position AND track in history table
-            if (isset($validated['position'])) {
-                $updateData['position'] = $validated['position'];
-                
-                if ($updateData['position'] == "Security Staff"){
-                    $updateData['user_type'] = 'security_staff';
-                    
-                    // Check if user has password when changing to Security Staff
+            // Update position(s) AND track in history table
+            if ($positionString !== null) {
+                $updateData['position'] =$positionString;
+                $isSecurityStaff = in_array('Security Staff',$positions, true);
+
+                if ($isSecurityStaff) {$updateData['user_type'] = 'security_staff';
+
+                    // Check if user has password when Security Staff is one of their positions
                     if (empty($staffUser->password) && empty($validated['newPassword'])) {
                         return response()->json([
                             'success' => false,
@@ -408,11 +453,11 @@ class UserController extends Controller
                     $updateData['user_type'] = 'staff';
                 }
 
-                $activeSession = SchoolSession::where('school_id', $schoolId)->where('is_active', true)->first();
+                $activeSession = SchoolSession::where('school_id',$schoolId)->where('is_active', true)->first();
                 if ($activeSession) {
                     DB::table('staff_employments')->updateOrInsert(
-                        ['staff_id' => $staffUser->user_id, 'school_session_id' => $activeSession->school_session_id],
-                        ['staff_type' => $validated['position'], 'updated_at' => now()]
+                        ['staff_id' => $staffUser->user_id, 'school_session_id' =>$activeSession->school_session_id],
+                        ['staff_type' => $positionString, 'updated_at' => now()]
                     );
                 }
             }
@@ -422,7 +467,7 @@ class UserController extends Controller
                 $updateData['password'] = Hash::make($validated['newPassword']);
             }
 
-            if ($photoPath) $updateData['profile_pic_path'] = $photoPath;
+            if ($photoPath) $updateData['profile_pic_path'] =$photoPath;
             $staffUser->update($updateData);
         }
 

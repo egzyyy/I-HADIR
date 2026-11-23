@@ -56,6 +56,8 @@ Route::post('/api/password', [UserController::class, 'updatePassword']);
 // Landing Page Content (admin-managed public school profile)
 Route::get('/api/school/landing-profile', [SchoolProfileController::class, 'show']);
 Route::post('/api/school/landing-profile', [SchoolProfileController::class, 'update']);
+Route::post('/api/school/landing-profile/org-image', [SchoolProfileController::class, 'uploadOrgImage']);
+Route::delete('/api/school/landing-profile/org-image', [SchoolProfileController::class, 'deleteOrgImage']);
 
 // Logo management (admin). The Fakulti Komputeran logo is a static frontend
 // asset and is intentionally not exposed here.

@@ -17,6 +17,8 @@ class SchoolProfile extends Model
         'vision',
         'mission',
         'organization',
+        'organization_mode',
+        'organization_image',
     ];
 
     protected $casts = [
