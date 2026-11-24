@@ -155,12 +155,12 @@ const AdminWorkOrderContent = () => {
                             />
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex gap-2">
-                            <select value={category} onChange={e => setCategory(e.target.value as any)} className={selectCls}>
+                            <select value={category} onChange={e => setCategory(e.target.value as any)} className={`${selectCls} pr-9`}>
                                 <option value="">All categories</option>
                                 <option value="individual">Individual</option>
                                 <option value="group">Group</option>
                             </select>
-                            <select value={timing} onChange={e => setTiming(e.target.value as any)} className={selectCls}>
+                            <select value={timing} onChange={e => setTiming(e.target.value as any)} className={`${selectCls} pr-9`}>
                                 <option value="">All periods</option>
                                 <option value="upcoming">Upcoming</option>
                                 <option value="ongoing">Ongoing</option>
