@@ -138,6 +138,12 @@ const ADMIN_MENU: MenuSection[] = [
     ]
   },
   {
+    category: "WORK ORDER",
+    items: [
+      { id: 'work-orders', label: 'Work Order', icon: Briefcase }
+    ]
+  },
+  {
     category: "REPORT",
     items: [
       { id: 'attendance-reports', label: 'Attendance Reports', icon: BarChart3 },
@@ -451,6 +457,7 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
       'facility-check-in': '/facility-check-in',
       'manual-entry': '/manual-entry',
       'work-order': '/work-order',
+      'work-orders': '/work-orders',
       'attendance-reports': '/attendance-reports',
       'general-report': '/general-report',
       'faqs': '/faqs',

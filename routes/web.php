@@ -183,6 +183,7 @@ Route::get('/api/reports/event-attendance', [ReportController::class, 'eventRepo
 Route::middleware('auth')->group(function () {
     Route::get('/api/work-orders', [WorkOrderController::class, 'index']);
     Route::get('/api/work-orders/participants', [WorkOrderController::class, 'participants']);
+    Route::get('/api/admin/work-orders', [WorkOrderController::class, 'adminIndex']);
     Route::post('/api/work-orders', [WorkOrderController::class, 'store']);
     // POST (not PUT) so multipart file uploads are parsed by PHP
     Route::post('/api/work-orders/{id}', [WorkOrderController::class, 'update'])->whereNumber('id');

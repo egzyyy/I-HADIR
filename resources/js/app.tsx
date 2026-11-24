@@ -51,6 +51,7 @@ import ParentsReport from './Pages/Reports/ParentsReport';
 
 // Pages — Work Order (teacher)
 import WorkOrder from './Pages/WorkOrder/WorkOrder';
+import AdminWorkOrder from './Pages/WorkOrder/AdminWorkOrder';
 
 // Pages — Other
 import Visitor from './Pages/Visitor';
@@ -123,6 +124,7 @@ root.render(
 
         {/* Work Order — teacher only */}
         <Route path="/work-order" element={<RequireRole allow={['Teacher']}><WorkOrder /></RequireRole>} />
+        <Route path="/work-orders" element={<RequireRole allow={ADMIN}><AdminWorkOrder /></RequireRole>} />
 
         {/* Reports */}
         <Route path="/attendance-reports" element={<RequireRole allow={ADMIN_TEACHER}><AttendanceReports /></RequireRole>} />

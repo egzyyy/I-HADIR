@@ -16,9 +16,9 @@ axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 type Category = 'individual' | 'group';
 type Status = 'draft' | 'submitted';
 
-interface Person { id: number; name: string; class?: string | null; }
+export interface Person { id: number; name: string; class?: string | null; }
 
-interface WorkOrder {
+export interface WorkOrder {
     id: number;
     description: string | null;
     date_from: string | null;
@@ -31,6 +31,7 @@ interface WorkOrder {
     submitted_at: string | null;
     updated_at: string | null;
     created_by: string | null;
+    creator?: { id: number; ic_number: string | null; email: string | null; phone: string | null };
     is_owner: boolean;
     credited_days: number;
     teachers: Person[];
@@ -58,13 +59,13 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmtDate = (v: string | null) => {
+export const fmtDate = (v: string | null) => {
     if (!v) return '-';
     const d = new Date(v);
     return isNaN(d.getTime()) ? v : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const fmtDateTime = (v: string | null) => {
+export const fmtDateTime = (v: string | null) => {
     if (!v) return '-';
     const d = new Date(v);
     return isNaN(d.getTime()) ? v : d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -182,14 +183,14 @@ const PickerList = ({
 };
 
 // Read-only detail block, shared by the Review modal and the View modal.
-const Detail = ({ label, children }: { label: string; children: React.ReactNode }) => (
+export const Detail = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">{label}</p>
         <div className="text-sm text-gray-900 font-medium break-words">{children}</div>
     </div>
 );
 
-const Summary = ({
+export const Summary = ({
     description, dateFrom, dateTo, location, category, teachers, students, docLabel, docHref, creator,
 }: {
     description: string | null; dateFrom: string | null; dateTo: string | null; location: string | null;
@@ -232,7 +233,7 @@ const Summary = ({
     </div>
 );
 
-const Modal = ({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) => (
+export const Modal = ({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) => (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
         <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}

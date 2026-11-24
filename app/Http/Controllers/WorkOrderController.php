@@ -78,6 +78,20 @@ class WorkOrderController extends Controller
         return response()->json(['data' => $this->present($orders)]);
     }
 
+    /** Admin: every submitted work order in the school (drafts stay private to their teacher). */
+    public function adminIndex()
+    {
+        $auth = $this->admin();
+
+        $orders = WorkOrder::where('school_id', $auth->school_id)
+            ->where('status', 'submitted')
+            ->with(['participants', 'creator' => fn ($q) => $q->withTrashed()])
+            ->orderByDesc('submitted_at')
+            ->get();
+
+        return response()->json(['data' => $this->present($orders)]);
+    }
+
     public function store(Request $request)
     {
         $auth = $this->teacher();
@@ -139,13 +153,15 @@ class WorkOrderController extends Controller
         return response()->json(['message' => 'Draft deleted.']);
     }
 
-    /** Stream the instruction letter — only to the creator or a teacher participant. */
+    /** Stream the instruction letter — to the creator, a teacher participant, or an admin (submitted only). */
     public function document($id)
     {
-        $auth = $this->teacher();
+        $auth = auth()->user();
+        abort_unless($auth && in_array($auth->user_type, ['teacher', 'admin'], true), 403);
         $order = WorkOrder::where('school_id', $auth->school_id)->findOrFail($id);
 
-        $allowed = $order->user_id == $auth->user_id
+        $allowed = ($auth->user_type === 'admin' && $order->status === 'submitted')
+            || $order->user_id == $auth->user_id
             || $order->participants()->where('participant_type', 'teacher')->where('participant_id', $auth->user_id)->exists();
 
         if (!$allowed || !$order->document_path || !Storage::disk('local')->exists($order->document_path)) {
@@ -161,6 +177,13 @@ class WorkOrderController extends Controller
     {
         $user = auth()->user();
         abort_unless($user && $user->user_type === 'teacher', 403, 'Work orders are only available to teachers.');
+        return $user;
+    }
+
+    private function admin(): User
+    {
+        $user = auth()->user();
+        abort_unless($user && $user->user_type === 'admin', 403, 'Only admins can view all work orders.');
         return $user;
     }
 
@@ -356,6 +379,13 @@ class WorkOrderController extends Controller
         $teachers = User::withTrashed()->whereIn('user_id', $teacherIds)->get()->keyBy('user_id');
         $students = Student::withTrashed()->whereIn('student_id', $studentIds)->get(['student_id', 'name'])->keyBy('student_id');
 
+        // Class of each student participant, in the session the work order belongs to.
+        $classOf = Enrollment::whereIn('student_id', $studentIds)
+            ->whereIn('school_session_id', $orders->pluck('school_session_id')->filter()->unique())
+            ->with('classroom:classroom_id,name')
+            ->get(['student_id', 'school_session_id', 'classroom_id'])
+            ->mapWithKeys(fn ($e) => ["{$e->student_id}:{$e->school_session_id}" => $e->classroom?->name]);
+
         $authId = auth()->user()->user_id;
 
         $creditedDays = AttendanceLog::whereIn('work_order_id', $orders->pluck('work_order_id'))
@@ -363,7 +393,7 @@ class WorkOrderController extends Controller
             ->groupBy('work_order_id')
             ->pluck('days', 'work_order_id');
 
-        return $orders->map(function ($o) use ($teachers, $students, $authId, $creditedDays) {
+        return $orders->map(function ($o) use ($teachers, $students, $authId, $creditedDays, $classOf) {
             $parts = $o->participants;
             return [
                 'id'            => $o->work_order_id,
@@ -378,13 +408,21 @@ class WorkOrderController extends Controller
                 'submitted_at'  => $o->submitted_at?->toIso8601String(),
                 'updated_at'    => $o->updated_at?->toIso8601String(),
                 'created_by'    => $o->creator?->full_name,
+                'creator'       => [
+                    'id'        => $o->user_id,
+                    'ic_number' => $o->creator?->ic_number,
+                    'email'     => $o->creator?->email,
+                    'phone'     => $o->creator?->phone_num,
+                ],
                 'is_owner'      => $o->user_id == $authId,
                 'credited_days' => (int) ($creditedDays[$o->work_order_id] ?? 0),
                 'teachers'      => $parts->where('participant_type', 'teacher')->map(fn ($p) => [
                     'id' => $p->participant_id, 'name' => $teachers->get($p->participant_id)?->full_name ?? 'Unknown teacher',
                 ])->values(),
                 'students'      => $parts->where('participant_type', 'student')->map(fn ($p) => [
-                    'id' => $p->participant_id, 'name' => $students->get($p->participant_id)?->name ?? 'Unknown student',
+                    'id'    => $p->participant_id,
+                    'name'  => $students->get($p->participant_id)?->name ?? 'Unknown student',
+                    'class' => $classOf->get("{$p->participant_id}:{$o->school_session_id}"),
                 ])->values(),
             ];
         })->values();
