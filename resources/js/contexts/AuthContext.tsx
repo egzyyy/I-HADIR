@@ -16,6 +16,7 @@ export interface AuthUser {
   /** Admin-uploaded logo for this user's school; null means use the bundled default. */
   schoolLogo: string | null;
   schoolName: string | null;
+  profilePic: string | null;
 }
 
 interface AuthContextValue {
@@ -71,6 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: d.role,
           schoolLogo: d.school_logo ?? null,
           schoolName: d.school_name ?? null,
+          profilePic:
+            d.profile_pic ??
+            (d.profile_pic_path ? `/storage/${d.profile_pic_path}` : null),
         };
         setUser(next);
         // Publish for the PDF/print helpers, which run outside the React tree.

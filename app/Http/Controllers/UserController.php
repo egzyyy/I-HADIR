@@ -144,20 +144,50 @@ class UserController extends Controller
         }
 
         // Fetch and format Students
-        $students = $studentsQuery->orderBy('created_at', 'desc')->get()->map(function($item) {
-            $enrollment = $item->enrollments->first();
-            $className = $enrollment && $enrollment->classroom ? $enrollment->classroom->name : 'Unassigned';
+        $studentModels = $studentsQuery->orderBy('created_at', 'desc')->get();
+        $studentIds    = $studentModels->pluck('student_id')->toArray();
+
+        $sportMap = DB::table('sport_house_student')
+            ->join('sport_houses', 'sport_house_student.sport_house_id', '=', 'sport_houses.sport_house_id')
+            ->where('sport_house_student.school_id', $schoolId)
+            ->whereIn('sport_house_student.student_id', $studentIds)
+            ->when($sessionId && $sessionId !== 'all', fn ($q) => $q->where('sport_house_student.school_session_id', $sessionId))
+            ->orderByDesc('sport_house_student.created_at')
+            ->select('sport_house_student.student_id', 'sport_houses.name', 'sport_houses.color')
+            ->get()
+            ->unique('student_id')
+            ->keyBy('student_id');
+
+        $coCurricularMap = DB::table('co_curricular_student')
+            ->join('co_curriculars', 'co_curricular_student.co_curricular_id', '=', 'co_curriculars.co_curricular_id')
+            ->where('co_curricular_student.school_id', $schoolId)
+            ->whereIn('co_curricular_student.student_id', $studentIds)
+            ->when($sessionId && $sessionId !== 'all', fn ($q) => $q->where('co_curricular_student.school_session_id', $sessionId))
+            ->orderByDesc('co_curricular_student.created_at')
+            ->select('co_curricular_student.student_id', 'co_curriculars.name')
+            ->get()
+            ->unique('student_id')
+            ->keyBy('student_id');
+
+        $students = $studentModels->map(function ($item) use ($sportMap, $coCurricularMap) {
+            $enrollment   = $item->enrollments->first();
+            $className    = $enrollment && $enrollment->classroom ? $enrollment->classroom->name : 'Unassigned';
+            $sport        = $sportMap->get($item->student_id);
+            $coCurricular = $coCurricularMap->get($item->student_id);
 
             return [
-                'id' => $item->student_id,
-                'name' => $item->name,
-                'ic_number' => $item->ic_number ?? '-', 
-                'phone' => $item->phone_num ?? '-', 
-                'gender' => $item->gender,
-                'role' => $className, 
-                'type' => 'student',
-                'registeredDate' => $item->created_at->format('d/m/Y'),
-                'raw_data' => $item
+                'id'                => $item->student_id,
+                'name'              => $item->name,
+                'ic_number'         => $item->ic_number ?? '-',
+                'phone'             => $item->phone_num ?? '-',
+                'gender'            => $item->gender,
+                'role'              => $className,
+                'sport_house'       => $sport?->name ?? '-',
+                'sport_house_color' => $sport?->color ?? null,
+                'co_curricular'     => $coCurricular?->name ?? '-',
+                'type'              => 'student',
+                'registeredDate'    => $item->created_at->format('d/m/Y'),
+                'raw_data'          => $item,
             ];
         });
 
@@ -506,6 +536,7 @@ class UserController extends Controller
                 'role' => $this->resolveRole($user),
                 'school_name' => $school?->name,
                 'school_logo' => $school?->logo_path ? Storage::url($school->logo_path) : null,
+                'profile_pic' => $user->profile_pic_path ? Storage::url($user->profile_pic_path) : null,
             ],
         ]);
     }

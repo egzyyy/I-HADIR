@@ -170,6 +170,33 @@ class CoCurricularController extends Controller
 
         $coCurricular = CoCurricular::findOrFail($coCurricularId);
 
+        if ($request->boolean('all_enrolled')) {$enrolledStudents = DB::table('co_curricular_student')
+                ->join('students', 'co_curricular_student.student_id', '=', 'students.student_id')
+                ->leftJoin('enrollments', function ($join) use ($sessionId) {$join->on('students.student_id', '=', 'enrollments.student_id')
+                        ->where('enrollments.school_session_id', '=', $sessionId);
+                })
+                ->leftJoin('classrooms', 'enrollments.classroom_id', '=', 'classrooms.classroom_id')
+                ->where('co_curricular_student.co_curricular_id', $coCurricularId)
+                ->where('co_curricular_student.school_session_id', $sessionId)
+                ->where('co_curricular_student.school_id', $schoolId)
+                ->whereNull('students.deleted_at')
+                ->orderBy('classrooms.name')
+                ->orderBy('students.name')
+                ->select(
+                    'students.student_id',
+                    'students.name',
+                    'students.ic_number',
+                    'students.gender',
+                    DB::raw("COALESCE(classrooms.name, '-') as class_name")
+                )
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $enrolledStudents,
+            ]);
+        }
+
         // Find all students in this class for the active session
         $students = Student::where('school_id', $schoolId)
             ->whereHas('enrollments', function ($q) use ($classroomId, $sessionId) {

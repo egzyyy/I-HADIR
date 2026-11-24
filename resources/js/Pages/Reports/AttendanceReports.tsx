@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Calendar, ChevronDown, Download, Filter, Users, FileText, BarChart3, Eye, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Calendar, Download, Filter, Users, FileText, BarChart3, Eye, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -278,7 +278,7 @@ const AttendanceReport = () => {
     if (sorted.length === 0) return;
     const isStudent = activeTab === 'student';
     const roleLabel = isStudent ? 'Class' : activeTab === 'teacher' ? 'Teacher Type' : 'Staff Type';
-    const title = `${activeTab} Daily Attendance (${selectedDate})`;
+    const title = `${activeTab} Daily Attendance (${formatStandardDate(selectedDate)})`;
 
     const theadHtml = `
       <tr>
@@ -352,7 +352,6 @@ const AttendanceReport = () => {
                       )}
                       {classes.map(c => <option key={c.classroom_id} value={c.classroom_id}>{c.name}</option>)}
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
               )}
@@ -416,7 +415,6 @@ const AttendanceReport = () => {
                   <option value="late">Late</option>
                   <option value="absent">Absent</option>
                 </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
 
               {/* Search */}
@@ -601,7 +599,7 @@ const InfographicReport = () => {
   const handleExportPDF = () => {
     if (sortedList.length === 0) return;
     const isStudent = activeTab === 'student';
-    const title = `${activeTab} ${activeStatusTab} List (${viewType === 'month' ? selectedMonth : selectedDate})`;
+    const title = `${activeTab} ${activeStatusTab} List (${viewType === 'month' ? selectedMonth : formatStandardDate(selectedDate)})`;
 
     let theadHtml = `<tr><th style="width:5%">No</th><th style="width:25%">Name</th>`;
     if (isStudent) theadHtml += `<th style="width:15%">Class</th>`;
@@ -911,7 +909,7 @@ const SummaryReport = () => {
 
   const handleExportPDF = () => {
     if (sorted.length === 0) return;
-    const title = `Summary Report (${selectedDate})`;
+    const title = `Summary Report (${formatStandardDate(selectedDate)})`;
 
     const theadHtml = `
       <tr>

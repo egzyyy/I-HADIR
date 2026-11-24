@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ImageCropperModal } from '../../Components/modals/ImageCropperModal';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Ensure Axios acts as an XHR request for Laravel
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -16,6 +17,7 @@ export default function MyProfile() {
   const [adminData, setAdminData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const { refresh } = useAuth();
 
   // Modal States
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -123,6 +125,7 @@ export default function MyProfile() {
       if (response.data.success) {
         setAdminData(response.data.data); // Update UI with fresh saved data
         setProfilePic(null); // Clear pending file upload since it's now saved
+        await refresh();
         setShowSuccessModal(true); // Show custom success modal
       }
     } catch (error: any) {

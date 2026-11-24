@@ -22,6 +22,7 @@ use App\Http\Controllers\SchoolProfileController;
 use App\Http\Controllers\BrandingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\StudentActivityController;
 
 // Public landing-page endpoints (no auth — consumed by logged-out visitors)
 Route::get('/api/public/schools', [PublicController::class, 'schools']);
@@ -90,6 +91,10 @@ Route::get('/api/classes/{id}/students', [ClassController::class, 'getStudents']
 Route::post('/api/classes/{id}/students', [ClassController::class, 'addStudent']);
 Route::delete('/api/classes/{id}/students/{studentId}', [ClassController::class, 'removeStudent']);
 Route::put('/api/classes/{id}/students/{studentId}/transfer', [ClassController::class, 'transferStudent']);
+
+// Student Assignment in Co-Curricular & Sport
+Route::get('/api/students/{studentId}/activities', [StudentActivityController::class, 'show']);
+Route::post('/api/students/{studentId}/activities', [StudentActivityController::class, 'sync']);
 
 // Co-Curricular Management
 Route::get('/api/co-curriculars', [CoCurricularController::class, 'index']);

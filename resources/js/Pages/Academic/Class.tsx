@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, X, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
 import { ExportButtons } from '../../Components/dashboard/ExportButtons';
@@ -48,6 +48,16 @@ interface Teacher {
 type SortColumn = 'name' | 'teacher' | 'totalStudents' | 'capacity' | 'sessionName';
 type SortDirection = 'asc' | 'desc';
 
+const DARJAH_OPTIONS = [
+  { value: 'Prasekolah', label: 'Prasekolah' },
+  { value: '1', label: '1 (Darjah 1)' },
+  { value: '2', label: '2 (Darjah 2)' },
+  { value: '3', label: '3 (Darjah 3)' },
+  { value: '4', label: '4 (Darjah 4)' },
+  { value: '5', label: '5 (Darjah 5)' },
+  { value: '6', label: '6 (Darjah 6)' },
+];
+
 // ─── Add Class Modal ───────────────────────────────────────────────────────────
 const AddClassModal = ({
   onClose,
@@ -58,20 +68,26 @@ const AddClassModal = ({
   teachers: Teacher[];
   onSaved: (newClass: ClassItem) => void;
 }) => {
-  const [name, setName] = useState('');
+  const [darjah, setDarjah] = useState('');
+  const [className, setClassName] = useState('');
   const [teacherId, setTeacherId] = useState('');
   const [capacity, setCapacity] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const combinedClassName =
+    darjah && className.trim() ? `${darjah} ${className.trim()}` : '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name.trim()) { setError('Class name is required.'); return; }
+    if (!darjah) { setError('Please select a Darjah / Level.'); return; }
+    if (!className.trim()) { setError('Class name is required.'); return; }
+
     setSaving(true);
     try {
       const res = await axios.post('/api/classes', {
-        name: name.trim(),
+        name: combinedClassName,
         teacher_id: teacherId || null,
         capacity: capacity ? Number(capacity) : null,
       });
@@ -109,18 +125,45 @@ const AddClassModal = ({
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
 
+              {/* Darjah / Level */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-gray-700">
+                  <span className="text-red-500 mr-1">*</span> Darjah
+                </label>
+                <div className="relative">
+                  <select
+                    value={darjah}
+                    onChange={(e) => setDarjah(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all appearance-none text-gray-700 cursor-pointer"
+                  >
+                    <option value="">Select Darjah...</option>
+                    {DARJAH_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+
               {/* Class Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-gray-700">
-                  <span className="text-red-500 mr-1">*</span> Class Name e.g. "1 Merah"
+                  <span className="text-red-500 mr-1">*</span> Class Name e.g. "Bestari", "Pintar"
                 </label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Class Name"
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  placeholder="e.g. Bestari"
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
                 />
+                {combinedClassName && (
+                  <p className="text-xs text-gray-500">
+                    Saved as: <span className="font-bold text-role">{combinedClassName}</span>
+                  </p>
+                )}
               </div>
 
               {/* Classroom Teacher */}
@@ -327,6 +370,7 @@ const ClassList = () => {
   // Session States
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('all');
+  const [selectedDarjah, setSelectedDarjah] = useState<string>('all');
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -346,6 +390,10 @@ const ClassList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [view, setView] = useState<'list' | 'add_student'>('list');
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+
 
   // 1. Initial Load: Fetch Sessions First
   useEffect(() => {
@@ -408,11 +456,20 @@ const ClassList = () => {
   console.log(classes)
 
   // ── Filtered & Sorted & Paginated list ──────────────────────────────────────
-  const filtered = classes.filter(
-    (c) =>
+  const filtered = classes.filter((c) => {
+    const matchesSearch =
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.teacher.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      c.teacher.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+    if (selectedDarjah === 'all') return true;
+
+    const isPrasekolah = /pra/i.test(c.name);
+    if (selectedDarjah === 'Prasekolah') return isPrasekolah;
+
+    const levelMatch = c.name.match(/\d/);
+    return !isPrasekolah && levelMatch?.[0] === selectedDarjah;
+  });
 
   const sortedClasses = [...filtered].sort((a, b) => {
     let aValue: any = a[sortColumn];
@@ -448,25 +505,33 @@ const ClassList = () => {
     setCurrentPage(1); // Reset to first page on sort
   };
 
-  const handleSaved = (newClass: ClassItem) => {
-    setClasses((prev) => [...prev, newClass].sort((a, b) => a.name.localeCompare(b.name)));
+  const handleCloseSuccessModal = () => {
+    setSuccessMessage(null);
+    window.location.reload();
   };
 
-  const handleUpdated = async () => {
-    await fetchData(selectedSessionId);
+  const handleSaved = (newClass: ClassItem) => {
+    setClasses((prev) => [...prev, newClass].sort((a, b) => a.name.localeCompare(b.name)));
+    setSuccessMessage(`Class "${newClass.name}" has been successfully added.`);
+  };
+
+  const handleUpdated = (updatedName?: string) => {
+    const label = updatedName || selectedClass?.name || 'Class';
     setIsEditModalOpen(false);
     setSelectedClass(null);
+    setSuccessMessage(`Class "${label}" has been successfully updated.`);
   };
 
   const handleConfirmDelete = async () => {
     if (!deletingId) return;
+    const deletedName = selectedClass?.name || 'Class';
     try {
       await axios.delete(`/api/classes/${deletingId}`);
       setClasses((prev) => prev.filter((c) => c.id !== deletingId));
-      // Adjust page if we delete the last item on the current page
       if (currentData.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
+      setSuccessMessage(`Class "${deletedName}" has been successfully deleted.`);
     } catch {
       alert('Failed to delete class. Please try again.');
     } finally {
@@ -534,6 +599,29 @@ const ClassList = () => {
               />
 
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+
+                {/* DARJAH / LEVEL FILTER DROPDOWN */}
+                <div className="relative w-full sm:w-44">
+                  <select
+                    value={selectedDarjah}
+                    onChange={(e) => {
+                      setSelectedDarjah(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
+                  >
+                    <option value="all">All Levels</option>
+                    <option value="Prasekolah">Prasekolah</option>
+                    <option value="1">Darjah 1</option>
+                    <option value="2">Darjah 2</option>
+                    <option value="3">Darjah 3</option>
+                    <option value="4">Darjah 4</option>
+                    <option value="5">Darjah 5</option>
+                    <option value="6">Darjah 6</option>
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
+
                 {/* SESSION FILTER DROPDOWN */}
                 <div className="relative w-full sm:w-48">
                   <select
@@ -737,6 +825,33 @@ const ClassList = () => {
             title="Delete Class?"
             message={`Are you sure you want to delete class ${selectedClass?.name}? This action cannot be undone.`}
           />
+        )}
+        {successMessage && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={handleCloseSuccessModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-8 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle size={40} className="text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-role mb-2">Success!</h3>
+              <p className="text-gray-500 mb-8">{successMessage}</p>
+              <button
+                type="button"
+                onClick={handleCloseSuccessModal}
+                className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+              >
+                Done
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

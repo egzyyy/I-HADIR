@@ -236,7 +236,7 @@ const ImportApdm = () => {
           <div>
             <h2 className="text-2xl font-bold text-role">Import APDM Data</h2>
             <div className="mt-2 space-y-1 text-sm text-gray-500">
-              <p>Import official MOE APDM student records into the school attendance system.</p>
+              <p>Import official MOE APDM student records from Sistem Pengurusan IDentiti (idMe) into the school attendance system.</p>
               <p className="text-emerald-700 font-medium flex items-center gap-1.5 pt-1">
                 <CheckCircle size={15} /> All 61 official APDM columns detected, previewed, and saved.
               </p>

@@ -42,10 +42,10 @@ type Role = 'Admin' | 'Teacher' | 'Security';
 // Class strings must be written out in full — Tailwind can't see interpolated values.
 // 'Staff' has no sidebar yet; it's here so the colour is settled when that role lands.
 const SIDEBAR_BG: Record<Role | 'Staff', string> = {
-  Admin:    'bg-[#1E40AF]',   // Academic Navy
-  Teacher:  'bg-[#0C5A5A]',   // Dark Cyan
+  Admin: 'bg-[#1E40AF]',   // Academic Navy
+  Teacher: 'bg-[#0C5A5A]',   // Dark Cyan
   Security: 'bg-[#4B3BA6]',   // Bright Indigo
-  Staff:    'bg-[#2A5675]',   // Harbour Blue
+  Staff: 'bg-[#2A5675]',   // Harbour Blue
 };
 
 // The same four colours as space-separated RGB, feeding --role-rgb so the content
@@ -54,18 +54,18 @@ const SIDEBAR_BG: Record<Role | 'Staff', string> = {
 // channels raw — that's what makes bg-role/10 and ring-role/10 work.
 // All four clear 7.8:1 as text on white, so they're safe as foreground too.
 const ROLE_RGB: Record<Role | 'Staff', string> = {
-  Admin:    '30 64 175',      // #1E40AF
-  Teacher:  '12 90 90',       // #0C5A5A
+  Admin: '30 64 175',      // #1E40AF
+  Teacher: '12 90 90',       // #0C5A5A
   Security: '75 59 166',      // #4B3BA6
-  Staff:    '42 86 117',      // #2A5675
+  Staff: '42 86 117',      // #2A5675
 };
 
 // Darker step of each, for hover on filled buttons and the submenu panel.
 const ROLE_DARK_RGB: Record<Role | 'Staff', string> = {
-  Admin:    '24 47 132',      // #182F84
-  Teacher:  '9 67 67',        // #094343
+  Admin: '24 47 132',      // #182F84
+  Teacher: '9 67 67',        // #094343
   Security: '58 46 128',      // #3A2E80
-  Staff:    '32 65 89',       // #204159
+  Staff: '32 65 89',       // #204159
 };
 
 const ROLE_META: Record<Role, { initial: string; name: string; title: string; email: string }> = {
@@ -100,7 +100,7 @@ const ADMIN_MENU: MenuSection[] = [
         icon: Users,
         subItems: [
           { id: 'user-registration', label: 'User Registration' },
-          { id: 'import-apdm', label: 'APDM' },
+          { id: 'import-apdm', label: 'APDM (idMe)' },
           { id: 'user-list', label: 'User List' },
           { id: 'visitor-list', label: 'Visitor List' }
         ]
@@ -153,7 +153,7 @@ const ADMIN_MENU: MenuSection[] = [
   {
     category: "SUPPORT",
     items: [
-      { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+      // { id: 'faqs', label: 'FAQs', icon: HelpCircle },
       { id: 'logout', label: 'Log Out', icon: LogOut, action: 'logout' }
     ]
   }
@@ -190,8 +190,8 @@ const TEACHER_MENU: MenuSection[] = [
         label: 'Academic',
         icon: GraduationCap,
         subItems: [
-          { id: 'class', label: 'Class' },
-          { id: 'user-list', label: 'Student List' },
+          { id: 'class', label: 'My Class' },
+          { id: 'user-list', label: 'My Student List' },
           { id: 'my-cocu-sport', label: 'My Co-Curricular / Sport' }
         ]
       }
@@ -221,7 +221,7 @@ const TEACHER_MENU: MenuSection[] = [
   {
     category: "SUPPORT",
     items: [
-      { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+      // { id: 'faqs', label: 'FAQs', icon: HelpCircle },
       { id: 'logout', label: 'Log Out', icon: LogOut, action: 'logout' }
     ]
   }
@@ -259,7 +259,7 @@ const SECURITY_MENU: MenuSection[] = [
   {
     category: "SUPPORT",
     items: [
-      { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+      // { id: 'faqs', label: 'FAQs', icon: HelpCircle },
       { id: 'logout', label: 'Log Out', icon: LogOut, action: 'logout' }
     ]
   }
@@ -366,6 +366,13 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
   const sidebarBg = SIDEBAR_BG[currentRole];
   const roleRgb = ROLE_RGB[currentRole];
   const roleDarkRgb = ROLE_DARK_RGB[currentRole];
+
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const avatarUrl = user?.profilePic && !avatarFailed ? user.profilePic : null;
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [user?.profilePic]);
 
   const handleLogout = () => {
     axios.post('/logout').finally(() => {
@@ -622,8 +629,17 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors"
                 onClick={() => setAdminDropdownOpen(!isAdminDropdownOpen)}
               >
-                <div className="w-10 h-10 rounded-lg bg-role flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20">
-                  {(user?.name?.[0] ?? roleMeta.initial).toUpperCase()}
+                <div className="w-10 h-10 rounded-lg bg-role flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20 overflow-hidden flex-shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={user?.name ?? roleMeta.name}
+                      onError={() => setAvatarFailed(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    (user?.name?.[0] ?? roleMeta.initial).toUpperCase()
+                  )}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-bold text-role leading-tight">{user?.name ?? roleMeta.name}</p>

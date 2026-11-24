@@ -29,6 +29,7 @@ import EventPage from './Pages/Academic/Event';
 import EventScanPage from './Pages/Academic/EventScan';
 import PublicEventRegistration from './Pages/Academic/PublicEventRegistration';
 import MyCocuSport from './Pages/Academic/MyCocuSport';
+import AssignStudentActivitiesPage from './Pages/Users/AssignStudentActivities';
 
 // Pages — Attendance Log dropdown (folder)
 import CheckIn from './Pages/AttendanceLog/CheckIn';
@@ -103,6 +104,7 @@ root.render(
         <Route path="/users/apdm" element={<RequireRole allow={ADMIN}><Apdm /></RequireRole>} />
         <Route path="/users/list" element={<RequireRole allow={ADMIN_TEACHER}><UserList /></RequireRole>} />
         <Route path="/users/visitor-list" element={<RequireRole allow={ADMIN_SECURITY}><VisitorList /></RequireRole>} />
+        <Route path="/users/students/:studentId/activities" element={<AssignStudentActivitiesPage />} />
 
         {/* Academic (dropdown) */}
         <Route path="/academic/class" element={<RequireRole allow={ADMIN_TEACHER}><ClassPage /></RequireRole>} />

@@ -169,6 +169,35 @@ class SportHouseController extends Controller
 
         $sportHouse = SportHouse::findOrFail($sportHouseId);
 
+        if ($request->boolean('all_enrolled')) {
+            $enrolledStudents = DB::table('sport_house_student')
+                ->join('students', 'sport_house_student.student_id', '=', 'students.student_id')
+                ->leftJoin('enrollments', function ($join) use ($sessionId) {
+                    $join->on('students.student_id', '=', 'enrollments.student_id')
+                        ->where('enrollments.school_session_id', '=', $sessionId);
+                })
+                ->leftJoin('classrooms', 'enrollments.classroom_id', '=', 'classrooms.classroom_id')
+                ->where('sport_house_student.sport_house_id', $sportHouseId)
+                ->where('sport_house_student.school_session_id', $sessionId)
+                ->where('sport_house_student.school_id', $schoolId)
+                ->whereNull('students.deleted_at')
+                ->orderBy('classrooms.name')
+                ->orderBy('students.name')
+                ->select(
+                    'students.student_id',
+                    'students.name',
+                    'students.ic_number',
+                    'students.gender',
+                    DB::raw("COALESCE(classrooms.name, '-') as class_name")
+                )
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $enrolledStudents,
+            ]);
+        }
+
         // Find all students in this class for the active session
         $students = Student::where('school_id', $schoolId)
             ->whereHas('enrollments', function ($q) use ($classroomId, $sessionId) {
