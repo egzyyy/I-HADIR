@@ -536,6 +536,7 @@ class UserController extends Controller
                 'role' => $this->resolveRole($user),
                 'school_name' => $school?->name,
                 'school_logo' => $school?->logo_path ? Storage::url($school->logo_path) : null,
+                'profile_pic' => $user->profile_pic_path ? Storage::url($user->profile_pic_path) : null,
             ],
         ]);
     }

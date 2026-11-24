@@ -361,6 +361,13 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
   const roleRgb = ROLE_RGB[currentRole];
   const roleDarkRgb = ROLE_DARK_RGB[currentRole];
 
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const avatarUrl = user?.profilePic && !avatarFailed ? user.profilePic : null;
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [user?.profilePic]);
+
   const handleLogout = () => {
     axios.post('/logout').finally(() => {
       clear();
@@ -615,8 +622,17 @@ export default function DashboardLayout({ children, activePageId = 'dashboard' }
                 className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-xl transition-colors"
                 onClick={() => setAdminDropdownOpen(!isAdminDropdownOpen)}
               >
-                <div className="w-10 h-10 rounded-lg bg-role flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20">
-                  {(user?.name?.[0] ?? roleMeta.initial).toUpperCase()}
+                <div className="w-10 h-10 rounded-lg bg-role flex items-center justify-center text-white font-bold shadow-md shadow-blue-900/20 overflow-hidden flex-shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={user?.name ?? roleMeta.name}
+                      onError={() => setAvatarFailed(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    (user?.name?.[0] ?? roleMeta.initial).toUpperCase()
+                  )}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-bold text-role leading-tight">{user?.name ?? roleMeta.name}</p>

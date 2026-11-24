@@ -13,6 +13,7 @@ import {
     Check,
     Award,
     Users,
+    Lock,
 } from 'lucide-react';
 import axios from 'axios';
 import DashboardLayout from '../../Layouts/DashboardLayout';
@@ -44,6 +45,13 @@ interface StudentSummary {
     session_year?: string;
 }
 
+const isCoCurricularIneligible = (classroom?: string | null): boolean => {
+    if (!classroom) return false;
+    if (/pra/i.test(classroom)) return true;
+    const match = classroom.match(/\d/);
+    return Boolean(match && ['1', '2', '3'].includes(match[0]));
+};
+
 const AssignStudentActivitiesContent = () => {
     const { studentId } = useParams<{ studentId: string }>();
     const [searchParams] = useSearchParams();
@@ -66,6 +74,11 @@ const AssignStudentActivitiesContent = () => {
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    const isCoCurricularDisabled = useMemo(
+        () => isCoCurricularIneligible(student?.classroom),
+        [student?.classroom]
+    );
+
     useEffect(() => {
         if (!studentId) return;
 
@@ -78,12 +91,15 @@ const AssignStudentActivitiesContent = () => {
                 });
 
                 if (res.data.success) {
-                    setStudent(res.data.student);
+                    const loadedStudent: StudentSummary = res.data.student;
+                    setStudent(loadedStudent);
                     setSportHouses(res.data.sport_houses || []);
                     setCoCurriculars(res.data.co_curriculars || []);
 
                     const assignedSport = res.data.assigned?.sport_house_id ?? null;
-                    const assignedCo = res.data.assigned?.co_curricular_id ?? null;
+                    const assignedCo = isCoCurricularIneligible(loadedStudent?.classroom)
+                        ? null
+                        : (res.data.assigned?.co_curricular_id ?? null);
 
                     setInitialSportHouseId(assignedSport);
                     setInitialCoCurricularId(assignedCo);
@@ -120,7 +136,7 @@ const AssignStudentActivitiesContent = () => {
             const res = await axios.post(`/api/students/${studentId}/activities`, {
                 session_id: sessionId || null,
                 sport_house_id: selectedSportHouseId,
-                co_curricular_id: selectedCoCurricularId,
+                co_curricular_id: isCoCurricularDisabled ? null : selectedCoCurricularId,
             });
 
             if (res.data.success) {
@@ -250,12 +266,6 @@ const AssignStudentActivitiesContent = () => {
                                                 >
                                                     <div className="flex items-start justify-between gap-2 w-full">
                                                         <div className="flex items-center gap-2.5 min-w-0">
-                                                            {/* {house.color && (
-                                <span
-                                  className="w-3.5 h-3.5 rounded-full flex-shrink-0 border border-black/10"
-                                  style={{ backgroundColor: house.color }}
-                                />
-                              )} */}
                                                             <h4 className="font-bold text-sm text-gray-800 truncate">{house.name}</h4>
                                                         </div>
                                                         <div
@@ -289,60 +299,82 @@ const AssignStudentActivitiesContent = () => {
                         </div>
 
                         {/* 2. CO-CURRICULAR SECTION */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${isCoCurricularDisabled ? 'opacity-75' : ''}`}>
                             <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div>
                                     <h3 className="text-lg font-bold text-role flex items-center gap-2">
                                         <Trophy size={18} className="text-[#c53336]" /> Co-Curricular
+                                        {isCoCurricularDisabled && (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <Lock size={11} /> Darjah 4–6 Only
+                                            </span>
+                                        )}
                                     </h3>
-                                    <p className="text-xs text-gray-400 mt-0.5">Select 1 co-curricular club for this session.</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                        {isCoCurricularDisabled
+                                            ? `Co-curricular enrollment is disabled for ${student?.classroom}.`
+                                            : 'Select 1 co-curricular club for this session.'}
+                                    </p>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    {selectedCoCurricularId && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedCoCurricularId(null)}
-                                            className="text-xs font-bold text-red-500 hover:underline whitespace-nowrap"
-                                        >
-                                            Clear Selection
-                                        </button>
-                                    )}
-                                    <div className="relative w-full sm:w-60">
-                                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            value={coSearch}
-                                            onChange={(e) => setCoSearch(e.target.value)}
-                                            placeholder="Search club or teacher..."
-                                            className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:border-role focus:bg-white outline-none transition-all"
-                                        />
+                                {!isCoCurricularDisabled && (
+                                    <div className="flex items-center gap-3">
+                                        {selectedCoCurricularId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedCoCurricularId(null)}
+                                                className="text-xs font-bold text-red-500 hover:underline whitespace-nowrap"
+                                            >
+                                                Clear Selection
+                                            </button>
+                                        )}
+                                        <div className="relative w-full sm:w-60">
+                                            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={coSearch}
+                                                onChange={(e) => setCoSearch(e.target.value)}
+                                                placeholder="Search club or teacher..."
+                                                className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:border-role focus:bg-white outline-none transition-all"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
-                            <div className="p-6">
+                            <div className="p-6 space-y-4">
+                                {isCoCurricularDisabled && (
+                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center gap-3">
+                                        <AlertCircle size={18} className="flex-shrink-0 text-amber-600" />
+                                        <span>
+                                            Students in <strong>Prasekolah</strong> and <strong>Darjah 1–3</strong> are not eligible for Co-Curricular enrollment. Only <strong>Darjah 4, 5, and 6</strong> students can be assigned.
+                                        </span>
+                                    </div>
+                                )}
+
                                 {filteredCoCurriculars.length === 0 ? (
                                     <p className="text-center py-6 text-sm text-gray-400">No active co-curricular clubs found.</p>
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {filteredCoCurriculars.map((club) => {
-                                            const isSelected = selectedCoCurricularId === club.id;
+                                            const isSelected = !isCoCurricularDisabled && selectedCoCurricularId === club.id;
                                             const isFull =
                                                 club.capacity !== null &&
                                                 club.current_enrolled >= club.capacity &&
                                                 initialCoCurricularId !== club.id;
+                                            const isDisabled = isCoCurricularDisabled || isFull;
 
                                             return (
                                                 <button
                                                     key={club.id}
                                                     type="button"
-                                                    disabled={isFull}
-                                                    onClick={() =>
-                                                        setSelectedCoCurricularId(isSelected ? null : club.id)
-                                                    }
-                                                    className={`text-left rounded-xl border p-4 transition-all flex flex-col justify-between gap-3 ${isFull
-                                                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                                                    disabled={isDisabled}
+                                                    onClick={() => {
+                                                        if (isCoCurricularDisabled) return;
+                                                        setSelectedCoCurricularId(isSelected ? null : club.id);
+                                                    }}
+                                                    className={`text-left rounded-xl border p-4 transition-all flex flex-col justify-between gap-3 ${isDisabled
+                                                        ? 'border-gray-200 bg-gray-50 opacity-55 cursor-not-allowed'
                                                         : isSelected
                                                             ? 'border-role bg-role/5 ring-2 ring-role/20 shadow-sm cursor-pointer'
                                                             : 'border-gray-200 bg-white hover:border-role/40 hover:bg-gray-50/50 cursor-pointer'
@@ -398,7 +430,7 @@ const AssignStudentActivitiesContent = () => {
                             </div>
                             <h3 className="text-2xl font-bold text-role mb-2">Saved!</h3>
                             <p className="text-gray-500 mb-8">
-                                Sport house and co-curricular assignments for{' '}
+                                Sport house{isCoCurricularDisabled ? '' : ' and co-curricular'} assignments for{' '}
                                 <span className="font-bold text-gray-800">{student?.name}</span> have been updated.
                             </p>
                             <button

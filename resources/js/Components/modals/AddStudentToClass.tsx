@@ -245,6 +245,13 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
       {/* Top Header / Breadcrumb Bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-full text-role transition-colors shadow-sm flex-shrink-0"
+            title="Back to Class List"
+          >
+            <ArrowLeft size={18} />
+          </button>
           <div className="p-2 bg-role/5 rounded-lg">
             <Users size={20} className="text-role" />
           </div>
@@ -277,13 +284,10 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
 
           {/* Class Info Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-fit">
-            <div className="bg-gradient-to-r from-role to-[#2a4595] px-6 py-4 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-role to-[#2a4595] px-6 py-4 flex items-center">
               <h3 className="text-white font-bold text-base flex items-center gap-2">
                 <Hash size={18} className="text-blue-200" /> Class Details
               </h3>
-              <button onClick={onBack} className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors" title="Back to Class List">
-                <ArrowLeft size={18} />
-              </button>
             </div>
             <div className="p-6">
               <div className="flex flex-col gap-4">
@@ -439,8 +443,8 @@ export const AddStudentToClass = ({ onBack, classId, classNameStr, isTeacher, cl
                         <td className="py-4 px-6 text-sm text-gray-500 font-medium">{student.phone}</td>
                         <td className="py-4 px-6">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${student.gender?.toLowerCase() === 'male'
-                              ? 'bg-blue-50 text-blue-600 border-blue-100'
-                              : 'bg-pink-50 text-pink-600 border-pink-100'
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
+                            : 'bg-pink-50 text-pink-600 border-pink-100'
                             }`}>
                             {student.gender?.toUpperCase() ?? '-'}
                           </span>

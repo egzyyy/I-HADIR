@@ -46,6 +46,7 @@ const UserListUnified = () => {
   const [activeTab, setActiveTab] = useState<'student' | 'teacher' | 'staff'>('student');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedClass, setSelectedClass] = useState<string>('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 100;
 
@@ -109,17 +110,51 @@ const UserListUnified = () => {
     }
   }, [selectedSessionId]);
 
-  // Filter Data based on Active Tab and Search Query
+  // Distinct assigned classes for Admin's Student tab filter (Prasekolah first, then 1–6)
+  const availableClasses = useMemo(() => {
+    const students = allUsers.student || [];
+    const uniqueClasses = Array.from(
+      new Set(
+        students
+          .map((s: any) => formatRoleLabel(s.role, 'student'))
+          .filter((cls: string) => cls && cls !== '-' && cls.toLowerCase() !== 'unassigned')
+      )
+    );
+
+    return uniqueClasses.sort((a, b) => {
+      const aIsPra = /pra/i.test(a);
+      const bIsPra = /pra/i.test(b);
+      if (aIsPra && !bIsPra) return -1;
+      if (!aIsPra && bIsPra) return 1;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [allUsers.student]);
+
+  // Filter Data based on Active Tab, Class Filter, Assigned Status, and Search Query
   const activeData = allUsers[activeTab] || [];
   const filteredData = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return activeData.filter((user: any) =>
-      user.name.toLowerCase().includes(q) ||
-      user.phone.includes(searchQuery) ||
-      (isTeacherView && (user.sport_house || '').toLowerCase().includes(q)) ||
-      (isTeacherView && (user.co_curricular || '').toLowerCase().includes(q))
-    );
-  }, [activeData, searchQuery, isTeacherView]);
+    return activeData.filter((user: any) => {
+      if (activeTab === 'student') {
+        const classLabel = formatRoleLabel(user.role, 'student');
+        // Exclude students whose class is unassigned
+        if (!classLabel || classLabel === '-' || classLabel.toLowerCase() === 'unassigned') {
+          return false;
+        }
+        // Apply Admin class filter on Student tab
+        if (!isTeacherView && selectedClass !== 'all' && classLabel !== selectedClass) {
+          return false;
+        }
+      }
+
+      return (
+        user.name.toLowerCase().includes(q) ||
+        user.phone.includes(searchQuery) ||
+        (isTeacherView && (user.sport_house || '').toLowerCase().includes(q)) ||
+        (isTeacherView && (user.co_curricular || '').toLowerCase().includes(q))
+      );
+    });
+  }, [activeData, activeTab, searchQuery, isTeacherView, selectedClass]);
 
   // Sort Data
   const sortedData = useMemo(() => {
@@ -488,6 +523,7 @@ const UserListUnified = () => {
                       setActiveTab(tab);
                       setCurrentPage(1);
                       setSearchQuery('');
+                      setSelectedClass('all');
                       setSortColumn(null);
                     }}
                     className={`px-6 py-2 rounded-md text-sm font-bold transition-all capitalize ${activeTab === tab ? 'bg-white text-role shadow-sm' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
@@ -517,7 +553,11 @@ const UserListUnified = () => {
                 <div className="relative w-full sm:w-48">
                   <select
                     value={selectedSessionId}
-                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedSessionId(e.target.value);
+                      setSelectedClass('all');
+                      setCurrentPage(1);
+                    }}
                     className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
                   >
                     <option value="all">All Time History</option>
@@ -529,6 +569,28 @@ const UserListUnified = () => {
                   </select>
                   <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+
+                {/* CLASS FILTER DROPDOWN (Admin on Student tab) */}
+                {!isTeacherView && activeTab === 'student' && (
+                  <div className="relative w-full sm:w-48">
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => {
+                        setSelectedClass(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-50 outline-none bg-gray-50 focus:bg-white transition-all appearance-none cursor-pointer text-role font-semibold"
+                    >
+                      <option value="all">All Classes</option>
+                      {availableClasses.map((cls) => (
+                        <option key={cls} value={cls}>
+                          {cls}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                )}
 
                 {/* SEARCH BAR */}
                 <div className="relative w-full sm:w-64">
@@ -561,7 +623,7 @@ const UserListUnified = () => {
                       onClick={() => handleSort('role')}
                       className="px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-50 cursor-pointer hover:bg-gray-100 select-none transition-colors"
                     >
-                      {isTeacherView ? 'Class' : 'Role/Class'} <SortIcon column="role" />
+                      {isTeacherView || activeTab === 'student' ? 'Class' : 'Role/Class'} <SortIcon column="role" />
                     </th>
                     {isTeacherView && (
                       <>
@@ -625,7 +687,7 @@ const UserListUnified = () => {
                           </>
                         )}
                         <td className="px-4 py-3 text-center">
-                          <div className="flex   justify-center items-center gap-2">
+                          <div className="flex justify-center items-center gap-2">
                             <button onClick={() => { setQrUser(item); setIsQrModalOpen(true); }} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100" title="View QR Code">
                               <QrCode size={16} />
                             </button>
